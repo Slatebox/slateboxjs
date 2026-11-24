@@ -10,6 +10,7 @@ import { expect, test, type Page } from '@playwright/test'
  * token at Refund request; ?lanes&confirm: Now and Later (holds 1), Gamma allowed only in Now.
  */
 
+const dialog = (page: Page) => page.getByRole('alertdialog', { name: 'Move anyway?' })
 async function open(page: Page, kind: string) {
   await page.goto('/tests/fixtures/native-workshop.html?' + kind)
   await page.waitForFunction(() => (window as any).native?.ready === true)
@@ -96,3 +97,32 @@ test('without a host that confirms, a refused drop is only refused (as it always
   expect(await cards(page)).toBe('token@request')
   await expect(page.getByRole('alertdialog')).toHaveCount(0)
 })
+
+test('keyboard: Right toward a lane the card may not go in asks, never skips it; Escape cancels and the focus comes back; Enter moves it anyway', async ({ page }) => {
+  await open(page, 'lanes&confirm')
+  const live = page.locator('#slate [aria-live]')
+  const card = await resting(page, 'card-gamma')
+  await page.mouse.click(card!.x + card!.width / 2, card!.y + card!.height / 2)
+  await page.waitForTimeout(250)
+  const focused = await page.evaluate(() => document.activeElement?.tagName ?? null)
+  // Gamma may go only in Now: Right asks about Later (the next lane), with the rule.
+  await page.keyboard.press('ArrowRight')
+  await expect(dialog(page)).toContainText("Move Gamma to Later anyway? This card can't go in Later.")
+  await expect(live).toContainText("Gamma can't move to Later by this board's rules. This card can't go in Later. Move it anyway?")
+  // The dialog takes the keyboard: Move anyway has the focus.
+  await expect(dialog(page).getByRole('button', { name: 'Move anyway' })).toBeFocused()
+  await page.keyboard.press('Escape')
+  await expect(dialog(page)).toHaveCount(0)
+  // Cancelled: nothing moved, nothing saved, and the focus is back where the keys were.
+  expect(await cards(page)).toBe('alpha@now beta@now gamma@now')
+  expect(await changes(page)).toEqual([])
+  expect(await page.evaluate(() => document.activeElement?.tagName ?? null)).toBe(focused)
+  // The card is still selected: Right asks again, and Enter on Move anyway moves it, marked.
+  await page.keyboard.press('ArrowRight')
+  await expect(dialog(page)).toHaveCount(1)
+  await page.keyboard.press('Enter')
+  await expect.poll(() => cards(page)).toBe('alpha@now beta@now gamma@later')
+  expect((await changes(page)).at(-1)).toEqual({ cardId: 'gamma', laneId: 'later', override: true })
+  expect(await page.evaluate(() => (window as any).native.board.value.cards[2].override)).toMatchObject({ by: 'Sam', from: 'now' })
+})
+

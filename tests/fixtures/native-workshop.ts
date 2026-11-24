@@ -93,6 +93,8 @@ if (!params.has('empty')) {
  */
 function confirmOverride(ask: { card: string; lane: string; reason: string }) {
   log.asks.push(ask)
+  // As the app's dialog: Move anyway has the focus, Escape cancels, and the focus goes back where it was.
+  const back = document.activeElement as HTMLElement | null
   return new Promise<boolean>(resolve => {
     const dialog = document.createElement('div')
     dialog.setAttribute('role', 'alertdialog')
@@ -100,12 +102,14 @@ function confirmOverride(ask: { card: string; lane: string; reason: string }) {
     dialog.style.cssText = 'position:fixed;left:50%;top:20px;transform:translateX(-50%);background:#fff;padding:12px;border:1px solid #333;z-index:10'
     const words = document.createElement('p')
     words.textContent = `Move ${ask.card} to ${ask.lane} anyway? ${ask.reason}`
-    const answer = (yes: boolean) => () => { dialog.remove(); resolve(yes) }
+    const answer = (yes: boolean) => () => { dialog.remove(); back?.focus?.(); resolve(yes) }
     const yes = document.createElement('button'), no = document.createElement('button')
     yes.textContent = 'Move anyway'; no.textContent = 'Cancel'
     yes.onclick = answer(true); no.onclick = answer(false)
+    dialog.addEventListener('keydown', event => { if (event.key === 'Escape') { event.stopPropagation(); answer(false)() } })
     dialog.append(words, yes, no)
     document.body.append(dialog)
+    yes.focus()
   })
 }
 

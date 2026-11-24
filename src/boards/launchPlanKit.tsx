@@ -7,8 +7,8 @@
 // a soft line lets a bar past it, in red. The hiring plan is the same kit: each hire's recruiting bar,
 // then its cost to the plan's end, the runway readout and the funding round's line; on a phone it is read-only.
 import { lessThan, moreThan, param } from 'dragology'
-import { laneColors, type BoardLayerState, type Workshop, type WorkshopBoardKit, type WorkshopBoardLayout, type PartPlace, type WorkshopEdit } from '../workshops/model'
-import { cascadeStops, dayWords, dragTaskEdge, holdOthers, launchFinish, launchHard, launchLinkRefusal, launchOverrun, launchPlanLimits, legalRuns, lineWord, moveLaunch, movePlanStart, planWeeksProblem, scheduleLaunch, snapStep, startHandle, startHandleCard, tryTask, withLink, withTaskValue, type EdgeValues, type TaskEdge } from '../workshops/launchPlan'
+import { laneColors, workshopOverrideLine, type BoardLayerState, type Workshop, type WorkshopBoardKit, type WorkshopBoardLayout, type PartPlace, type WorkshopEdit } from '../workshops/model'
+import { waitsRefusal, cascadeStops, dayWords, dragTaskEdge, holdOthers, launchFinish, launchHard, launchLinkRefusal, launchOverrun, launchPlanLimits, legalRuns, lineWord, moveLaunch, movePlanStart, planWeeksProblem, scheduleLaunch, snapStep, startHandle, startHandleCard, tryTask, withLink, withTaskValue, type EdgeValues, type TaskEdge } from '../workshops/launchPlan'
 import { checkTime, pastTheLine } from '../workshops/timeRules'
 import { clockOf, dayMap, isoAt, offsetOf, shortDate, weekdayAt } from '../workshops/calendar'
 import { hireStarts, runwayMonths, runwayWords } from '../workshops/hiringPlan'
@@ -16,6 +16,7 @@ import { money } from '../workshops/numbers'
 import { createBoardLayer, layerInk, type LayerShape } from '../workshops/boardLayer'
 import { headlessDrag, inside, partsGeometry } from '../workshops/boardSpecs'
 import { tint } from './shared'
+import { brokenWaits } from '../workshops/schedule'
 import { handleLabel, launchLinkTargets, partNotes, workshopEditsBetween } from './readouts'
 
 const CRITICAL = '#c2410c'
@@ -169,16 +170,22 @@ function paint(board: Workshop, state: BoardLayerState): LayerShape[] {
     const label = !clock ? (g.narrow ? 'W' : 'Week ') + (d / 7 + 1) : hiring ? (month ? shortDate(isoAt(clock.origin, d)).replace(/^\d+ /, '') : '') : shortDate(isoAt(clock.origin, d))
     if (week && label && (!clock || hiring || g.dayW * 7 > 44)) shapes.push({ t: 'text', x: x + 3, y: g.axisY, text: label, color: layerInk.canvasInk, size: 12 })
   }
-  // What waits on what: elbows into each task, the critical ones in the critical colour. Click one to remove it.
+  // What waits on what: elbows into each task, the critical ones in the critical colour. Click one to remove it. A wait
+  // a task moved anyway breaks (it starts before what it waits on ends) is drawn broken, in red.
+  const broken = new Set(brokenWaits(board).map(item => item.from + '>' + item.to))
   for (const card of board.cards) {
     for (const id of card.dependsOn ?? []) {
       const from = g.bars.get(id), to = g.bars.get(card.id)
       if (!from || !to) continue
       const tight = times.get(id)!.critical && times.get(card.id)!.critical
       const before = board.cards.find(item => item.id === id)!.label
-      shapes.push({ t: 'path', ...elbow(from, to), color: tight ? CRITICAL : layerInk.ink, width: tight ? 2 : 1.5,
-        unlink: { cardId: card.id, waitsOn: id, label: `Remove the link: ${card.label} waits on ${before}` } })
+      const breaks = broken.has(id + '>' + card.id)
+      shapes.push({ t: 'path', ...elbow(from, to), color: breaks ? layerInk.refuse : tight ? CRITICAL : layerInk.ink, width: breaks || tight ? 2 : 1.5,
+        ...(breaks && { dash: '5 4', role: 'broken-' + id + '-' + card.id }),
+        unlink: { cardId: card.id, waitsOn: id, label: breaks ? `Remove the link: ${card.label} waits on ${before}, and starts before it ends` : `Remove the link: ${card.label} waits on ${before}` } })
     }
+    // A task moved anyway says so beside its bar: who and when.
+    const mark = workshopOverrideLine(card)
     const t = times.get(card.id)!, box = g.bars.get(card.id)!
     if (hiring) {
       // From the first day: the band's cost, to the plan's end.
@@ -186,21 +193,22 @@ function paint(board: Workshop, state: BoardLayerState): LayerShape[] {
       const x = box.x + box.width, end = g.x0 + day * g.dayW
       if (end > x) shapes.push({ t: 'rect', x, y: box.y + box.height / 2 - 3, w: end - x, h: 6, rx: 3, color: layerInk.bar, opacity: 0.45 })
       shapes.push({ t: 'text', x: g.narrow ? 8 : Math.min(x + 6, end - 120), y: g.narrow ? box.y - 6 : box.y + box.height / 2 - 6,
-        text: (g.narrow ? card.label + ' · ' : '') + 'starts ' + shortDate(isoAt(clock!.origin, hireStarts(board, card.id))) + (band ? ' · ' + money(band.monthly, board.hiring!.currency) + '/mo' : ''),
-        color: layerInk.ink, size: 12, role: 'start-' + card.id })
+        text: (g.narrow ? card.label + ' · ' : '') + 'starts ' + shortDate(isoAt(clock!.origin, hireStarts(board, card.id))) + (band ? ' · ' + money(band.monthly, board.hiring!.currency) + '/mo' : '') + (mark ? ' · ' + mark : ''),
+        color: mark ? layerInk.refuse : layerInk.ink, size: 12, role: 'start-' + card.id })
       continue
     }
     // On a phone a task's words sit above its own bar, from its start, clear of its grips (beside the bar, within its
     // height) and of the arrows at the plan's left; a bar too near the right edge ends its words at its end. A halo of the
     // canvas's colour keeps an arrow passing under them from cutting a letter.
     if (g.narrow) {
-      const words = `${card.label} · ${card.duration}d`
+      const words = `${card.label} · ${card.duration}d` + (mark ? ' · moved anyway' : '')
       const wide = phoneWordsWidth(words, t.critical)
       const fromStart = box.x + 2 + wide <= g.width - 8
       shapes.push({ t: 'text', x: fromStart ? box.x + 2 : Math.max(8 + wide, Math.min(g.width - 8, box.x + box.width)), anchor: fromStart ? 'start' : 'end', y: box.y - 7,
         text: words, color: layerInk.canvasInk, size: 13, bold: t.critical, halo: layerInk.halo, role: 'words-' + card.id })
     }
     if (!t.critical) shapes.push({ t: 'text', x: box.x + box.width + (g.narrow ? 48 : 24), y: box.y + box.height / 2 + 4, text: '+' + t.slack + 'd', color: g.narrow ? layerInk.canvasInk : layerInk.ink, size: 12, role: 'slack-' + card.id })
+    if (mark && !g.narrow) shapes.push({ t: 'text', x: box.x + box.width + (t.critical ? 24 : 64), y: box.y + box.height / 2 + 4, text: mark, color: layerInk.refuse, size: 12, bold: true, halo: layerInk.halo, role: 'mark-' + card.id })
   }
   // The plan's ends: its first day (a dated plan) and a hiring plan's last week, each a short bar on the grid's edge.
   if (clock && !(hiring && g.narrow)) shapes.push({ t: 'rect', x: g.x0 - 3, y: g.gridTop - 22, w: 6, h: 22, rx: 3, color: layerInk.ink, opacity: 0.7, role: 'edge-first' })
@@ -423,16 +431,25 @@ export const launchPlanKit: WorkshopBoardKit = {
     // Slid past launch: where the pointer wants the task to start.
     const card = board.cards.find(item => item.id === cardId)!
     const wanted = (card.lag ?? 0) + Math.round((point.x - grab.x - g.bars.get(cardId)!.x) / g.dayW)
+    // A drop the rules refuse may be made anyway once the person agrees (set_task with override): asked on the drop.
+    const anyway = (lag: number) => ({ edit: { kind: 'set_task' as const, card: { id: cardId }, lag }, to: 'to start ' + dayWords(board, startDay(board, cardId, lag)) })
+    const step = snapStep(board)
     if (ruled(board)) {
       // The day under the bar's start, through the calendar (a weekend is drawn, but not counted on a working-day plan).
       const t = scheduleLaunch(board).get(cardId)!
       const day = Math.round(t.from + (point.x - grab.x - g.bars.get(cardId)!.x) / g.dayW)
       const lag = (card.lag ?? 0) + dayMap(clockOf(board)).idx(day) - t.start
-      const step = snapStep(board), tried = tryTask(board, cardId, { lag: Math.max(0, Math.round(lag / step) * step) })
-      return typeof tried === 'string' ? { laneId: card.laneId, reason: tried, lands: true } : null
+      const snapped = Math.round(lag / step) * step
+      // Well before what it waits on ends (more than a step: a small overshoot still stops at the earliest start):
+      // refused, and offered anyway. A task with nothing to wait on stops at the first day.
+      if (snapped < -step && card.dependsOn?.length) return { laneId: card.laneId, reason: waitsRefusal(board, cardId, snapped)!, override: anyway(snapped) }
+      const tried = tryTask(board, cardId, { lag: Math.max(0, snapped) })
+      return typeof tried === 'string' ? { laneId: card.laneId, reason: tried, lands: true, override: anyway(Math.max(0, snapped)) } : null
     }
+    const snapped = Math.round(wanted / step) * step
+    if (snapped < -step && card.dependsOn?.length) return { laneId: card.laneId, reason: waitsRefusal(board, cardId, snapped)!, override: anyway(snapped) }
     const limits = launchPlanLimits(board, { cardId, field: 'lag' })
-    if (wanted > limits.max) return { laneId: card.laneId, reason: launchOverrun(withTaskValue(board, { cardId, field: 'lag' }, wanted), cardId) ?? limits.reasons.max! }
+    if (wanted > limits.max) return { laneId: card.laneId, reason: launchOverrun(withTaskValue(board, { cardId, field: 'lag' }, wanted), cardId) ?? limits.reasons.max!, override: anyway(wanted) }
     return null
   },
   handleDrag(board, handleId, grab, layout) {
@@ -477,8 +494,23 @@ function edgeGrip(board: Workshop, cardId: string, edge: TaskEdge, grab: { x: nu
     // How far the grip has moved, in calendar days of the grid (a weekend is drawn, so it is a day of pixels).
     const drag = dragTaskEdge(board, cardId, edge, (point.x - grab.x - part.x) / g.dayW)
     if (drag.next) return { next: drag.next, ...(drag.reason && { clampedReason: drag.reason }) }
-    return { next: nearestLegal(board, cardId, drag.values) ?? board, clampedReason: drag.refusal!, refusal: drag.refusal! }
+    // Past a rule: the bar goes back, and the person is asked whether to set it there anyway (set_task with override).
+    const lag = drag.values.lag, end = startDay(board, cardId, lag) + calendarDays(board, cardId, lag, drag.values.duration) - 1
+    return { next: nearestLegal(board, cardId, drag.values) ?? board, clampedReason: drag.refusal!, refusal: drag.refusal!,
+      override: { edit: { kind: 'set_task', card: { id: cardId }, lag, duration: drag.values.duration },
+        to: edge === 'start' ? 'to start ' + dayWords(board, startDay(board, cardId, lag)) : 'to end ' + dayWords(board, end) } }
   }
+}
+
+/** The calendar day a task starts on with `lag` (what it waits on as it is). */
+function startDay(board: Workshop, cardId: string, lag: number): number {
+  return scheduleLaunch(withTaskValue(board, { cardId, field: 'lag' }, lag)).get(cardId)!.from
+}
+
+/** How many calendar days a task with `lag` and `duration` spans (weekends count where days are working days). */
+function calendarDays(board: Workshop, cardId: string, lag: number, duration: number): number {
+  const t = scheduleLaunch(withTaskValue(withTaskValue(board, { cardId, field: 'lag' }, lag), { cardId, field: 'duration' }, duration)).get(cardId)!
+  return t.to - t.from
 }
 
 /** From values the rules refuse back toward the task as it is, the first the rules take: what a held grip shows. */

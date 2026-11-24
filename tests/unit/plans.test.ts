@@ -225,11 +225,14 @@ describe('a phrase changes the next drag (headless Dragology replay)', () => {
     const g = launchLayout(plan, { width: 1200 })
     const bar = g.bars.get('design')!
     const far = { x: bar.x + grab.x + g.dayW * 6, y: bar.y + grab.y }
-    expect(launchPlanKit.refusalAt(plan, 'design', grab, far, { width: 1200 })).toEqual({ laneId: 'product', reason: 'QA would run until Tue 15 Dec; launch is Fri 11 Dec.', lands: true })
+    // It lands where the rules let it; the drop the rules refuse is the one set_task a "Move anyway" would make.
+    expect(launchPlanKit.refusalAt(plan, 'design', grab, far, { width: 1200 })).toEqual({ laneId: 'product', reason: 'QA would run until Tue 15 Dec; launch is Fri 11 Dec.', lands: true,
+      override: { edit: { kind: 'set_task', card: { id: 'design' }, lag: 5 }, to: expect.stringMatching(/^to start \w{3} \d+ \w{3}$/) } })
     expect(launchPlanKit.refusalAt(plan, 'design', grab, { x: bar.x + grab.x + g.dayW, y: bar.y + grab.y }, { width: 1200 })).toBeNull()
     const plain = validateWorkshop(sampleLaunchPlan())
     const p = launchLayout(plain, { width: 1200 }), pb = p.bars.get('design')!
-    expect(launchPlanKit.refusalAt(plain, 'design', grab, { x: pb.x + grab.x + p.dayW * 6, y: pb.y + grab.y }, { width: 1200 })).toEqual({ laneId: 'product', reason: 'That pushes QA to day 18, after launch on day 14.' })
+    expect(launchPlanKit.refusalAt(plain, 'design', grab, { x: pb.x + grab.x + p.dayW * 6, y: pb.y + grab.y }, { width: 1200 })).toEqual({ laneId: 'product', reason: 'That pushes QA to day 18, after launch on day 14.',
+      override: { edit: { kind: 'set_task', card: { id: 'design' }, lag: 6 }, to: 'to start day 6' } })
   })
   it('a drag frame stays inside the budget: layout of 12 tasks on 4 teams in under 4 ms', () => {
     const lanes = ['a', 'b', 'c', 'd'].map(id => ({ id, label: id.toUpperCase() }))

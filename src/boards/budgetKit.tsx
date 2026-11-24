@@ -5,11 +5,11 @@ import { inOrder } from 'dragology'
 import {
   laneColors, workshopCandidate, workshopDestinations, type BoardLayerState, type PartPlace, type Workshop, type WorkshopBoardKit, type WorkshopBoardLayout, type WorkshopEdit,
 } from '../workshops/model'
-import { budgetCaption, budgetCommitted, budgetLimits, budgetRefusal, budgetTotalBounds, shiftBudget, withBudgetTotal, type BudgetEdge } from '../workshops/budget'
+import { budgetCaption, budgetCommitted, budgetLimits, budgetOver, budgetRefusal, budgetTotalBounds, shiftBudget, withBudgetTotal, type BudgetEdge } from '../workshops/budget'
 import { money } from '../workshops/numbers'
 import { createBoardLayer, layerInk, type LayerShape } from '../workshops/boardLayer'
 import { headlessDrag, inside, orColumnUnder, partsGeometry } from '../workshops/boardSpecs'
-import { tint } from './shared'
+import { overInk, tint, withMark } from './shared'
 import { budgetHeader, handleLabel, partNotes, workshopEditsBetween } from './readouts'
 
 const TOP = 48
@@ -53,16 +53,18 @@ export function budgetLayout(board: Workshop, layout: WorkshopBoardLayout = {}) 
     const color = laneColors[i % laneColors.length]
     const box = narrow ? { x: 2, y: start + 1, width: width - 4, height: size - 2 } : { x: start + 1, y: TOP, width: Math.max(4, size - 2), height: height - TOP }
     const inner = { x: box.x + 5, y: box.y, width: Math.max(10, box.width - 10) }
-    parts.push({ name: 'column-' + lane.id, ...box, fill: tint(color, 0.6), line: tint(color, 0.1) })
+    // A team over its money (a line item moved there anyway) is drawn in red, and its caption says by how much.
+    const over = budgetOver(board, lane.id) > 0
+    parts.push({ name: 'column-' + lane.id, ...box, ...(over ? { fill: overInk.fill, line: overInk.line, lineWidth: 2 } : { fill: tint(color, 0.6), line: tint(color, 0.1) }) })
     // On a phone the team's name takes what it needs and its caption ("$400k · $245k committed") the rest, a little
     // at the size of its line items and on up to two lines, so two teams framed at once still read at 12px or more.
     const pill = narrow ? inner.width * 0.36 : inner.width
     parts.push({ name: 'lane-' + lane.id, x: inner.x, y: inner.y + 6, width: pill, height: 32, text: lane.label, fill: color, fontSize: 15 })
     parts.push({ name: 'caption-' + lane.id, x: narrow ? inner.x + pill + 6 : inner.x, y: inner.y + (narrow ? 6 : 40), width: narrow ? inner.width - pill - 6 : inner.width,
-      height: narrow ? 50 : 40, text: narrow ? budgetCaption(board, lane.id).replace(' · ', '\n') : budgetCaption(board, lane.id), fill: 'transparent', lineWidth: 0, fontSize: narrow ? 15 : 12 })
+      height: narrow ? 50 : 40, text: narrow ? budgetCaption(board, lane.id).replace(' · ', '\n') : budgetCaption(board, lane.id), fill: 'transparent', lineWidth: 0, fontSize: narrow ? 15 : 12, ...(over && { ink: overInk.ink }) })
     board.cards.filter(card => card.laneId === lane.id).forEach((card, k) =>
       parts.push({ name: 'card-' + card.id, x: inner.x, y: inner.y + 100 + k * 64, width: inner.width, height: 56,
-        text: card.label + '\n' + money(card.amount!, board.budget!.currency), fontSize: 14 }))
+        text: withMark(card.label + '\n' + money(card.amount!, board.budget!.currency), card), fontSize: 14 }))
     // The divider after this team (not after the last): 44px under the pointer.
     if (i < board.lanes.length - 1) {
       const edge = start + size
@@ -93,12 +95,12 @@ function paint(board: Workshop, state: BoardLayerState): LayerShape[] {
     if (g.narrow) {
       const y = seg.start + 50, x = 8, w = g.width - 16
       shapes.push({ t: 'rect', x, y, w, h: 10, rx: 5, color: layerInk.track })
-      shapes.push({ t: 'rect', x, y, w: w * committed / allocation || 0, h: 10, rx: 5, color: layerInk.bar })
+      shapes.push({ t: 'rect', x, y, w: Math.min(w, w * committed / allocation || 0), h: 10, rx: 5, color: committed > allocation ? layerInk.refuse : layerInk.bar })
       if (lane.floor !== undefined) shapes.push({ t: 'line', x1: x + w * lane.floor / allocation, y1: y - 4, x2: x + w * lane.floor / allocation, y2: y + 14, color: layerInk.ink, width: 2 })
     } else {
       const k = g.k, y = TOP + 86
       shapes.push({ t: 'rect', x: seg.start + 6, y, w: seg.size - 12, h: 10, rx: 5, color: layerInk.track })
-      shapes.push({ t: 'rect', x: seg.start + 6, y, w: Math.max(0, (seg.size - 12) * committed / allocation || 0), h: 10, rx: 5, color: layerInk.bar })
+      shapes.push({ t: 'rect', x: seg.start + 6, y, w: Math.max(0, Math.min(seg.size - 12, (seg.size - 12) * committed / allocation || 0)), h: 10, rx: 5, color: committed > allocation ? layerInk.refuse : layerInk.bar })
       if (lane.floor !== undefined) shapes.push({ t: 'line', x1: seg.start + lane.floor * k, y1: y - 6, x2: seg.start + lane.floor * k, y2: y + 16, color: layerInk.ink, width: 2 })
       if (lane.cap !== undefined && seg.start + lane.cap * k <= g.width) shapes.push({ t: 'line', x1: seg.start + lane.cap * k, y1: y - 6, x2: seg.start + lane.cap * k, y2: y + 16, color: layerInk.refuse, width: 2, dash: '3 2' })
     }
@@ -148,7 +150,8 @@ export const budgetKit: WorkshopBoardKit = {
     for (const lane of board.lanes) {
       if (lane.id === card.laneId || !inside(parts.find(part => part.name === 'column-' + lane.id), point)) continue
       const reason = budgetRefusal(board, cardId, lane.id)
-      return reason ? { laneId: lane.id, reason } : null
+      // Refused, it may still be moved anyway once the person agrees (the native layer asks, unless it is a hard limit).
+      return reason ? { laneId: lane.id, reason, override: { edit: { kind: 'move_card', card: { id: cardId }, lane: { id: lane.id } } } } : null
     }
     return null
   },

@@ -137,7 +137,9 @@ describe('the rules', () => {
     expect(refused(board, [move])).toBe('Solutions sit under an opportunity.')
     // The drag says the same: held over the outcome, the rule's sentence; the outcome is no candidate.
     const at = centre(board, 'outcome')
-    expect(nestKit.refusalAt(board, 'csv-import', { x: 10, y: 10 }, at, {})).toEqual({ laneId: 'tree', reason: 'Solutions sit under an opportunity.' })
+    // Refused, and offered as "Move anyway": the one nest_card that makes it once the person agrees.
+    expect(nestKit.refusalAt(board, 'csv-import', { x: 10, y: 10 }, at, {})).toEqual({ laneId: 'tree', reason: 'Solutions sit under an opportunity.',
+      override: { edit: { kind: 'nest_card', card: { id: 'csv-import' }, under: { id: 'outcome' } }, to: 'under Activation to 40%' } })
     expect(nestLegal(board, 'csv-import').some(({ spot }) => spot.under === 'outcome')).toBe(false)
     // "Let solutions sit under the outcome for now": the rule is changed, nothing moves, the drag now lands.
     const changed = ok(board, [{ kind: 'remove_rule', rule: ruleId(board, 'nests', 'solution') },

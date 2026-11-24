@@ -13,7 +13,7 @@ import { nestRules, checkNest, nestAreas, nestCardText, nestEmptyDrop, nestKids,
 import { nestAxes, nestQuadrants, nestScores, quadrantOf } from '../workshops/nestPlus'
 import { createBoardLayer, layerInk, type LayerShape } from '../workshops/boardLayer'
 import { headlessDrag, inside, partsGeometry } from '../workshops/boardSpecs'
-import { tint } from './shared'
+import { tint, withMark } from './shared'
 import { partNotes } from './readouts'
 
 const fills: Record<string, string> = { pile: '#fbdfac', theme: '#efd7dc', outcome: '#d5e9e3', opportunity: '#dedef4', problem: '#efd7dc', cause: '#fbdfac', action: '#dcebf3',
@@ -57,7 +57,7 @@ function walk(board: Workshop, laneId: string): { card: WorkshopCard; depth: num
 }
 
 // A card's words come from the rules module (what a pile counts), so the drawing and every sentence agree.
-const text = nestCardText
+const text = (board: Workshop, card: WorkshopCard) => withMark(nestCardText(board, card), card)
 
 /** Where every note of a nest board goes, in board coordinates. */
 export function nestLayout(board: Workshop, layout: WorkshopBoardLayout = {}): { parts: PartPlace[]; width: number; height: number } {
@@ -491,7 +491,10 @@ export const nestKit: WorkshopBoardKit = {
     if (!under || under === card.parentId) return null
     const next = nestPlace(board, cardId, { laneId: nestAreas(board).main, under, before: null })
     const verdict = next && board.behaviour ? checkNest(board, next) : null
-    return verdict && 'refused' in verdict ? { laneId: nestAreas(board).main, reason: verdict.refused.sentence } : null
+    // A rule of what sits under what may be broken once the person agrees: nest_card made anyway.
+    const parent = board.cards.find(item => item.id === under)
+    return verdict && 'refused' in verdict ? { laneId: nestAreas(board).main, reason: verdict.refused.sentence,
+      override: { edit: { kind: 'nest_card', card: { id: cardId }, under: { id: under } }, to: 'under ' + (parent?.label || 'that card') } } : null
   },
   noteUnder(board, point, layout) {
     if (shapeOf(board, layout) === 'matrix') return null

@@ -65,6 +65,11 @@ export interface WorkshopOverrideAsk {
   lane: string
   /** The rule's sentence: what moving it anyway breaks. */
   reason: string
+  /**
+   * Where the move takes the card, in words, when it is more than a lane: "to start Thu 17 Dec" (a plan's task in
+   * time), "under Activation to 40%" (a nested board). Left out, the move is to `lane`.
+   */
+  to?: string
 }
 
 /** One note a board kit draws: its artwork name (lane-, card-, caption-, column-, handle-, gauge-), box from the origin and look. */
@@ -116,8 +121,17 @@ export interface BoardLayer {
 }
 
 /** What a handle drag means at a pointer position: the board to show, and why it stops when it is held at a bound. */
+/**
+ * A drop the rules refuse that may be made anyway (model.ts, "Moving a card anyway"): the one edit that makes it with
+ * override true, and where it takes the card in words ("to start Thu 17 Dec", "under Activation to 40%"). The host is
+ * asked (confirmOverride) before it is made.
+ */
+export interface WorkshopOverrideOffer { edit: WorkshopEdit; to?: string }
+
 export interface HandleResult {
   next: Workshop; clampedReason?: string; refusal?: string
+  /** A refused grip that may be let go anyway: asked, with the refusal's sentence. */
+  override?: WorkshopOverrideOffer
   /** The layout to draw `next` in while the grip is held (a plan's line keeps its day width and the plan grows); left out, the board's own. */
   layout?: WorkshopBoardLayout
 }
@@ -143,7 +157,7 @@ export interface WorkshopBoardKit {
    * `lands`: the chooser still places the card where the rules let it (a plan's bar stops at its line or hops a
    * freeze), and the reason is said beside it; when that place is where the card already is, the drop is refused.
    */
-  refusalAt(board: Workshop, cardId: string, grab: { x: number; y: number }, point: { x: number; y: number }, layout: WorkshopBoardLayout): { laneId: string; reason: string; lands?: boolean } | null
+  refusalAt(board: Workshop, cardId: string, grab: { x: number; y: number }, point: { x: number; y: number }, layout: WorkshopBoardLayout): { laneId: string; reason: string; lands?: boolean; override?: WorkshopOverrideOffer } | null
   handleDrag(board: Workshop, handleId: string, grab: { x: number; y: number }, layout: WorkshopBoardLayout): ((point: { x: number; y: number }) => HandleResult) | null
   keyEdit?(board: Workshop, part: string, key: { key: string; shiftKey: boolean }): WorkshopEdit[] | null
   /**
@@ -331,7 +345,7 @@ type SlatePackageLike = { type: string; data: Record<string, unknown> }
 type Outcome =
   | { kind: 'outside' }
   | { kind: 'home' }
-  | { kind: 'refused'; laneId: string; reason: string; near?: boolean }
+  | { kind: 'refused'; laneId: string; reason: string; near?: boolean; override?: WorkshopOverrideOffer }
   | { kind: 'candidate'; laneId: string; next: Workshop; said?: string }
 
 const ACCEPT = '#1f7a5c', OFFER = '#5b9a85', REFUSE = '#c2410c'
@@ -655,6 +669,9 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
           draw(value)
           slate.announce?.(result.refusal)
           tell(options.onRefuse, { laneId: null, reason: result.refusal })
+          // A task's edge let go past a rule: asked whether to set it there anyway.
+          const task = result.override && cardOfEdit(result.override.edit)
+          if (task) askOverride(task, value.cards.find(item => item.id === task)?.laneId ?? '', result.refusal, result.override)
         } else if (!commitKit(result.next, {})) draw(value)
         const slot = slotOf(value, nameOf(node.id)!)
         return slot ? { accept: true, settle: slot } : { accept: false }
@@ -685,8 +702,10 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
         refuse(cardName(card), { cardId, laneId: outcome.laneId, reason: outcome.reason })
         // A plan's bar that could go nowhere its rules let it: the rule says why beside the bar.
         if (outcome.near) showGripRefusal('card-' + cardId, outcome.reason)
-        // A rule the person may break once they say so: asked, with the rule's sentence.
-        else askOverride(cardId, outcome.laneId, outcome.reason)
+        // A rule the person may break once they say so: asked, with the rule's sentence. A board kit says which edit
+        // makes it anyway (a deal to a stage, a task in time, a card under another); a lane board's drop is the lane.
+        if (kit) { if (outcome.override) askOverride(cardId, outcome.laneId, outcome.reason, outcome.override) }
+        else if (!outcome.near) askOverride(cardId, outcome.laneId, outcome.reason)
       } else if (outcome.kind === 'outside' && workshopTakesNotes(value) && !viewer()) {
         // Off the lanes, on the canvas: the card becomes an ordinary note there, or says why it may not.
         const reason = workshopCardAsNoteRefusal(value, cardId)
@@ -825,6 +844,9 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
         if ('refused' in result) {
           slate.announce?.(result.refused.reason)
           tell(options.onRefuse, { laneId: result.refused.laneId, ...(target?.kind === 'card' ? { cardId: target.key } : {}), reason: result.refused.reason })
+          // A key that moves a task past a rule (a day later, past the line or into a freeze): offered as "Move anyway".
+          const moved = keyed.length === 1 && result.refused.overridable ? cardOfEdit(keyed[0]) : null
+          if (moved) askOverride(moved, value.cards.find(item => item.id === moved)?.laneId ?? '', result.refused.reason, { edit: keyed[0] })
         } else commitKit(result.workshop, target?.kind === 'card' ? { cardId: target.key } : {})
         return true
       }
@@ -1165,12 +1187,12 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       // A business board: its own refusals first, then always its chooser.
       const at = local(point)
       const refused = kit.refusalAt(value, cardId, held?.grab ?? { x: 0, y: 0 }, at, layout)
-      if (refused && !refused.lands) return { kind: 'refused', laneId: refused.laneId, reason: refused.reason }
+      if (refused && !refused.lands) return { kind: 'refused', laneId: refused.laneId, reason: refused.reason, ...(refused.override && { override: refused.override }) }
       const { width, height } = geometry(value)
       if (at.x < -40 || at.y < -40 || at.x > width + 40 || at.y > height + 40) return { kind: 'outside' }
       let chosen: Workshop = value
       try { chosen = evaluate?.(at) ?? value } catch (error) { console.warn('WORKSHOP: the board kit\'s chooser threw', error) }
-      if (JSON.stringify(chosen) === JSON.stringify(value)) return refused ? { kind: 'refused', laneId: refused.laneId, reason: refused.reason, near: true } : { kind: 'home' }
+      if (JSON.stringify(chosen) === JSON.stringify(value)) return refused ? { kind: 'refused', laneId: refused.laneId, reason: refused.reason, near: true, ...(refused.override && { override: refused.override }) } : { kind: 'home' }
       return { kind: 'candidate', laneId: chosen.cards.find(item => item.id === cardId)?.laneId ?? card.laneId, next: chosen, ...(refused && { said: refused.reason }) }
     }
     const columns = value.lanes.map(lane => owned.get(noteId(workshopNodeIds.column(lane.id)))).filter(Boolean)
@@ -1251,7 +1273,30 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       const index = value.lanes.findIndex(lane => lane.id === at)
       side = step > 0 ? value.lanes.slice(index + 1) : value.lanes.slice(0, index).reverse()
     }
+    // The next lane on that side refuses the card: a rule the person may break is offered as "Move anyway", as a drop
+    // there is (owner, 2026-11-23); a lane it may never go to (a hard limit, or a host that does not ask) is said
+    // aloud and passed over to the next lane that takes it, never skipped in silence.
+    const closed = side[0] && !open.includes(side[0]) ? side[0] : null
+    if (closed) {
+      const reason = workshopRefusal(value, cardId, closed.id) ?? 'That move is not available.'
+      const offer: WorkshopOverrideOffer | undefined = kit ? { edit: { kind: 'move_card', card: { id: cardId }, lane: { id: closed.id } } } : undefined
+      const anyway = Boolean(options.confirmOverride) && !readOnly && !proposal && !viewer() && (kit
+        ? !('refused' in applyWorkshopEdits(value, [{ ...offer!.edit, override: true } as WorkshopEdit], { actor: { by: 'check', via: 'chat' } }))
+        : workshopOverrideCandidate(value, cardId, closed.id, { by: 'check', at: new Date(0).toISOString() }) !== null)
+      if (anyway) {
+        endFlash()
+        clearStaged()
+        flash = { laneId: closed.id, reason, timer: setTimeout(() => endFlash(), 1500) }
+        draw(proposal ?? value)
+        reveal(closed.id, proposal ?? value)
+        slate.announce?.(`${cardName(card)} can't move to ${closed.label} by this board's rules. ${reason} Move it anyway?`)
+        askOverride(cardId, closed.id, reason, offer)
+        return
+      }
+    }
     const target = side.find(lane => open.includes(lane))
+    // Passed over: said with the rule, before where the card goes instead.
+    const passed = closed && target ? `${cardName(card)} can't go in ${closed.label}: ${workshopRefusal(value, cardId, closed.id) ?? 'that move is not available.'} ` : ''
     endFlash()
     if (!target) {
       // A lane on that side that the rules close gets the same refusal a drop on it
@@ -1292,7 +1337,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     draw(next)
     reveal(target.id, next)
     tell(options.onPreview, next)
-    slate.announce?.(`${cardName(card)} to ${target.label}: ${workshopLaneSpoken(next, target.id)}. Press Enter to move it, Escape to cancel.`)
+    slate.announce?.(`${passed}${cardName(card)} to ${target.label}: ${workshopLaneSpoken(next, target.id)}. Press Enter to move it, Escape to cancel.`)
   }
 
   /**
@@ -2027,29 +2072,42 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
   /**
    * Offer a refused drop as "Move anyway" (options.confirmOverride). Confirmed, the move is made on the board as it is
    * then (a teammate's change may have come first): marked, drawn, announced and handed to onChange as an override.
+   * On a lane board or a map the move is the lane; a board kit's (`offer`) is one edit made with override true (a deal
+   * to a stage, a line item to a team, a task in time or to a team, a card under another), handed on as that edit.
    */
-  function askOverride(cardId: string, laneId: string, reason: string) {
+  function askOverride(cardId: string, laneId: string, reason: string, offer?: WorkshopOverrideOffer) {
     if (!options.confirmOverride || readOnly || proposal || viewer()) return
     const probe = { by: 'check', at: new Date(0).toISOString() }
-    if (!workshopOverrideCandidate(value, cardId, laneId, probe)) return
-    const card = value.cards.find(item => item.id === cardId)!, lane = value.lanes.find(item => item.id === laneId)!
+    const make = (board: Workshop, who: { by: string; at: string }): { next: Workshop; said?: string } | null => {
+      if (!offer) {
+        const next = workshopOverrideCandidate(board, cardId, laneId, who)
+        return next && { next }
+      }
+      const made = applyWorkshopEdits(board, [{ ...offer.edit, override: true } as WorkshopEdit], { actor: { by: who.by, via: 'chat' }, now: who.at })
+      return 'refused' in made ? null : { next: made.workshop, said: made.report.edits.map(edit => edit.said).join(' ') }
+    }
+    if (!make(value, probe)) return
+    const card = value.cards.find(item => item.id === cardId), lane = value.lanes.find(item => item.id === laneId)
+    if (!card) return
     let answer: boolean | Promise<boolean> | undefined
-    try { answer = options.confirmOverride({ cardId, laneId, card: card.label, lane: lane.label, reason }) } catch (error) {
+    const ask: WorkshopOverrideAsk = { cardId, laneId, card: card.label, lane: lane?.label ?? '', reason, ...(offer?.to && { to: offer.to }) }
+    try { answer = options.confirmOverride(ask) } catch (error) {
       console.error('WORKSHOP: confirmOverride threw', error)
       return
     }
     Promise.resolve(answer).then(yes => {
       if (yes !== true || destroyed || readOnly || proposal || viewer()) return
       const moving = value.cards.find(item => item.id === cardId)
-      const next = moving && workshopOverrideCandidate(value, cardId, laneId, { by: tell(options.overrideBy) || 'You', at: new Date().toISOString() })
-      if (!moving || !next) {
-        slate.announce?.(`${moving ? cardName(moving) : 'That card'} can't be moved to ${lane.label} now.`)
+      const made = moving && make(value, { by: tell(options.overrideBy) || 'You', at: new Date().toISOString() })
+      if (!moving || !made) {
+        slate.announce?.(`${moving ? cardName(moving) : 'That card'} can't be moved ${offer?.to ?? 'to ' + (lane?.label ?? 'there')} now.`)
         return
       }
-      value = next
+      value = made.next
       draw(value)
-      slate.announce?.(`${cardName(moving)} moved to ${lane.label} anyway. ${reason}`)
-      tell(options.onChange, value, { cardId, laneId, override: true })
+      slate.announce?.(made.said ?? `${cardName(moving)} moved to ${lane?.label ?? ''} anyway. ${reason}`)
+      const to = value.cards.find(item => item.id === cardId)?.laneId ?? laneId
+      tell(options.onChange, value, { cardId, laneId: to, override: true, ...(offer && { edits: [{ ...offer.edit, override: true } as WorkshopEdit] }) })
     }, () => { /* not confirmed */ })
   }
 
@@ -2730,6 +2788,12 @@ function watch(answer: unknown, refused?: () => void, taken?: () => void) {
     if (saved === false) refused?.()
     else if (saved === 'taken') taken?.()
   }, () => undefined)
+}
+
+/** The card an override's edit moves, by id (kits name cards by id). */
+function cardOfEdit(edit: WorkshopEdit): string | null {
+  const ref = 'card' in edit ? (edit as { card: unknown }).card : null
+  return ref && typeof ref === 'object' && typeof (ref as { id?: unknown }).id === 'string' ? (ref as { id: string }).id : null
 }
 
 function sameOutcome(a: Outcome, b: Outcome) {
