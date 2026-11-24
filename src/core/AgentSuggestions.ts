@@ -269,15 +269,15 @@ export function createAgentSuggestions(host: any, options: AgentSuggestionsOptio
   function tag(group: any, at: { x: number; y: number }, scale: number, action: SuggestionAction, words: string, color: string) {
     const holder = group.group().attr({ 'data-suggestion-tag': '', 'pointer-events': 'none' })
     const text = clip(words, 64)
-    const width = Math.round(28 + 6.4 * text.length)
-    holder.rect(width, 20).radius(10).move(0, -26).fill('#ffffff').stroke({ color, width: 1.2 }).attr('fill-opacity', 0.95)
+    const width = Math.round(28 + 7 * text.length)
+    holder.rect(width, 22).radius(11).move(0, -28).fill('#ffffff').stroke({ color, width: 1.2 }).attr('fill-opacity', 0.95)
     const r = 6, cx = 12, cy = -16
     const points = Array.from({ length: 6 }, (_, i) => {
       const a = Math.PI / 6 + (i * Math.PI) / 3
       return (cx + r * Math.cos(a)).toFixed(2) + ',' + (cy + r * Math.sin(a)).toFixed(2)
     }).join(' ')
     holder.polygon(points).fill(color)
-    holder.text((t: any) => t.plain(text)).font({ size: 11, family: FONT }).fill('#111827').attr({ x: 22, y: -12 })
+    holder.text((t: any) => t.plain(text)).font({ size: 12, family: FONT }).fill('#111827').attr({ x: 22, y: -12 })
     holder.transform({ translateX: at.x, translateY: at.y, scale: 1 / scale, originX: 0, originY: 0 })
   }
 

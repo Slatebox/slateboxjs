@@ -142,6 +142,10 @@ export function exportSVG(
       // (attribute-tagged, so the class selectors above miss them). Not visible
       // content — strip them so the export has no near-invisible cruft / bbox skew.
       '[connectortype="hitarea"]',
+      // Agents at work: their pointers (and edge markers) and the ghosts of what they suggest.
+      // Nothing an agent has not had kept is part of the slate, so no picture shows it.
+      "[data-agent-presence]",
+      "[data-agent-suggestions]",
       // Notes left out of exports by their host, and their lines.
       `[${OMIT}]`,
     ];

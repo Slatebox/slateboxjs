@@ -308,3 +308,35 @@ describe('agent presence on a canvas', () => {
     presence.destroy()
   })
 })
+
+describe('agent presence: an agent working out of view', () => {
+  it('gets a marker at the edge of the view toward it, in words; pressing it brings the view there', () => {
+    const slate = fakeSlate({ far: { x: 2000, y: 200, width: 200, height: 100 }, near: { x: 100, y: 100, width: 100, height: 100 } })
+    const went: Array<{ x: number; y: number }> = []
+    const presence = createAgentPresence(slate, { now, reducedMotion: () => true, goTo: (point) => went.push(point) })
+    presence.set([record({ label: 'Research', targets: ['far'] })])
+    const marker = slate.host.querySelector('[data-agent-edge]')!
+    expect(marker).toBeTruthy()
+    expect(marker.textContent).toBe('Research is working →')
+    expect(marker.getAttribute('role')).toBe('button')
+    expect(presence.shown()[0].offscreen).toBe(true)
+    marker.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    expect(went).toHaveLength(1)
+    expect(went[0].x).toBeGreaterThan(800)
+    // back in view: no marker
+    presence.set([record({ label: 'Research', targets: ['near'], updatedAt: 2000 })])
+    expect(slate.host.querySelector('[data-agent-edge]')).toBeNull()
+    expect(presence.shown()[0].offscreen).toBe(false)
+    presence.destroy()
+  })
+
+  it('words on the canvas are 12px or larger: the tag, its step and the avatar initial', () => {
+    const slate = fakeSlate({ brief: { x: 100, y: 100, width: 200, height: 100 } })
+    const presence = createAgentPresence(slate, { now, reducedMotion: () => true })
+    presence.set([record({ targets: ['brief'], message: 'Drafting a brief' })])
+    const sizes = [...slate.host.querySelectorAll('[data-agent-presence] text')].map((t) => Number(t.getAttribute('font-size')))
+    expect(sizes.length).toBeGreaterThanOrEqual(3)
+    for (const size of sizes) expect(size).toBeGreaterThanOrEqual(12)
+    presence.destroy()
+  })
+})

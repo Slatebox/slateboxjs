@@ -49,6 +49,11 @@ export interface AgentPresenceOptions {
    * the bottom of the canvas, say). Pointers, tags and checklists are kept out of them, as out of the edge itself.
    */
   insets?: () => { top?: number; right?: number; bottom?: number; left?: number } | null | undefined
+  /**
+   * An agent working out of view gets a marker at the edge of the view ("Research is working →"); pressing it
+   * brings the view to the agent. By default the canvas's own camera pans there, keeping the zoom.
+   */
+  goTo?: (point: { x: number; y: number }, agentKey: string) => void
 }
 
 export interface AgentPresence {
@@ -56,7 +61,7 @@ export interface AgentPresence {
   /** Open or close an agent's full checklist (the tag does this when tapped). */
   expand(agentKey: string, open?: boolean): void
   /** What is drawn now, for hosts and tests. */
-  shown(): { agentKey: string; label: string; step: string | null; x: number; y: number; opacity: number; compact: boolean; lines: string[]; side: { right: boolean; down: boolean } }[]
+  shown(): { agentKey: string; label: string; step: string | null; x: number; y: number; opacity: number; compact: boolean; lines: string[]; side: { right: boolean; down: boolean }; offscreen: boolean }[]
   destroy(): void
 }
 
@@ -148,9 +153,9 @@ function blockSize(record: AgentPresenceRecord, showList: boolean) {
   const label = tagLabel(record)
   const step = agentStepText(record)
   const stepLine = step ? clip(step, 40) : ''
-  // Bold 12px words take about 7px a letter, the 11px step about 6.3px: the tag is wide enough for both.
-  const width = Math.max(96, Math.min(CARD_WIDTH, 16 + Math.max(7 * label.length, 6.3 * stepLine.length)))
-  const height = stepLine ? 38 : 22
+  // Bold 12px words take about 7px a letter, the 12px step about 6.8px: the tag is wide enough for both.
+  const width = Math.max(96, Math.min(CARD_WIDTH, 16 + Math.max(7 * label.length, 6.8 * stepLine.length)))
+  const height = stepLine ? 40 : 22
   const rows = showList ? (record.plan?.steps ?? []).length : 0
   return { width, height, w: Math.max(width, rows ? CARD_WIDTH : 0), h: height + (rows ? 6 + 12 + rows * 18 : 0) }
 }
@@ -378,7 +383,7 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
       hex.image(icon).size(14, 14).move(cx - 7, cy - 7).attr({ 'data-agent-icon': '', preserveAspectRatio: 'xMidYMid slice' }).clipWith(round)
     } else {
       hex.text((t: any) => t.plain(clip(plainLine(record.initial).toUpperCase(), 1) || '?'))
-        .font({ size: 11, weight: 700, family: 'Roboto, Helvetica, Arial, sans-serif', anchor: 'middle' })
+        .font({ size: 12, weight: 700, family: 'Roboto, Helvetica, Arial, sans-serif', anchor: 'middle' })
         .fill('#fff').attr({ x: cx, y: cy + 4 })
     }
     hex.path('M35 10 L36.5 13.5 L40 15 L36.5 16.5 L35 20 L33.5 16.5 L30 15 L33.5 13.5 Z').fill('#fde68a').stroke({ color, width: 0.8 })
@@ -427,7 +432,7 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
     tag.attr('data-agent-side', (side.right ? 'right' : 'left') + '-' + (side.down ? 'down' : 'up'))
     tag.rect(width, height).radius(7).move(left, top).fill('#fff').stroke({ color, width: 1.5 })
     tag.text((t: any) => t.plain(label)).font({ size: 12, weight: 600, family: 'Roboto, Helvetica, Arial, sans-serif' }).fill(color).attr({ x: left + 8, y: top + 15 })
-    if (stepLine) tag.text((t: any) => t.plain(stepLine)).font({ size: 11, family: 'Roboto, Helvetica, Arial, sans-serif' }).fill('#374151').attr({ x: left + 8, y: top + 31 })
+    if (stepLine) tag.text((t: any) => t.plain(stepLine)).font({ size: 12, family: 'Roboto, Helvetica, Arial, sans-serif' }).fill('#374151').attr({ x: left + 8, y: top + 32 })
     const toggle = (event: Event) => { event.stopPropagation?.(); api.expand(record.agentKey) }
     tag.on('pointerdown', (event: Event) => event.stopPropagation?.())
     tag.on('click', toggle)
@@ -531,13 +536,69 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
     return moving
   }
 
+  // Agents working out of view: a marker at the view's edge, toward each, that brings the view there.
+  const markers = new Map<string, { group: any; words: string; arrow: string }>()
+  const restingOf = (item: Drawn) => (item.path.length ? item.path[item.path.length - 1] : { x: item.x, y: item.y })
+  const offView = (point: { x: number; y: number }, view: Box | null) =>
+    Boolean(view) && !(point.x >= view!.x && point.x <= view!.x + view!.w && point.y >= view!.y && point.y <= view!.y + view!.h)
+  function arrowFor(point: { x: number; y: number }, view: Box): string {
+    const dx = point.x < view.x ? -1 : point.x > view.x + view.w ? 1 : 0
+    const dy = point.y < view.y ? -1 : point.y > view.y + view.h ? 1 : 0
+    return ({ '-1,-1': '↖', '0,-1': '↑', '1,-1': '↗', '-1,0': '←', '1,0': '→', '-1,1': '↙', '0,1': '↓', '1,1': '↘' } as Record<string, string>)[`${dx},${dy}`] || '→'
+  }
+  function goTo(point: { x: number; y: number }, agentKey: string) {
+    if (options.goTo) return options.goTo(point, agentKey)
+    try {
+      slate.camera?.flyTo?.({ state: { cx: point.x, cy: point.y } }, { reduced: reduced() })?.catch?.(() => {})
+    } catch { /* no camera: nothing to move */ }
+  }
+  function drawMarkers(scale: number) {
+    const view = viewBox()
+    const keep = new Set<string>()
+    for (const item of drawn.values()) {
+      const at = restingOf(item)
+      if (!view || item.opacity <= 0 || !offView(at, view)) continue
+      keep.add(item.key)
+      const label = clip(tagLabel(item.record), 32)
+      const arrow = arrowFor(at, view)
+      const words = `${label} is working`
+      let marker = markers.get(item.key)
+      if (!marker || marker.words !== words || marker.arrow !== arrow) {
+        marker?.group.remove()
+        const color = AGENT_PALETTE[((item.record.colorIndex % AGENT_PALETTE.length) + AGENT_PALETTE.length) % AGENT_PALETTE.length]
+        const leftArrow = arrow === '←' || arrow === '↖' || arrow === '↙'
+        const text = leftArrow ? `${arrow} ${words}` : `${words} ${arrow}`
+        const group = ensureLayer().group().attr({ 'data-agent-edge': item.key, 'pointer-events': 'all', cursor: 'pointer', role: 'button', tabindex: 0,
+          'aria-label': `${words} out of view. Show where.` })
+        const width = Math.round(20 + 7 * text.length)
+        group.rect(width, 26).radius(13).fill('#ffffff').stroke({ color, width: 1.5 }).attr('fill-opacity', 0.97)
+        group.text((t: any) => t.plain(text)).font({ size: 12, weight: 600, family: 'Roboto, Helvetica, Arial, sans-serif' }).fill(color).attr({ x: 10, y: 17 })
+        const go = (event: Event) => { event.stopPropagation?.(); goTo(restingOf(drawn.get(item.key) ?? item), item.key) }
+        group.on('pointerdown', (event: Event) => event.stopPropagation?.())
+        group.on('click', go)
+        group.on('keydown', (event: KeyboardEvent) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault?.(); go(event) } })
+        marker = { group, words, arrow }
+        ;(marker as any).width = width
+        markers.set(item.key, marker)
+      }
+      // Inside the view, on the edge toward the agent, a little in from it; several stack.
+      const m = 12 / scale
+      const w = ((marker as any).width as number) / scale, h = 26 / scale
+      const stack = [...keep].indexOf(item.key) * (32 / scale)
+      const x = Math.min(Math.max(at.x - w / 2, view.x + m), view.x + view.w - w - m)
+      const y = Math.min(Math.max(at.y - h / 2 + stack, view.y + m), view.y + view.h - h - m)
+      marker.group.transform({ translateX: x, translateY: y, scale: 1 / scale, originX: 0, originY: 0 })
+    }
+    for (const [key, marker] of markers) if (!keep.has(key)) { marker.group.remove(); markers.delete(key) }
+  }
+
   function render() {
     if (destroyed) return
     const at = now()
     const shown = visibleAgents(records, at, { holdMs, fadeMs, max })
     const keep = new Set(shown.map(item => item.record.agentKey))
     for (const [key, item] of drawn) if (!keep.has(key)) { item.group.remove(); drawn.delete(key) }
-    if (!shown.length) { schedule(null); return }
+    if (!shown.length) { for (const marker of markers.values()) marker.group.remove(); markers.clear(); schedule(null); return }
     const group = ensureLayer()
     group.front?.()
     const scale = zoom()
@@ -582,6 +643,7 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
     // Keep moving, fading and expiring on the agents' own clock.
     const moving = travel(at)
     for (const item of drawn.values()) place(item, scale)
+    drawMarkers(scale)
     const fading = shown.some(item => item.opacity < 1)
     // A bubble ends on its own time too.
     const bubbles = shown.map(item => (agentSaying(item.record, at) ? (time(item.record.sayAt ?? null) ?? at) + AGENT_SAY_MS : Infinity))
@@ -600,6 +662,7 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
     const fading = shown.some(item => item.opacity < 1) || drawn.size !== shown.length
     if (fading || Math.abs(scale - lastScale) > 1e-6) { render(); return }
     for (const item of drawn.values()) place(item, scale)
+    if (!moving) drawMarkers(scale)
     if (moving) schedule('frame')
   }
 
@@ -643,7 +706,7 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
     },
     shown() {
       return [...drawn.values()].map(item => ({ agentKey: item.key, label: item.record.label, step: item.step, x: item.x, y: item.y,
-        opacity: item.opacity, compact: item.compact, lines: item.lines, side: item.side ?? { right: true, down: true } }))
+        opacity: item.opacity, compact: item.compact, lines: item.lines, side: item.side ?? { right: true, down: true }, offscreen: markers.has(item.key) }))
     },
     destroy() {
       destroyed = true
@@ -651,6 +714,7 @@ export function createAgentPresence(slate: any, options: AgentPresenceOptions = 
       if (watch !== null) clearInterval(watch)
       for (const item of drawn.values()) item.group.remove()
       drawn.clear()
+      markers.clear()
       layer?.remove()
       layer = null
     },

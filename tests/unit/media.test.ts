@@ -119,6 +119,11 @@ describe("readMediaValue: what an operation may store", () => {
     [{ url: `https://youtu.be/${YT}`, poster: "//evil.example/p.jpg" }, /poster must be an https/],
     [{ url: `https://youtu.be/${YT}`, poster: "/\\evil.example/p.jpg" }, /poster must be an https/],
     [{ url: `https://youtu.be/${YT}`, poster: "/sbimages/a b.jpg" }, /poster must be an https/],
+    // another path on the app: every viewer's browser would request it with their cookies
+    [{ url: `https://youtu.be/${YT}`, poster: "/api/v1/slates" }, /poster must be an https/],
+    [{ url: `https://youtu.be/${YT}`, poster: "/logout" }, /poster must be an https/],
+    [{ url: `https://youtu.be/${YT}`, poster: "/sbimages/other.jpg" }, /poster must be an https/],
+    [{ url: `https://youtu.be/${YT}`, poster: "/sbimages/media-posters/../../logout" }, /poster must be an https/],
     [{ url: `https://youtu.be/${YT}`, provider: "vimeo" }, /provider does not match/],
     [{ url: `https://youtu.be/${YT}`, embed: "<iframe>" }, /does not take: embed/],
     [{ url: `https://youtu.be/${YT}`, start: -3 }, /start must be/],
