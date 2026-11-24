@@ -278,6 +278,69 @@ export function exportSVG(
   }
 }
 
+const INLINE_LIMITS = Object.freeze({ pictures: 40, bytes: 8 * 1024 * 1024, timeoutMs: 5000 });
+
+/**
+ * A picture drawn from an SVG held in an <img> loads nothing from outside it, so
+ * every note's picture (a photo, a video note's poster) is written into the SVG
+ * as a data address first. A picture that cannot be read (another site that does
+ * not allow it, too large, too slow) is left as it was: the note is still drawn,
+ * without that picture.
+ */
+/** True when the SVG draws a picture from an address (not already a data address). */
+export function hasOutsidePictures(svgString: string): boolean {
+  return /<image\b[^>]*?\s(?:xlink:)?href="(?!data:)[^"]+"/.test(svgString);
+}
+
+export async function inlinePictures(svgString: string, fetcher: typeof fetch | undefined = globalThis.fetch): Promise<string> {
+  if (!fetcher || typeof FileReader === "undefined") return svgString;
+  const pattern = /(<image\b[^>]*?\s(?:xlink:)?href=")([^"]+)(")/g;
+  const wanted = new Set<string>();
+  for (const match of svgString.matchAll(pattern)) {
+    const href = match[2].replace(/&amp;/g, "&");
+    if (!/^data:/i.test(href) && wanted.size < INLINE_LIMITS.pictures) wanted.add(href);
+  }
+  if (!wanted.size) return svgString;
+  const base = typeof document !== "undefined" ? document.baseURI : undefined;
+  const read = async (href: string): Promise<string | null> => {
+    let url: URL;
+    try {
+      url = new URL(href, base);
+    } catch {
+      return null;
+    }
+    if (url.protocol !== "https:" && url.protocol !== "http:") return null;
+    const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+    const timer = setTimeout(() => controller?.abort(), INLINE_LIMITS.timeoutMs);
+    try {
+      const response = await fetcher(url.href, { mode: "cors", credentials: "omit", signal: controller?.signal });
+      if (!response.ok) return null;
+      const blob = await response.blob();
+      if (!blob.size || blob.size > INLINE_LIMITS.bytes || !/^image\//.test(blob.type)) return null;
+      return await new Promise<string | null>((done) => {
+        const reader = new FileReader();
+        reader.onload = () => done(typeof reader.result === "string" ? reader.result : null);
+        reader.onerror = () => done(null);
+        reader.readAsDataURL(blob);
+      });
+    } catch {
+      return null;
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+  const inlined = new Map<string, string>();
+  await Promise.all([...wanted].map(async (href) => {
+    const data = await read(href);
+    if (data) inlined.set(href, data);
+  }));
+  if (!inlined.size) return svgString;
+  return svgString.replace(pattern, (whole, head, href, tail) => {
+    const data = inlined.get(href.replace(/&amp;/g, "&"));
+    return data ? `${head}${data}${tail}` : whole;
+  });
+}
+
 /**
  * Export the slate canvas as PNG.
  *
@@ -288,7 +351,10 @@ export async function exportPNG(
   opts: ExportOptions = {},
   callback?: (result: string | Blob) => void
 ): Promise<string | Blob> {
-  const svgString = exportSVG(slate, opts);
+  const drawn = exportSVG(slate, opts);
+  // Pictures are written into the SVG, so the PNG shows them (a video note's poster included).
+  // (A slate with no picture is drawn at once, as before.)
+  const svgString = drawn && hasOutsidePictures(drawn) ? await inlinePictures(drawn) : drawn;
   if (!svgString) {
     const result = opts.asBinary ? new Blob() : "";
     callback?.(result);

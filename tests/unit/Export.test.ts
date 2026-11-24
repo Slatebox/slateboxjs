@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { exportSVG, exportPNG } from "../../src/core/Export";
+import { exportSVG, exportPNG, inlinePictures } from "../../src/core/Export";
 import type { ExportOptions } from "../../src/core/Export";
 
 // ---------------------------------------------------------------------------
@@ -610,5 +610,29 @@ describe("Export", () => {
         await expect(promise).resolves.toBe("");
       });
     });
+  });
+});
+
+describe("inlinePictures: a PNG shows every note's picture", () => {
+  const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  const answer = (type = "image/png", ok = true) =>
+    ({ ok, blob: async () => new Blob([png], { type }) }) as unknown as Response;
+
+  it("writes a picture (a video note's poster) into the SVG as a data address", async () => {
+    const fetcher = vi.fn(async () => answer());
+    const svg = '<svg><image href="/sbimages/media-posters%2Fyoutube%2Fx.jpg" width="320"/><image xlink:href="https://files.example/a.png?x=1&amp;y=2"/></svg>';
+    const out = await inlinePictures(svg, fetcher as any);
+    expect(out).not.toContain("/sbimages/");
+    expect(out).not.toContain("files.example");
+    expect(out.match(/data:image\/png;base64,/g)).toHaveLength(2);
+    expect(fetcher).toHaveBeenCalledWith(expect.stringContaining("y=2"), expect.objectContaining({ mode: "cors", credentials: "omit" }));
+  });
+
+  it("leaves a picture it cannot read, data addresses, and other schemes as they were", async () => {
+    const fetcher = vi.fn(async (url: string) => (url.includes("blocked") ? Promise.reject(new Error("cors")) : answer("text/html")));
+    const svg = '<svg><image href="https://blocked.example/a.png"/><image href="https://files.example/page"/><image href="data:image/png;base64,AA=="/><image href="javascript:alert(1)"/></svg>';
+    const out = await inlinePictures(svg, fetcher as any);
+    expect(out).toBe(svg);
+    expect(fetcher).toHaveBeenCalledTimes(2);
   });
 });
