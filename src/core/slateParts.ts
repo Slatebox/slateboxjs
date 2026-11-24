@@ -1,14 +1,24 @@
-// The parts of a slate that wait for a person or a request: the line tool, and the bird's-eye view. The main
+// The parts of a slate that wait for a person or a request: the line tool, the bird's-eye view, the undo history and
+// the keyboard, the video-address paste and the right-click menu (the last four wait for a person: a read-only page
+// never fetches the paste or the menu, and fetches the history and the keyboard as the slate starts). The main
 // entry (slateboxjs) has them from the start: its build (vite.config.ts) swaps this file for slatePartsEager.ts,
 // and a source host (the dev server, the unit tests) hands them over through mainParts.ts, so a slate behaves
 // exactly as it always has. The canvas entry (slateboxjs/canvas) does not: a read-only page never fetches them,
 // and a slate loads each the first time it needs it.
 import type * as LineToolModule from './LineTool'
 import type * as BirdsEyeModule from './BirdsEye'
+import type * as UndoRedoModule from './UndoRedo'
+import type * as MediaInputModule from './MediaInput'
+import type * as ContextMenuModule from './ContextMenu'
+import type * as KeyboardModule from './Keyboard'
 
 export interface SlateParts {
   lineTool?: Pick<typeof LineToolModule, 'startLineTool'>
   birdsEye?: Pick<typeof BirdsEyeModule, 'BirdsEye'>
+  undoRedo?: Pick<typeof UndoRedoModule, 'UndoRedo'>
+  mediaInput?: Pick<typeof MediaInputModule, 'MediaInput'>
+  contextMenu?: Pick<typeof ContextMenuModule, 'ContextMenu'>
+  keyboard?: Pick<typeof KeyboardModule, 'Keyboard'>
 }
 const parts: SlateParts = {}
 
@@ -28,3 +38,19 @@ export const loadLineTool = async () => parts.lineTool ?? (parts.lineTool = awai
 export const birdsEyeNow = () => parts.birdsEye ?? null
 /** The bird's-eye view, fetched the first time a slate asks for it. */
 export const loadBirdsEye = async () => parts.birdsEye ?? (parts.birdsEye = await import('./BirdsEye'))
+/** The undo history, when it is here already. */
+export const undoRedoNow = () => parts.undoRedo ?? null
+/** The undo history, fetched as soon as a slate starts (a read-only page's first paint never waits on it). */
+export const loadUndoRedo = async () => parts.undoRedo ?? (parts.undoRedo = await import('./UndoRedo'))
+/** The video-address paste, when it is here already. */
+export const mediaInputNow = () => parts.mediaInput ?? null
+/** The video-address paste, fetched for a slate that can be edited. */
+export const loadMediaInput = async () => parts.mediaInput ?? (parts.mediaInput = await import('./MediaInput'))
+/** The right-click menu, when it is here already. */
+export const contextMenuNow = () => parts.contextMenu ?? null
+/** The right-click menu, fetched for a slate that can be edited. */
+export const loadContextMenu = async () => parts.contextMenu ?? (parts.contextMenu = await import('./ContextMenu'))
+/** The keyboard, when it is here already. */
+export const keyboardNow = () => parts.keyboard ?? null
+/** The keyboard, fetched as soon as a slate starts. */
+export const loadKeyboard = async () => parts.keyboard ?? (parts.keyboard = await import('./Keyboard'))

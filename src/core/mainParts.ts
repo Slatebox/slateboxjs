@@ -3,6 +3,10 @@
 // slatePartsEager.ts instead (vite.config.ts).
 import { startLineTool } from './LineTool'
 import { BirdsEye } from './BirdsEye'
+import { UndoRedo } from './UndoRedo'
+import { MediaInput } from './MediaInput'
+import { ContextMenu } from './ContextMenu'
+import { Keyboard } from './Keyboard'
 import { provideSlateParts } from './slateParts'
 
-provideSlateParts({ lineTool: { startLineTool }, birdsEye: { BirdsEye } })
+provideSlateParts({ lineTool: { startLineTool }, birdsEye: { BirdsEye }, undoRedo: { UndoRedo }, mediaInput: { MediaInput }, contextMenu: { ContextMenu }, keyboard: { Keyboard } })

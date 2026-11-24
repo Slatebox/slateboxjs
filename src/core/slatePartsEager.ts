@@ -1,13 +1,29 @@
-// The main entry's slateParts.ts (vite.config.ts swaps it in for the slate): the line tool and the bird's-eye view
-// are part of the bundle from the start, imported as the slate always imported them, with no module objects and no
+// The main entry's slateParts.ts (vite.config.ts swaps it in for the slate): the line tool, the bird's-eye view, the undo
+// history, the keyboard, the video-address paste and the right-click menu are part of the bundle from the start, imported as the slate always imported them, with no module objects and no
 // dynamic imports for the bundle to carry.
 import { startLineTool } from './LineTool'
 import { BirdsEye } from './BirdsEye'
+import { UndoRedo } from './UndoRedo'
+import { MediaInput } from './MediaInput'
+import { ContextMenu } from './ContextMenu'
+import { Keyboard } from './Keyboard'
 
 export const partsBuiltIn = true
 const lineTool = { startLineTool }
 const birdsEye = { BirdsEye }
+const undoRedo = { UndoRedo }
+const mediaInput = { MediaInput }
+const contextMenu = { ContextMenu }
+const keyboard = { Keyboard }
 export const lineToolNow = () => lineTool
 export const loadLineTool = async () => lineTool
 export const birdsEyeNow = () => birdsEye
 export const loadBirdsEye = async () => birdsEye
+export const undoRedoNow = () => undoRedo
+export const loadUndoRedo = async () => undoRedo
+export const mediaInputNow = () => mediaInput
+export const loadMediaInput = async () => mediaInput
+export const contextMenuNow = () => contextMenu
+export const loadContextMenu = async () => contextMenu
+export const keyboardNow = () => keyboard
+export const loadKeyboard = async () => keyboard

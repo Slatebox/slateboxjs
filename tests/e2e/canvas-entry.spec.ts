@@ -58,3 +58,44 @@ test('a slate that asks for the bird\'s-eye view gets it, loaded for it', async 
   await expect.poll(() => page.evaluate(() => Boolean((window as any).slate.birdsEye?.isEnabled?.())), { timeout: 10000 }).toBe(true)
   expect((await fetched(page)).some(path => path.endsWith('/src/core/BirdsEye.ts'))).toBe(true)
 })
+
+test('a read-only slate never fetches the right-click menu or the video paste; an editable one gets them, and undo and its keys', async ({ page }) => {
+  await open(page)
+  const readOnly = await fetched(page)
+  for (const part of ['/src/core/ContextMenu.ts', '/src/core/MediaInput.ts']) {
+    expect(readOnly.filter(path => path.endsWith(part)), part + ' was fetched with a read-only slate').toEqual([])
+  }
+  // A host listening before the history arrives hears it once it does (onUndoRedo calls at once with the state).
+  await page.addInitScript(() => {
+    const wait = () => {
+      // (window.slate is the page's #slate element until the fixture sets the Slate)
+      const slate = (window as any).slate
+      if (typeof slate?.onUndoRedo !== 'function') return void setTimeout(wait, 0)
+      ;(window as any).heard = []
+      ;(window as any).earlyHistory = Boolean(slate.undoRedo)
+      slate.onUndoRedo((state: any) => (window as any).heard.push(state.canUndo))
+    }
+    wait()
+  })
+  await open(page, '?edit=1')
+  await expect.poll(() => page.evaluate(() => {
+    const slate = (window as any).slate
+    return Boolean(slate.undoRedo && slate.keyboard && slate.contextMenu && slate.mediaInput)
+  }), { timeout: 10000 }).toBe(true)
+  expect(await page.evaluate(() => (window as any).heard.length), 'the early listener heard the history arrive').toBeGreaterThan(0)
+  // A restyle is one step, and Ctrl+Z (the keyboard, fetched as the slate started) takes it back.
+  const color = () => page.evaluate(() => (window as any).slate.nodes.allNodes[0].options.backgroundColor)
+  const before = await color()
+  await page.evaluate(() => {
+    const slate = (window as any).slate, id = slate.nodes.allNodes[0].options.id
+    const pkgs = [{ type: 'onNodeColorChanged', data: { id, color: '#ff7755' } }]
+    slate.collab.invoke(pkgs)
+    slate.collab.send(pkgs)
+  })
+  await expect.poll(() => page.evaluate(() => (window as any).slate.canUndo()), { timeout: 5000 }).toBe(true)
+  expect(await color()).not.toEqual(before)
+  expect(await page.evaluate(() => (window as any).heard.includes(true)), 'the early listener heard the step').toBe(true)
+  await page.mouse.click(5, 5)
+  await page.keyboard.press('Control+Z')
+  await expect.poll(color).toEqual(before)
+})

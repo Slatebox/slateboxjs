@@ -10,13 +10,13 @@ import {
   snapshot as takeSnapshot,
   type SlateJSON,
 } from "./Serialization";
-import { UndoRedo, type HostStep, type UndoRedoListener, type UndoRedoState } from "./UndoRedo";
+import type { UndoRedo, HostStep, UndoRedoListener, UndoRedoState } from "./UndoRedo";
 import type { InlineDraft } from "./Editor";
 import { MultiSelection } from "./MultiSelection";
 import { Grid } from "./Grid";
-import { Keyboard } from "./Keyboard";
-import { MediaInput, type MediaRequest } from "./MediaInput";
-import { ContextMenu } from "./ContextMenu";
+import type { Keyboard } from "./Keyboard";
+import type { MediaInput, MediaRequest } from "./MediaInput";
+import type { ContextMenu } from "./ContextMenu";
 import { exportSVG, exportPNG, type ExportOptions } from "./Export";
 import { Collab, CollabUser, type NoteTrade, type NoteTrades } from "./Collab";
 import type { SlatePackage } from "./SlatePackage";
@@ -32,7 +32,7 @@ import {
 import { Association } from "./Relationship";
 import type { EndAnchor, EndState, LineEnd } from "./LineEnds";
 import type { LineToolResult } from "./LineTool";
-import { birdsEyeNow, lineToolNow, loadBirdsEye, loadLineTool, partsBuiltIn } from "./slateParts";
+import { birdsEyeNow, contextMenuNow, keyboardNow, lineToolNow, loadBirdsEye, loadContextMenu, loadKeyboard, loadLineTool, loadMediaInput, loadUndoRedo, mediaInputNow, partsBuiltIn, undoRedoNow } from "./slateParts";
 import { alignPositions, distributePositions, type AlignMode, type LayoutBox, type Position } from "../operations/layout";
 import { ZoomSlider } from "./ZoomSlider";
 import { Presentation } from "./Presentation";
@@ -273,6 +273,8 @@ export class Slate {
    */
   public birdsEye!: BirdsEye;
   public undoRedo!: UndoRedo;
+  /** Listeners given to onUndoRedo before the history arrived (the canvas entry loads it as the slate starts). */
+  private _undoListenersWaiting = new Map<UndoRedoListener, (stop: () => void) => void>();
   public multiSelection!: MultiSelection;
   public grid!: Grid;
   public keyboard!: Keyboard;
@@ -568,10 +570,20 @@ export class Slate {
 
     // Initialize undo/redo + take an empty baseline so the very first edit on a
     // fresh slate is undoable (loadJSON re-baselines for loaded documents).
-    this.undoRedo = new UndoRedo(this, {
-      enabled: this.options.showUndoRedo !== false,
-    });
-    this.undoRedo.snap?.(true);
+    // The canvas entry fetches the history as the slate starts (src/core/slateParts.ts); the main entry has it at once.
+    const startUndo = (module: NonNullable<ReturnType<typeof undoRedoNow>>) => {
+      this.undoRedo = new module.UndoRedo(this, {
+        enabled: this.options.showUndoRedo !== false,
+      });
+      for (const [listener, heard] of this._undoListenersWaiting) heard(this.undoRedo.subscribe?.(listener) ?? (() => {}));
+      this._undoListenersWaiting.clear();
+      this.undoRedo.snap?.(true);
+    };
+    const undoPart = undoRedoNow();
+    if (partsBuiltIn || undoPart) startUndo(undoPart!);
+    else loadUndoRedo().then(module => {
+      if (!this._destroyed) startUndo(module);
+    }).catch(error => console.warn("SLATE: the undo history could not load", error));
     this.setupUndoGestures();
 
     // Initialize multi-selection
@@ -591,22 +603,40 @@ export class Slate {
     }
 
     // Initialize keyboard bindings
-    this.keyboard = new Keyboard(this);
-    if (this.options.enabled !== false) {
-      this.keyboard.bindGlobal();
-    }
+    // (the canvas entry fetches it as the slate starts: src/core/slateParts.ts)
+    const startKeyboard = (module: NonNullable<ReturnType<typeof keyboardNow>>) => {
+      this.keyboard = new module.Keyboard(this);
+      if (this.options.enabled !== false) this.keyboard.bindGlobal();
+    };
+    const keyboardPart = keyboardNow();
+    if (partsBuiltIn || keyboardPart) startKeyboard(keyboardPart!);
+    else loadKeyboard().then(module => {
+      if (!this._destroyed && !this.keyboard) startKeyboard(module);
+    }).catch(error => console.warn("SLATE: the keyboard could not load", error));
 
     // Video addresses pasted or dropped on the canvas (media notes)
-    this.mediaInput = new MediaInput(this);
-    if (this.options.enabled !== false) {
-      this.mediaInput.enable();
-    }
+    // (the canvas entry fetches it only for a slate that can be edited: src/core/slateParts.ts)
+    const startMediaInput = (module: NonNullable<ReturnType<typeof mediaInputNow>>) => {
+      this.mediaInput = new module.MediaInput(this);
+      if (this.options.enabled !== false) this.mediaInput.enable();
+    };
+    const mediaPart = mediaInputNow();
+    if (partsBuiltIn || mediaPart) startMediaInput(mediaPart!);
+    else if (this.options.enabled !== false) loadMediaInput().then(module => {
+      if (!this._destroyed && !this.mediaInput) startMediaInput(module);
+    }).catch(error => console.warn("SLATE: the video-address paste could not load", error));
 
     // Right-click context menu (bring-to-front / back / duplicate / delete)
-    this.contextMenu = new ContextMenu(this);
-    if (this.options.enabled !== false) {
-      this.contextMenu.enable();
-    }
+    // (the canvas entry fetches it only for a slate that can be edited: src/core/slateParts.ts)
+    const startContextMenu = (module: NonNullable<ReturnType<typeof contextMenuNow>>) => {
+      this.contextMenu = new module.ContextMenu(this);
+      if (this.options.enabled !== false) this.contextMenu.enable();
+    };
+    const menuPart = contextMenuNow();
+    if (partsBuiltIn || menuPart) startContextMenu(menuPart!);
+    else if (this.options.enabled !== false) loadContextMenu().then(module => {
+      if (!this._destroyed && !this.contextMenu) startContextMenu(module);
+    }).catch(error => console.warn("SLATE: the right-click menu could not load", error));
 
     // Initialize collaboration (lazy — call collab.init() to connect)
     this.collab = new Collab(this);
@@ -1043,7 +1073,17 @@ export class Slate {
    * undo or redo did (for a host's Undo and Redo controls). Returns a function that stops it.
    */
   public onUndoRedo(listener: UndoRedoListener): () => void {
-    return this.undoRedo?.subscribe?.(listener) ?? (() => {});
+    if (!this.undoRedo) {
+      // The history is still on its way (the canvas entry): hear it from the moment it arrives.
+      let stop: (() => void) | null = null;
+      const waiting = (heard: () => void) => { stop = heard; };
+      this._undoListenersWaiting.set(listener, waiting);
+      return () => {
+        this._undoListenersWaiting.delete(listener);
+        stop?.();
+      };
+    }
+    return this.undoRedo.subscribe?.(listener) ?? (() => {});
   }
 
   /**

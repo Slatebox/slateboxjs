@@ -72,6 +72,10 @@
 
 ### Added
 
+- `slateboxjs/canvas` fetches the undo history and the keyboard as a slate starts, and the right-click menu and the
+  video-address paste only for a slate that can be edited, so first-class undo and the media notes leave its canvas
+  chunk within its ceiling (624,946 / 171,208 bytes against 640,000 / 174,000). A host's `onUndoRedo` given before the
+  history arrives hears it when it does. The main entry is unchanged: every part is there at once.
 - `slateboxjs/canvas`: the canvas alone (`Slate`, and what agents show), for a page that draws slates. It registers
   the same SVG.js plugins as the main entry and draws a slate exactly as it does. Its first load is 124,479 bytes
   gzip served without whitespace (the main entry: 153,230), held to 138,000 by `npm run check:budget`. Its line tool

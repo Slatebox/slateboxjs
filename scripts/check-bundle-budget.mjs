@@ -46,6 +46,14 @@ const ceilings = {
   // Its parts that wait for a person or a request: the line tool, and the bird's-eye view.
   'canvas-LineTool-*.mjs': { raw: 7000, gzip: 2600 },
   'canvas-BirdsEye-*.mjs': { raw: 19000, gzip: 5200 },
+  // Its parts a slate fetches as it starts (the undo history with its slate diff, the keyboard) and those it fetches only
+  // when it can be edited (the right-click menu, the video-address paste): a read-only page's first paint waits on none.
+  // Moved out of the canvas chunk with first-class undo; measured at their first build (19,695 / 5,731; 15,222 / 4,794;
+  // 7,262 / 2,349; 4,846 / 1,847), plus a little.
+  'canvas-UndoRedo-*.mjs': { raw: 20500, gzip: 6000 },
+  'canvas-Keyboard-*.mjs': { raw: 16000, gzip: 5000 },
+  'canvas-ContextMenu-*.mjs': { raw: 7600, gzip: 2500 },
+  'canvas-MediaInput-*.mjs': { raw: 5200, gzip: 2000 },
 }
 
 const dist = readdirSync(new URL('../dist/', import.meta.url))
@@ -133,7 +141,7 @@ if (importsOf('presence.mjs').some(target => target.startsWith('./'))) problems.
   if (firstLoad > 138000) problems.push(`slateboxjs/canvas's first load (${first.join(', ')}), served without whitespace, is ${firstLoad} bytes gzip, over the 138,000 a page's first load allows.`)
   const all = texts.join('\n')
   const later = [...all.matchAll(/import\(\s*["']([^"']+)["']\s*\)/g)].map(match => match[1])
-  for (const part of ['LineTool', 'BirdsEye']) if (!later.some(target => target.includes('canvas-' + part + '-'))) problems.push(`slateboxjs/canvas does not load its ${part} chunk on first use.`)
+  for (const part of ['LineTool', 'BirdsEye', 'UndoRedo', 'Keyboard', 'ContextMenu', 'MediaInput']) if (!later.some(target => target.includes('canvas-' + part + '-'))) problems.push(`slateboxjs/canvas does not load its ${part} chunk on first use.`)
   if (/LINE_TOOL: press failed|BIRDSEYE_DEBUG/.test(all)) problems.push('slateboxjs/canvas carries the line tool or the bird\'s-eye view in its first load: they load on first use.')
   if (!/connectable\s*\(/.test(all)) problems.push('slateboxjs/canvas does not register the SVG plugins a slate draws with (no connectable plugin): its lines would not draw.')
   if (/SLATEBOX_COMPAT|invalid_operation_plan/.test(all)) problems.push('slateboxjs/canvas carries the v1 facade or the whole-slate operations: they belong to the main entry.')
