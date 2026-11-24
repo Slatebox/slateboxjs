@@ -3,8 +3,7 @@ import { createInterviewWorkshop, encodeWorkshopFragment, type Workshop } from '
 import { dismissWelcome, getSlate, removeTestGuest, shareAs, userId } from './workshop-guests.shared'
 import {
   announced, canvas, caption, card, cardIdNamed, conversation, dragCard, finger, holdCardOver, keyboardMove, lane, laneOfCard, note, offeredLanes,
-  placementOutcomes, previewWorkshopMessage, renameInPlace, resting, selectCard, slateKey, storedWorkshop, workshopReady, workshopStatus,
-} from './app-native-workshop.shared'
+  placementOutcomes, previewWorkshopMessage, renameInPlace, resting, selectCard, slateKey, storedWorkshop, workshopReady, workshopStatus, cancelMoveAnyway } from './app-native-workshop.shared'
 
 /**
  * A workshop slate is an ordinary Slatebox slate with the workshop on its canvas. These
@@ -191,6 +190,9 @@ test('a note added beside the workshop is saved with the slate and survives a re
     expect(await laneOfCard(page, alpha)).toBe('Later')
     await dragCard(page, alpha, 'next')
     await expect(caption(page, 'next')).toContainText('It already holds 1 of 1 card.')
+    // Restated 2026-11-23 (decision-path): the refused drop is offered as "Move anyway"; cancelled, Alpha stays.
+    await cancelMoveAnyway(page, 'Alpha', 'Next', 'It already holds 1 of 1 card.')
+    expect(await laneOfCard(page, alpha)).toBe('Later')
     await dragCard(page, alpha, 'now')
     await expect.poll(async () => (await lanesOf(page, owner.key)).alpha).toBe('now')
     expect(await laneOfCard(page, alpha)).toBe('Now')
@@ -231,6 +233,8 @@ test('a drop the workshop\'s rules refuse sends the card back and the lane says 
     await page.mouse.up()
     await expect(caption(page, 'next')).toContainText('It already holds 1 of 1 card.')
     await expect(announced(page)).toContainText('Alpha can\'t move to Next. It already holds 1 of 1 card.')
+    // Restated 2026-11-23 (decision-path): the refused drop is also offered as "Move anyway"; cancelled, nothing moves.
+    await cancelMoveAnyway(page, 'Alpha', 'Next', 'It already holds 1 of 1 card.')
     const back = await resting(page, 'card-alpha')
     expect(Math.abs(back.x - start.x)).toBeLessThan(1)
     expect(Math.abs(back.y - start.y)).toBeLessThan(1)
@@ -241,6 +245,7 @@ test('a drop the workshop\'s rules refuse sends the card back and the lane says 
     // Gamma may only be in Now, and a drop on open canvas is not a move either.
     await dragCard(page, 'gamma', 'later')
     await expect(announced(page)).toContainText('Gamma can\'t move to Later. This card can\'t go in Later.')
+    await cancelMoveAnyway(page, 'Gamma', 'Later', 'This card can\'t go in Later.')
     const gamma = await resting(page, 'card-gamma')
     await page.mouse.move(gamma.x + gamma.width / 2, gamma.y + gamma.height / 2)
     await page.mouse.down()

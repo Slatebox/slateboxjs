@@ -273,3 +273,16 @@ export async function joinToEdit(page: Page) {
   await workshopStatus(page).getByRole('button', { name: 'Join to edit', exact: true }).click()
   await editable(page)
 }
+
+/**
+ * A drop (or keyboard move) the board's rules refuse is offered as "Move CARD to LANE anyway?" with the rule's
+ * sentence (app fix/decision-path, owner rule, 2026-11-23); this cancels it, so the card stays where it was.
+ */
+export async function cancelMoveAnyway(page: Page, card: string, lane: string, rule: string) {
+  const ask = page.getByRole('dialog', { name: `Move ${card} to ${lane} anyway?` })
+  await expect(ask).toBeVisible()
+  await expect(ask).toContainText(rule)
+  await expect(ask.getByRole('button', { name: 'Move anyway' })).toBeVisible()
+  await ask.getByRole('button', { name: 'Cancel', exact: true }).click()
+  await expect(ask).toHaveCount(0)
+}

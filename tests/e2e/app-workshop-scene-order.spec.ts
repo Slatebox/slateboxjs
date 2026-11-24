@@ -1,5 +1,5 @@
 import {sendMapEdit} from './map-conversation.shared'
-import {sendLaneEdit,laneChat} from './workshop-conversation.shared'
+import {sendLaneEdit,laneChat,expectRejectedLaneEdit} from './workshop-conversation.shared'
 import { expect, test, type Page } from '@playwright/test'
 import { encodeWorkshopFragment, workshopDestinations, type Workshop } from '../../src/workshops/model'
 import { dismissWelcome, getSlate, removeTestGuest, shareAs, userId } from './workshop-guests.shared'
@@ -92,11 +92,8 @@ for (const workshop of workshops) {
         expect(await isOffered(editor, moving.label, alternate.label)).toBe(false)
       } else {
         await sendLaneEdit(editor,'Move '+moving.label+' to '+destination.label)
-        const chat = laneChat(editor)
-        await chat.getByRole('textbox').fill('Move '+workshop.cards[1].label+' to '+destination.label)
-        await chat.getByRole('button',{name:'Preview changes',exact:true}).click()
-        await expect(chat.getByRole('alert')).toBeVisible()
-        await expect(chat.getByRole('button',{name:'Keep changes'})).toHaveCount(0)
+        // Restated 2026-11-23 (decision-path): the refused move is offered as "Move anyway" with the rule; cancelled, nothing moves.
+        await expectRejectedLaneEdit(editor,'Move '+workshop.cards[1].label+' to '+destination.label)
       }
       const updated = { ...workshop, cards: workshop.cards.map((card, index) => index === 0 ? { ...card, laneId: destination.id } : card) }
       await expect.poll(async () => (await getSlate(owner, key)).creative.model.workshop.cards).toEqual(updated.cards)
