@@ -3,7 +3,8 @@ import { createInterviewWorkshop, encodeWorkshopFragment, type Workshop } from '
 import { dismissWelcome, getSlate, removeTestGuest, shareAs, userId } from './workshop-guests.shared'
 import {
   announced, canvas, caption, card, cardIdNamed, conversation, dragCard, finger, holdCardOver, keyboardMove, lane, laneOfCard, note, offeredLanes,
-  placementOutcomes, previewWorkshopMessage, renameInPlace, resting, selectCard, slateKey, storedWorkshop, workshopReady, workshopStatus, cancelMoveAnyway } from './app-native-workshop.shared'
+  placementOutcomes, previewWorkshopMessage, renameInPlace, resting, selectCard, slateKey, storedWorkshop, workshopReady, workshopStatus, cancelMoveAnyway,
+  canvasUndo, canvasRedo } from './app-native-workshop.shared'
 
 /**
  * A workshop slate is an ordinary Slatebox slate with the workshop on its canvas. These
@@ -421,7 +422,7 @@ test('a visitor who has not joined cannot move a card by pointer, touch or keybo
     // No conversation, no undo, no quick-add: nothing that offers an edit.
     await expect(conversation(guest)).toHaveCount(0)
     await expect(guest.getByRole('button', { name: 'Ask Slatebox' })).toHaveCount(0)
-    await expect(guest.getByRole('button', { name: 'Undo last change' })).toHaveCount(0)
+    await expect(guest.getByRole('group', { name: 'Undo and redo' })).toHaveCount(0)
     const start = await resting(guest, 'card-alpha')
     const untouched = async () => {
       const box = await resting(guest, 'card-alpha')
@@ -552,19 +553,22 @@ test('a card and a lane are renamed in place, saved on the workshop\'s revision,
     await expect(card(page, 'beta')).toContainText('Beta')
     expect(await revisionOf(page, owner.key)).toBe(2)
 
-    // "Undo last change" takes back the lane's rename through the same revision-checked save.
-    const undo = workshopStatus(page).getByRole('button', { name: 'Undo last change', exact: true })
+    // The canvas's Undo takes back the lane's rename through the same revision-checked save.
+    const undo = canvasUndo(page)
     await undo.click()
     await expect(lane(page, 'now')).toContainText('Now')
     await expect.poll(async () => (await storedWorkshop(page, owner.key)).lanes.find((item: any) => item.id === 'now').label).toBe('Now')
     expect(await revisionOf(page, owner.key)).toBe(3)
-    await expect(undo).toHaveCount(0)
-    // The canvas's own undo does not reach the workshop: the card keeps its new name and nothing is saved.
+    // The card's rename is the step before it: Ctrl/Cmd+Z gives the card its name back, saved.
     await page.locator('#slateCanvas').click({ position: { x: 20, y: 300 } })
     await page.keyboard.press('ControlOrMeta+Z')
-    await page.waitForTimeout(600)
+    await expect(card(page, 'alpha')).toContainText('Alpha')
+    await expect.poll(async () => (await storedWorkshop(page, owner.key)).cards.find((item: any) => item.id === 'alpha').label).toBe('Alpha')
+    expect(await revisionOf(page, owner.key)).toBe(4)
+    // Redo makes it again.
+    await canvasRedo(page).click()
     await expect(card(page, 'alpha')).toContainText('Apollo')
-    expect(await revisionOf(page, owner.key)).toBe(3)
+    await expect.poll(async () => (await storedWorkshop(page, owner.key)).cards.find((item: any) => item.id === 'alpha').label).toBe('Apollo')
 
     await page.reload()
     await dismissWelcome(page)

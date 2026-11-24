@@ -1,6 +1,6 @@
 import { expect, test, type Browser, type Page } from '@playwright/test'
 import { dismissWelcome, removeTestGuest, userId } from './workshop-guests.shared'
-import { announced, note, openConversation, resting, slateKey, storedWorkshop, workshopReady, workshopStatus } from './app-native-workshop.shared'
+import { announced, note, openConversation, resting, slateKey, storedWorkshop, workshopReady, workshopStatus, canvasUndo } from './app-native-workshop.shared'
 
 /**
  * A customer go-live in the real Meteor app, made by a guest from the library's phrase: a task's bar is
@@ -97,7 +97,7 @@ test.describe('a task’s bar resized by its grips', () => {
       await expect.poll(async () => Math.round(((await resting(page, 'card-train')).x - trainBefore.x) / width)).toBe(-2)
 
       // One drag is one undo step.
-      await workshopStatus(page).getByRole('button', { name: 'Undo last change', exact: true }).click()
+      await canvasUndo(page).click()
       await expect.poll(async () => (await task(page, 'configure')).duration).toBe(5)
       await expect.poll(() => words(page, 'configure')).toBe('Configure · 5d')
 
@@ -161,7 +161,7 @@ test.describe('go-live moved by its grip', () => {
       await shot(page, '8-go-live-later')
 
       // One drag is one undo step.
-      await workshopStatus(page).getByRole('button', { name: 'Undo last change', exact: true }).click()
+      await canvasUndo(page).click()
       await expect.poll(lineDay).toBe(25)
       await expect(header).toContainText('go-live Fri')
 
@@ -170,7 +170,7 @@ test.describe('go-live moved by its grip', () => {
       await mouseDrag(page, sooner, { x: sooner.x - 7 * (await day(page)), y: sooner.y })
       await expect.poll(lineDay).toBe(18)
       await expect(header).toContainText('go-live Fri')
-      await workshopStatus(page).getByRole('button', { name: 'Undo last change', exact: true }).click()
+      await canvasUndo(page).click()
       await expect.poll(lineDay).toBe(25)
 
       // Earlier than the tasks end: refused in the board's sentence, with the earliest go-live that fits.
@@ -222,7 +222,7 @@ test.describe('the plan’s first day moved by its grip', () => {
       await expect(header).toHaveText(before)
       await expect(announced(page)).toContainText('The plan now starts Mon')
       await shot(page, '10-first-day-earlier')
-      await workshopStatus(page).getByRole('button', { name: 'Undo last change', exact: true }).click()
+      await canvasUndo(page).click()
       await expect.poll(origin).toBe(first)
 
       // Three days later (Thursday): Kickoff starts on it, what waits on it moves; go-live stays.
@@ -231,7 +231,7 @@ test.describe('the plan’s first day moved by its grip', () => {
       await expect.poll(origin).toBe(shifted(3))
       await expect(header).toContainText('go-live Fri')
       await expect(header).not.toHaveText(before)
-      await workshopStatus(page).getByRole('button', { name: 'Undo last change', exact: true }).click()
+      await canvasUndo(page).click()
       await expect.poll(origin).toBe(first)
 
       // Too late for the tasks to fit by go-live: refused, with the latest first day that does.

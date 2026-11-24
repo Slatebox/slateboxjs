@@ -4,7 +4,7 @@ import {dismissWelcome, getSlate, userId, removeTestGuest} from './workshop-gues
 import { releasePlan } from '../../src/workshops/release'
 import type { Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
-import { caption, slateTitle, workshopReady, workshopStatus } from './app-native-workshop.shared'
+import { caption, slateTitle, workshopReady, workshopStatus, canvasUndo } from './app-native-workshop.shared'
 import { camera, exitWithEscape, expectLane, nextView, openPresenter } from './app-presenter.shared'
 
 const base = process.env.SLATEBOX_APP_URL || 'http://localhost:3000'
@@ -44,7 +44,7 @@ test('review a release plan, preview a dependent move, undo it and present the c
     await expect(capacity).toContainText('4 / 9 points')
     await sendLaneEdit(page,'Move @invite to @friday')
     await expect(capacity).toContainText('9 / 9 points')
-    await workshopStatus(page).getByRole('button',{name:'Undo last change'}).click()
+    await canvasUndo(page).click()
     await expect(capacity).toContainText('4 / 9 points')
     await sendLaneEdit(page,'Move @invite to @friday')
     await page.reload()
@@ -104,8 +104,9 @@ test('share a release plan, observe committed moves, and undo as the participant
       await expect(caption(owner,'friday')).toContainText('3 / 8 points')
       await laneChat(peer).getByRole('button',{name:'Keep changes'}).click()
       await expect(caption(owner,'friday')).toContainText('8 / 8 points')
-      await expect(owner.getByRole('button',{name:'Undo last change'})).toHaveCount(0)
-      await peer.getByRole('button',{name:'Undo last change'}).click()
+      // The peer's change is the peer's to undo: the owner has nothing of theirs to take back.
+      await expect(canvasUndo(owner)).toBeDisabled()
+      await canvasUndo(peer).click()
       await expect(caption(owner,'friday')).toContainText('3 / 8 points')
       await peer.reload()
       await expect(caption(peer,'friday')).toContainText('3 / 8 points')

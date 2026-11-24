@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test'
 import { openGuestCanvas } from './app-host.shared'
 import { removeTestGuest, userId, dismissWelcome } from './workshop-guests.shared'
 import { encodeWorkshopFragment, type Workshop } from '../../src/workshops/model'
-import { cardIdNamed, card, workshopReady, slateKey, storedWorkshop } from './app-native-workshop.shared'
+import { cardIdNamed, card, workshopReady, slateKey, storedWorkshop, canvasUndo } from './app-native-workshop.shared'
 
 /**
  * The style bar after its hostile review: a card is not removed on one press, a collaborator's
@@ -263,7 +263,7 @@ const ruled: Workshop = {
   cards: [{ id: 'alpha', label: 'Alpha', laneId: 'now' }, { id: 'beta', label: 'Beta', laneId: 'now' }],
 }
 
-test('a card is not removed on one press: Remove asks first, Cancel keeps it, and Undo last change brings it back', async ({ page }) => {
+test('a card is not removed on one press: Remove asks first, Cancel keeps it, and Undo brings it back', async ({ page }) => {
   let id: string | null = null
   try {
     await page.goto(new URL('/new/workshop' + encodeWorkshopFragment(ruled), origin).href)
@@ -296,11 +296,11 @@ test('a card is not removed on one press: Remove asks first, Cancel keeps it, an
     await page.keyboard.press('Escape')
     await expect(ask).toHaveCount(0)
     expect(await cards()).toEqual(['alpha', 'beta'])
-    // Confirmed: removed, and Undo last change puts it back.
+    // Confirmed: removed, and Undo puts it back.
     await cardBar.getByRole('button', { name: 'Remove card' }).click()
     await ask.getByRole('button', { name: 'Remove Alpha' }).click()
     await expect.poll(cards).toEqual(['beta'])
-    await page.getByRole('button', { name: 'Undo last change' }).click()
+    await canvasUndo(page).click()
     await expect.poll(cards).toEqual(['alpha', 'beta'])
     await expect(card(page, 'alpha')).toBeVisible()
   } finally { await removeTestGuest(page, id) }

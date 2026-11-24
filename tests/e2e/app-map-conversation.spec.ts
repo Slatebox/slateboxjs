@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { dismissWelcome, getSlate, removeTestGuest, userId } from './workshop-guests.shared'
-import { card, conversation, dragCardNamed, lane, laneOfCard, openConversation, tryDragNamed, workshopReady, workshopStatus } from './app-native-workshop.shared'
+import { card, conversation, dragCardNamed, lane, laneOfCard, openConversation, tryDragNamed, workshopReady, workshopStatus, canvasUndo } from './app-native-workshop.shared'
 
 const origin = new URL(process.env.SLATEBOX_APP_URL || 'http://localhost:3000')
 
@@ -59,7 +59,7 @@ test('a free creator previews a route, keeps a decision, follows up and undoes f
     await review.click()
     await expect(box).toBeFocused()
     await expect.poll(async () => (await saved()).lanes.at(-1).label).toEqual('Run a pilot')
-    await workshopStatus(page).getByRole('button',{name:'Undo last change'}).click()
+    await canvasUndo(page).click()
     await expect.poll(async () => (await saved()).lanes.at(-1).label).toEqual('Start a pilot')
     await page.reload()
     await workshopReady(page)

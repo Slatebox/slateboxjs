@@ -17,8 +17,11 @@ export const lane = (page: Page, laneId: string) => note(page, 'lane-' + laneId)
 export const caption = (page: Page, laneId: string) => note(page, 'caption-' + laneId)
 /** The slate's own conversation panel. */
 export const conversation = (page: Page) => page.getByRole('complementary', { name: 'Ask Slatebox' })
-/** The status strip on the canvas: Join to edit, View only, Undo last change, Saving, errors. */
+/** The status strip on the canvas: Join to edit, View only, Saving, errors (Undo is the canvas's own, canvasUndo). */
 export const workshopStatus = (page: Page) => page.getByRole('group', { name: 'Workshop', exact: true })
+// The canvas's Undo and Redo: a person's own steps, the board's changes among them.
+export const canvasUndo = (page: Page) => page.getByRole('group', { name: 'Undo and redo', exact: true }).getByRole('button', { name: 'Undo', exact: true })
+export const canvasRedo = (page: Page) => page.getByRole('group', { name: 'Undo and redo', exact: true }).getByRole('button', { name: 'Redo', exact: true })
 /** Where each token of a map is and what happens there. */
 export const standing = (page: Page) => page.getByRole('region', { name: 'Where things stand', exact: true })
 export const placementOutcomes = (page: Page) => page.getByRole('region', { name: 'Placement outcomes', exact: true })

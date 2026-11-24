@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { dismissWelcome, removeTestGuest, userId } from './workshop-guests.shared'
-import { announced, note, openConversation, resting, slateKey, storedWorkshop, workshopReady, workshopStatus } from './app-native-workshop.shared'
+import { announced, note, openConversation, resting, slateKey, storedWorkshop, workshopReady, workshopStatus, canvasUndo } from './app-native-workshop.shared'
 
 /**
  * A budget's total in the real Meteor app (the owner, 2026-11-22: "change the total too"): the envelope's outer
@@ -70,7 +70,7 @@ test.describe('a budget’s total at its envelope’s edges', () => {
         await page.waitForTimeout(300)
         return centre(await resting(page, name))
       }
-      const undo = () => workshopStatus(page).getByRole('button', { name: 'Undo last change', exact: true }).click()
+      const undo = () => canvasUndo(page).click()
       await shot(page, '1-before')
 
       // The end edge out by $50k: the total grows, Design (the last team) gains it.

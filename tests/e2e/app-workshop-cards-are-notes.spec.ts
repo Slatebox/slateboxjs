@@ -88,8 +88,8 @@ test('a note dropped on a lane is a card there and a card dropped on the canvas 
     // The teammate sees the card in Later, and no note.
     await expect(card(guest.page, noteId)).toContainText('Call Sam')
     await expect(note(guest.page, noteId)).toHaveCount(0)
-    // The status strip offers no "Undo last change" for it: the canvas's undo puts back both halves.
-    await expect(workshopStatus(page).getByRole('button', { name: 'Undo last change' })).toHaveCount(0)
+    // The status strip has no undo of its own: the canvas's undo puts back both halves, as one step.
+    await expect(workshopStatus(page).getByRole('button', { name: /undo/i })).toHaveCount(0)
 
     // Undo: the note is back on the canvas and the card leaves Later, for everyone.
     await page.mouse.click(5, 300)

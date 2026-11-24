@@ -1,7 +1,7 @@
 import { randomBytes, randomUUID } from 'node:crypto'
 import { expect, test, type Browser, type Page, type Request } from '@playwright/test'
 import { dismissWelcome, shareAs, userId } from './workshop-guests.shared'
-import { announced, conversation, note, openConversation, resting, slateKey, storedWorkshop, workshopReady, workshopStatus } from './app-native-workshop.shared'
+import { announced, conversation, note, openConversation, resting, slateKey, storedWorkshop, workshopReady, workshopStatus, canvasUndo } from './app-native-workshop.shared'
 
 /**
  * The launch plan, the sales pipeline and the budget in the real Meteor app, at a laptop's width
@@ -249,8 +249,8 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
         await page.waitForTimeout(600)
         expect(board.accepted(await storedWorkshop(page, key))).toBe(true)
 
-        // Undo last change puts the board back.
-        await workshopStatus(page).getByRole('button', { name: 'Undo last change', exact: true }).click()
+        // Undo puts the board back.
+        await canvasUndo(page).click()
         await expect.poll(async () => board.original(await storedWorkshop(page, key))).toBe(true)
 
         // A reload opens it as saved.

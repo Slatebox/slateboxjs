@@ -2,7 +2,7 @@ import { expect, test, type Browser, type Page } from '@playwright/test'
 import { openGuestCanvas } from './app-host.shared'
 import { dismissWelcome, removeTestGuest, shareAs, userId } from './workshop-guests.shared'
 import { register, retire, type Actor } from './agent-principals.shared'
-import { card, conversation, lane, messageBox, standing, workshopReady } from './app-native-workshop.shared'
+import { card, conversation, lane, messageBox, standing, workshopReady, canvasUndo } from './app-native-workshop.shared'
 import { encodeWorkshopFragment, type Workshop } from '../../src/workshops/model'
 
 /**
@@ -169,7 +169,7 @@ test('a workshop board has no line under it echoing a card: the words are read a
       expect(box.height).toBeLessThan(60)
       // Taken back before the notice goes: the card is no longer at that stop, so the notice no longer
       // names it. The newest change wins: it says what the stop the card is back at says.
-      await page.getByRole('button', { name: 'Undo last change' }).click()
+      await canvasUndo(page).click()
       await expect(standing(page)).toContainText('Customer file · Customer CSV')
       await expect(notice).not.toContainText('Import 47 rows', { timeout: 1500 })
       await expect(notice).toContainText('Customer CSV')

@@ -1,7 +1,7 @@
 import { expect, test, type Browser, type Page } from '@playwright/test'
 import { encodeWorkshopFragment, releasePlan, type Workshop } from '../../src/workshops/model'
 import { dismissWelcome, removeTestGuest, userId } from './workshop-guests.shared'
-import { announced, conversation, messageBox, note, openConversation, resting, slateKey, starter, storedWorkshop, workshopReady, workshopStatus } from './app-native-workshop.shared'
+import { announced, conversation, messageBox, note, openConversation, resting, slateKey, starter, storedWorkshop, workshopReady, workshopStatus, canvasUndo } from './app-native-workshop.shared'
 
 /**
  * Boards S2b (owner addenda, 2026-11-22) in the real Meteor app with the local engine:
@@ -35,7 +35,7 @@ const shot = async (page: Page, name: string) => {
 const focusChip = (page: Page) => conversation(page).locator('[data-board-focus]')
 const grips = (page: Page) => page.locator('#slateCanvas [data-node-id^="handle-_link-"], #slateCanvas [data-node-id^="handle-_route-"]')
 const paths = async (page: Page) => (await storedWorkshop(page, slateKey(page))).lanes.flatMap((l: any) => l.station.next.map((n: string) => l.id + '>' + n)).join(' ')
-const undo = (page: Page) => workshopStatus(page).getByRole('button', { name: 'Undo last change', exact: true }).click()
+const undo = (page: Page) => canvasUndo(page).click()
 
 async function open(page: Page, path: string) {
   await page.goto(new URL(path, origin).href)
