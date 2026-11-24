@@ -27,8 +27,8 @@ const ANIMATIONS = [
   "breathe", "pulse", "rotate",
 ];
 
-type Variant = "quickAddStar" | "namedStar" | "customShape" | "aiShape" | "circle" | "diamond" | "rotatedStar";
-const VARIANTS: Variant[] = ["quickAddStar", "namedStar", "customShape", "aiShape", "circle", "diamond", "rotatedStar"];
+type Variant = "quickAddStar" | "namedStar" | "customShape" | "aiShape" | "circle" | "diamond" | "rotatedStar" | "rectangle";
+const VARIANTS: Variant[] = ["quickAddStar", "namedStar", "customShape", "aiShape", "circle", "diamond", "rotatedStar", "rectangle"];
 
 async function boot(page: Page) {
   page.on("pageerror", (e) => console.log("pageerror", e.message));
@@ -59,6 +59,8 @@ async function boot(page: Page) {
         }
         case "circle": return { ...base, width: 110, height: 110, shape: "circle" };
         case "diamond": return { ...base, width: 140, height: 100, shape: "diamond" };
+        // A plain note: no resize proxy, the animation runs on the rectangle itself.
+        case "rectangle": return { ...base, width: 160, height: 90 };
       }
       return base;
     };
@@ -71,8 +73,17 @@ async function boot(page: Page) {
       return new sb.slate({ container: id, allowCollaboration: false, showbirdsEye: true }, {}).init();
     };
     w.__rect = (e: Element) => { const q = e.getBoundingClientRect(); return { x: q.x, y: q.y, w: q.width, h: q.height, cx: q.x + q.width / 2, cy: q.y + q.height / 2 }; };
-    // A note's box on screen: the selector's proxy rectangle, which no animation moves.
-    w.__box = (n: any) => w.__rect((n.resizeTarget ?? n.backgroundRect).node);
+    // A note's box on screen: the selector's proxy rectangle, which no animation moves;
+    // a plain note (no proxy, its rectangle is what animates) from its saved box.
+    w.__box = (n: any) => {
+      if (n.resizeTarget) return w.__rect(n.resizeTarget.node);
+      const m = (n.svgGroup.root().node as SVGSVGElement).getScreenCTM()!;
+      const { x, y, width, height } = n.options;
+      const p = (px: number, py: number) => ({ x: px * m.a + py * m.c + m.e, y: px * m.b + py * m.d + m.f });
+      const a = p(x, y);
+      const b = p(x + width, y + height);
+      return { x: a.x, y: a.y, w: b.x - a.x, h: b.y - a.y, cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2 };
+    };
     w.__wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
   }, { STAR_24, BLOB, AI_BOLT });
 }
@@ -151,8 +162,9 @@ test.describe("a zoomed slate keeps every shape's animations, sibling, line and 
       }
     });
 
-    // As the owner did: an animation chosen first (power smash, finished; rotate, still running), or none.
-    for (const animation of ["none", "powerSmash", "rotate"]) test(`the plug dot adds a matching sibling: ${variant}, zoomed and panned, animation ${animation}`, async ({ page }) => {
+    // As the owner did: an animation chosen first (power smash, finished; rotate, still running), or none;
+    // and an entrance caught mid-flight (impact slide held at 20 ms, the note drawn far to its left).
+    for (const animation of ["none", "powerSmash", "rotate", "impactSlideHeld"]) test(`the plug dot adds a matching sibling: ${variant}, zoomed and panned, animation ${animation}`, async ({ page }) => {
       test.setTimeout(60_000);
       await boot(page);
       const zoom = 1.6;
@@ -167,7 +179,11 @@ test.describe("a zoomed slate keeps every shape's animations, sibling, line and 
         s.v2.zoom(zoom);
         s.v2.panZoom.panBy({ x: -120, y: 60 });
         await w.__wait(300);
-        if (animation !== "none") {
+        if (animation === "impactSlideHeld") {
+          a.filters.applyAnimation("impactSlide", "vect");
+          await w.__wait(30);
+          document.getAnimations().forEach((an: any) => { an.pause(); an.currentTime = 20; });
+        } else if (animation !== "none") {
           a.filters.applyAnimation(animation, "vect");
           await w.__wait(800);
         }
@@ -196,12 +212,15 @@ test.describe("a zoomed slate keeps every shape's animations, sibling, line and 
       });
       expect.soft(preview, "the plug dot shows a preview").not.toBeNull();
       if (variant === "circle") expect.soft(preview!.tag).toBe("circle");
+      else if (variant === "rectangle") expect.soft(preview!.outline).not.toBe("path");
       else expect.soft(preview!.outline, `${variant} preview is the note's outline, not a square`).toBe("path");
       const size = Math.max(setup.aBefore.w, setup.aBefore.h);
       expect.soft(Math.hypot(preview!.rect.cx - setup.aBefore.cx, preview!.rect.cy - setup.aBefore.cy)).toBeLessThan(size * 3);
 
       await page.mouse.click(setup.handle!.x, setup.handle!.y);
       await page.waitForTimeout(700);
+      // The sibling was placed while the entrance was held; measure the result at rest.
+      if (animation === "impactSlideHeld") await page.evaluate(() => document.getAnimations().forEach((an: any) => an.finish()));
 
       const after = await page.evaluate(() => {
         const w = window as any;
@@ -270,6 +289,7 @@ test.describe("a zoomed slate keeps every shape's animations, sibling, line and 
       expect.soft(after.mini.length).toBe(2);
       for (const m of after.mini) {
         if (variant === "circle") expect.soft(m.tag).toBe("circle");
+        else if (variant === "rectangle") expect.soft(m.tag).toBe("rect");
         else expect.soft(m.outline, `${variant} minimap draws the outline, not a square`).toBe("1");
       }
       // Saved: both notes carry the same outline, at its own origin (not canvas coordinates).
@@ -301,6 +321,126 @@ test.describe("a zoomed slate keeps every shape's animations, sibling, line and 
       }
     });
   }
+
+  // Review of the first fix: animating the outline inside the stretched nested <svg>
+  // squashed turning shapes, and showed animated notes with a thicker border.
+  test("a turning shape on a stretched note turns rigidly, and an animated note looks like an unanimated one", async ({ page }) => {
+    await boot(page);
+    const res = await page.evaluate(async () => {
+      const w = window as any;
+      const sb = w.Slatebox;
+      const s = await w.__mkSlate("turnSlate");
+      const quick = w.__optsFor("quickAddStar", "Q", 0, 0);
+      const specs = [
+        { id: "D", opts: { ...w.__optsFor("diamond", "D", 120, 120), width: 140, height: 100 } },
+        { id: "S", opts: { ...w.__optsFor("namedStar", "S", 420, 120), width: 330, height: 110 } },
+        { id: "Q", opts: { ...quick, xPos: 120, yPos: 420, width: 300, height: 100 } },
+        { id: "C", opts: { ...w.__optsFor("customShape", "C", 520, 420), width: 260, height: 100 } },
+      ];
+      const nodes = specs.map((sp) => s.nodes.add(new sb.node(sp.opts)).v2);
+      // Twins without animation, to compare how the shape element looks at rest.
+      const twin = s.nodes.add(new sb.node({ ...w.__optsFor("namedStar", "T", 420, 520), width: 330, height: 110 })).v2;
+      await Promise.all([...nodes, twin].map((n: any) => n.ready));
+      s.v2.zoom(1.3);
+      await w.__wait(200);
+      const out: any = {};
+      for (const n of nodes) {
+        const outline = (n.contentPath ?? n.backgroundRect).node as SVGGraphicsElement;
+        const rest = w.__rect(outline);
+        n.filters.applyAnimation("rotate", "vect");
+        await w.__wait(50);
+        const host = (n.backgroundRect.node as Element).parentNode as Element;
+        // Every animation running in this note, wherever the engine plays it.
+        const anims = document.getAnimations().filter((an: any) => n.svgGroup.node.contains(an.effect?.target));
+        const at = (ms: number) => {
+          anims.forEach((a: any) => { a.pause(); a.currentTime = ms; });
+          return w.__rect(outline);
+        };
+        // rotate: 8s per turn → 2000 ms is 90°, 4000 ms is 180°.
+        out[n.id] = { rest, d90: at(2000), d180: at(4000), animations: anims.length, hostTag: host.tagName.toLowerCase() };
+      }
+      // A finished entrance on the star: same overflow (border clipping) as its unanimated twin.
+      const star = nodes[1];
+      star.filters.applyAnimation("powerSmash", "vect");
+      await w.__wait(900);
+      out.overflow = {
+        animated: getComputedStyle(star.backgroundRect.node).overflow,
+        twin: getComputedStyle(twin.backgroundRect.node).overflow,
+      };
+      // Reshaping an animated note leaves no empty animation host behind.
+      star.setShape("diamond");
+      await w.__wait(50);
+      out.emptyHosts = [...document.querySelectorAll("#turnSlate [data-sb-animation-host]")].filter((g) => !g.firstElementChild).length;
+      // Removing the animation puts the shape back where it was.
+      nodes[0].filters.removeAnimation("vect");
+      out.unwrapped = (nodes[0].backgroundRect.node as Element).parentNode === nodes[0].svgGroup.node;
+      return out;
+    });
+    for (const id of ["D", "S", "Q", "C"]) {
+      const r = res[id];
+      expect.soft(r.animations, `${id}: the rotation runs`).toBeGreaterThan(0);
+      expect.soft(r.hostTag, `${id}: the host is a plain group`).toBe("g");
+      // A 90° turn swaps the outline's width and height; a 180° turn keeps them.
+      expect.soft(Math.abs(r.d90.w - r.rest.h), `${id} at 90°: width ${r.d90.w} vs resting height ${r.rest.h}`).toBeLessThan(3);
+      expect.soft(Math.abs(r.d90.h - r.rest.w), `${id} at 90°: height ${r.d90.h} vs resting width ${r.rest.w}`).toBeLessThan(3);
+      expect.soft(Math.abs(r.d180.w - r.rest.w), `${id} at 180°: width kept`).toBeLessThan(3);
+      expect.soft(Math.abs(r.d180.h - r.rest.h), `${id} at 180°: height kept`).toBeLessThan(3);
+      // It turns about the note's centre.
+      expect.soft(Math.hypot(r.d90.cx - r.rest.cx, r.d90.cy - r.rest.cy), `${id} turns about its centre`).toBeLessThan(3);
+    }
+    expect.soft(res.overflow.animated, "an animated note clips its border like an unanimated one").toBe(res.overflow.twin);
+    expect.soft(res.emptyHosts).toBe(0);
+    expect.soft(res.unwrapped).toBe(true);
+  });
+
+  // Review of the first fix: in Firefox the line started inside the note (the nested
+  // <svg>'s matrix leaves out its viewBox stretch). The line's end must sit on the outline.
+  for (const animation of ["none", "rotate"]) test(`a line's end sits on the outline of a stretched named star (animation ${animation})`, async ({ page }) => {
+    await boot(page);
+    const res = await page.evaluate(async (animation) => {
+      const w = window as any;
+      const sb = w.Slatebox;
+      const s = await w.__mkSlate("lineSlate");
+      w.__slate = s;
+      const a = s.nodes.add(new sb.node({ ...w.__optsFor("namedStar", "A", 200, 200), width: 200, height: 80 })).v2;
+      const b = s.nodes.add(new sb.node({ ...w.__optsFor("namedStar", "B", 600, 200), width: 200, height: 80 })).v2;
+      await Promise.all([a.ready, b.ready]);
+      s.v2.zoom(1.2);
+      await w.__wait(200);
+      if (animation !== "none") {
+        a.filters.applyAnimation(animation, "vect");
+        b.filters.applyAnimation(animation, "vect");
+        await w.__wait(700);
+      }
+      a.relationships.addAssociation(b);
+      await w.__wait(500);
+      const line = document.querySelector('#lineSlate path[connectortype="default"]') as SVGPathElement | null;
+      if (!line) return null;
+      const lm = line.getScreenCTM()!;
+      const pt = (p: DOMPoint, m: DOMMatrix) => ({ x: p.x * m.a + p.y * m.c + m.e, y: p.x * m.b + p.y * m.d + m.f });
+      const ends = [pt(line.getPointAtLength(0), lm), pt(line.getPointAtLength(line.getTotalLength()), lm)];
+      // Each outline at rest, on screen: path points through the resting matrix
+      // (the animation host's frame undone), sampled densely.
+      const outlinePts = (n: any) => {
+        const p = n.contentPath.node as SVGPathElement;
+        let m = p.getScreenCTM()!;
+        const host = (n.backgroundRect.node as Element).parentNode as any;
+        if (host?.hasAttribute?.("data-sb-animation-host")) {
+          m = (host.parentNode.getScreenCTM() as DOMMatrix).multiply(host.getScreenCTM().inverse()).multiply(m);
+        }
+        const L = p.getTotalLength();
+        return Array.from({ length: 600 }, (_, i) => pt(p.getPointAtLength((L * i) / 600), m));
+      };
+      const dist = (e: any, pts: any[]) => Math.min(...pts.map((q) => Math.hypot(q.x - e.x, q.y - e.y)));
+      const pa = outlinePts(a);
+      const pb = outlinePts(b);
+      // The start sits on A's outline; the end stops short of B's by the arrowhead.
+      return { start: dist(ends[0], pa), end: dist(ends[1], pb) };
+    }, animation);
+    expect(res, "a line was drawn").not.toBeNull();
+    expect.soft(res!.start, `line start ${res!.start.toFixed(2)}px from the source outline`).toBeLessThan(2.5);
+    expect.soft(res!.end, `line end ${res!.end.toFixed(2)}px from the target outline (arrowhead gap)`).toBeLessThan(25);
+  });
 
   test("a slate saved with quick-add stars in canvas coordinates reloads with a short line and stars everywhere", async ({ page }) => {
     await boot(page);

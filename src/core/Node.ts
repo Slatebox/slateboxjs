@@ -6,6 +6,7 @@ import {
   Circle,
   Ellipse,
   Path,
+  Matrix as SvgMatrix,
   off as svgOff,
 } from "@svgdotjs/svg.js";
 
@@ -26,6 +27,7 @@ import { Filters } from "./Filters";
 import { Menu } from "./Menu";
 import { resolveShapePath } from "./ShapeRegistry";
 import { normalizeShapeOptions } from "./vectorPath";
+import { removeWithAnimationHost, restingScreenCTM } from "./Animations";
 import { shapeTextBox, type ShapeTextBox } from "../shapes";
 
 /** Text boxes measured for raw-path notes that carry none, per path string (memory only). */
@@ -984,7 +986,8 @@ export class Node {
       /* noop */
     }
     try {
-      (this.backgroundRect as any)?.remove?.();
+      // An animated shape sits in an animation host <g> (core/Animations.ts): drop both.
+      removeWithAnimationHost(this.backgroundRect);
     } catch (e) {
       /* noop */
     }
@@ -3363,7 +3366,19 @@ export class Node {
     if (!editable && gesture === "plug") return added();
     if (gesture !== "drop") {
       const viewport = slate.canvas.viewbox();
-      const bounds = newNode.svgGroup.rbox(slate.canvas);
+      // The note's box (its selector proxy), not everything drawn in its group: a
+      // sibling copies its source's animation, and an entrance caught mid-flight
+      // (scaled up, far to the left) made the view chase where the outline was.
+      const proxy = (newNode as any).resizeTarget;
+      let bounds: { x: number; y: number; x2: number; y2: number };
+      if (proxy?.rbox) {
+        bounds = proxy.rbox(slate.canvas);
+      } else {
+        const { x = 0, y = 0, width = 0, height = 0 } = newNode.options;
+        bounds = newNode.getRotation()
+          ? newNode.svgGroup.rbox(slate.canvas)
+          : { x, y, x2: x + width, y2: y + height };
+      }
       // Bring the new note into view by the shortest move, with a little air around it,
       // so the note it was created from stays in sight too. A note larger than the view
       // is centred on that axis.
@@ -4119,9 +4134,7 @@ export class Node {
     // A note that is no longer on the canvas has nowhere to put its connectors.
     if (!target?.root?.()) return;
     const bbox = target.bbox();
-    const elMatrix = target.screenCTM();
-    const rootMatrix = target.root().screenCTM();
-    const fromShapeToUiMatrix = rootMatrix.inverseO().multiplyO(elMatrix);
+    const { matrix: fromShapeToUiMatrix } = this.restingGeometry(target);
 
     // Helper function to transform points (same as svg.select.js transformPoint)
     const transformPoint = ([x, y]: number[], { a, b, c, d, e, f }: any) => {
@@ -4284,9 +4297,7 @@ export class Node {
     // the drawn outline: an animation moves the outline, and a path shape's
     // nested <svg> measures in its own viewBox units.
     const geo = (this.resizeTarget ?? this.backgroundRect) as any;
-    const rbox = geo.rbox(geo.root());
-    const actualCenterX = rbox.cx;
-    const actualCenterY = rbox.cy;
+    const { matrix: fromShapeToUiMatrix, cx: actualCenterX, cy: actualCenterY } = this.restingGeometry(geo);
 
     // Get the connection handle's position (the blue dot that was hovered)
     const handle = this.connectionHandles[direction];
@@ -4316,10 +4327,6 @@ export class Node {
     const bbox = geo.bbox();
     const bboxCenterX = bbox.x + bbox.width / 2;
     const bboxCenterY = bbox.y + bbox.height / 2;
-
-    const elMatrix = geo.screenCTM();
-    const rootMatrix = geo.root().screenCTM();
-    const fromShapeToUiMatrix = rootMatrix.inverseO().multiplyO(elMatrix);
 
     // Inverse transform the direction vector to bbox space to correctly identify the edge
     const inverseMatrix = fromShapeToUiMatrix.inverse();
@@ -4418,6 +4425,29 @@ export class Node {
       handleCenter,
       arrowEnd
     );
+  }
+
+  /**
+   * The note's box at rest, in canvas coordinates: the matrix from `geo`'s own
+   * units to the canvas, and the box's centre. A running or finished node
+   * animation moves the drawn shape (a rectangle note is animated directly), so
+   * the plug dots, the sibling preview and the sibling are placed from the
+   * resting matrix (core/Animations.ts restingScreenCTM), never the frame.
+   */
+  private restingGeometry(geo: any): { matrix: any; cx: number; cy: number } {
+    const bbox = geo.bbox();
+    const rootMatrix = geo.root().screenCTM();
+    let matrix: any;
+    const resting = restingScreenCTM(geo.node);
+    if (resting) {
+      const r = new SvgMatrix(resting);
+      matrix = rootMatrix.inverseO().multiplyO(r);
+    } else {
+      matrix = rootMatrix.inverseO().multiplyO(geo.screenCTM());
+    }
+    const lx = bbox.x + bbox.width / 2;
+    const ly = bbox.y + bbox.height / 2;
+    return { matrix, cx: lx * matrix.a + ly * matrix.c + matrix.e, cy: lx * matrix.b + ly * matrix.d + matrix.f };
   }
 
   /** The outline the plug preview draws: any path shape but the plain rectangle (kept as the rounded ghost). */
@@ -4728,9 +4758,7 @@ export class Node {
       // Get the ACTUAL center of the rotated shape (not the bbox center)
       // The note's box, measured like the plug dots and the preview (see showConnectionPreview).
       const geo = (this.resizeTarget ?? this.backgroundRect) as any;
-      const rbox = geo.rbox(geo.root());
-      const actualCenterX = rbox.cx;
-      const actualCenterY = rbox.cy;
+      const { matrix: fromShapeToUiMatrix, cx: actualCenterX, cy: actualCenterY } = this.restingGeometry(geo);
 
       // Calculate new node position based on rotated direction
       // Use transformation matrix to get accurate edge distance (accounts for rotation)
@@ -4760,10 +4788,7 @@ export class Node {
           break;
       }
 
-      // Transform edge position to world space
-      const elMatrix = geo.screenCTM();
-      const rootMatrix = geo.root().screenCTM();
-      const fromShapeToUiMatrix = rootMatrix.inverseO().multiplyO(elMatrix);
+      // Transform edge position to world space (fromShapeToUiMatrix: the note at rest)
 
       const transformPoint = ([x, y]: number[], { a, b, c, d, e, f }: any) => {
         return [x * a + y * c + e, x * b + y * d + f];

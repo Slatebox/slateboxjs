@@ -151,6 +151,28 @@ function getElementCenter(element) {
   return localToSvgCoords(element, bbox.cx, bbox.cy);
 }
 
+/** A path's screen CTM without the frame of a node animation host around it. */
+function restingPathCTM(pathEl) {
+  const ctm = pathEl.getScreenCTM && pathEl.getScreenCTM();
+  if (!ctm) return ctm;
+  try {
+    let node = pathEl.parentNode;
+    while (node && node.nodeType === 1) {
+      if (node.hasAttribute && node.hasAttribute("data-sb-animation-host")) {
+        const hostCtm = node.getScreenCTM && node.getScreenCTM();
+        const parentCtm = node.parentNode && node.parentNode.getScreenCTM && node.parentNode.getScreenCTM();
+        if (!hostCtm || !parentCtm) return ctm;
+        return parentCtm.multiply(hostCtm.inverse()).multiply(ctm);
+      }
+      if (node.tagName && node.tagName.toLowerCase() === "svg" && !node.ownerSVGElement) break;
+      node = node.parentNode;
+    }
+  } catch (e) {
+    /* the drawn matrix */
+  }
+  return ctm;
+}
+
 /**
  * getClosestPointOnEdge
  * Calculates the closest point on the edge of a shape to another point.
@@ -206,17 +228,14 @@ function closestPointOnPathOutline(shape, targetPoint) {
     // Walk up to the OUTERMOST svg, which is the connector's coordinate space.
     let rootSvg = pathEl.ownerSVGElement;
     while (rootSvg && rootSvg.ownerSVGElement) rootSvg = rootSvg.ownerSVGElement;
-    // A shape's outline path sits untransformed in its nested <svg>, but a node
-    // animation runs on that path (core/Animations.ts): its own screen CTM carries
-    // the animation's frame, so a line drawn during an entrance pointed wherever
-    // the outline was flying. The nested <svg>'s CTM is the resting outline.
-    const host = pathEl.parentNode;
-    const ctmEl =
-      pathEl.hasAttribute && pathEl.hasAttribute("data-node-background-path") &&
-      host && host.tagName && host.tagName.toLowerCase() === "svg" && host.getScreenCTM
-        ? host
-        : pathEl;
-    const pathCTM = ctmEl.getScreenCTM && ctmEl.getScreenCTM();
+    // A node animation runs on a <g> wrapped around the shape's nested <svg>
+    // (core/Animations.ts, data-sb-animation-host): the path's own screen CTM
+    // then carries the animation's frame, and a line drawn during an entrance
+    // pointed wherever the outline was flying. Undo the host's frame so the line
+    // anchors to the outline at rest. The path's own CTM is kept as the base (it
+    // includes the nested <svg>'s viewBox stretch in every browser; the nested
+    // <svg>'s CTM does not in Firefox).
+    const pathCTM = restingPathCTM(pathEl);
     const rootScreenCTM = rootSvg && rootSvg.getScreenCTM && rootSvg.getScreenCTM();
     if (!rootSvg || !pathCTM || !rootScreenCTM) return null;
     const rootInv = rootScreenCTM.inverse();

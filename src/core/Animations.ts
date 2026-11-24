@@ -133,32 +133,104 @@ const baseCss = `.sb-node-animation{transform-box:fill-box;transform-origin:cent
 
 /**
  * A path shape's element is a nested <svg> whose viewBox is the outline's own
- * bounds. Animating that <svg> goes wrong two ways: WebKit ignores CSS
- * transforms on a nested <svg> (nothing moves), and Chromium and Firefox take
- * its fill-box in viewBox units, so the pivot sits wherever the path's numbers
- * are (thousands of pixels away for a path stored in canvas coordinates; off
- * centre for a resized note or a named shape). The animation therefore runs on
- * the outline path inside it, whose own box is exactly the shape in every
- * browser; the class stays on the shape element, and the <svg> stops clipping
- * so the outline can move past its box.
+ * bounds, stretched to the note (preserveAspectRatio="none"). Animating that
+ * <svg> goes wrong: WebKit ignores CSS transforms on a nested <svg> (nothing
+ * moves), and Chromium and Firefox take its fill-box in viewBox units, so the
+ * pivot sits wherever the path's numbers are. Animating the outline inside it
+ * is no better: the rotation then happens before the stretch, so a turning
+ * star on a wide note squashes instead of turning.
+ *
+ * The animation therefore runs on a plain <g> wrapped around the <svg> (the
+ * "animation host"): its fill-box is the note's box in every browser, it turns
+ * rigidly after the stretch, and the <svg> keeps clipping exactly as it does
+ * at rest (the border looks the same animated or not). The class also stays on
+ * the shape element (the API and `.sb-animation-*` lookups are unchanged) but
+ * does nothing there.
  */
-const nestedTarget = "svg.sb-node-animation>path[data-node-background-path]";
-const nestedBaseCss =
-  `svg.sb-node-animation{overflow:visible}` +
-  `${nestedTarget}{transform-box:fill-box;transform-origin:center}`;
+export const ANIMATION_HOST_ATTR = "data-sb-animation-host";
+const SVG_NS = "http://www.w3.org/2000/svg";
 
-/** Each animation's rule, repeated for the outline path of a nested-<svg> shape. */
+/** Each animation's rule, switched off on a nested <svg> (its host plays it). */
 function cssFor(name: string, def: AnimationDef): string {
-  const cls = `.${animationClass(name)}`;
-  const match = def.css.match(/^\.[\w-]+\{([^}]*)\}([\s\S]*)$/);
-  if (!match) return def.css;
-  const [, declarations, rest] = match;
-  return (
-    `${cls}{${declarations}}` +
-    `svg${cls}{animation:none}` +
-    `svg${cls}>path[data-node-background-path]{${declarations}}` +
-    rest
-  );
+  return def.css + `svg.${animationClass(name)}{animation:none}`;
+}
+
+function isNestedSvg(dom: Element | undefined | null): dom is SVGSVGElement {
+  return !!dom && dom.tagName?.toLowerCase() === "svg" && !!(dom as SVGSVGElement).ownerSVGElement;
+}
+
+/** The <g> an animated nested <svg> sits in, if any. */
+export function animationHostOf(element: any): SVGGElement | null {
+  const dom = (element?.node ?? element) as Element | undefined;
+  const parent = dom?.parentNode as Element | null | undefined;
+  return parent && parent.nodeType === 1 && parent.hasAttribute?.(ANIMATION_HOST_ATTR) ? (parent as SVGGElement) : null;
+}
+
+function ensureHost(dom: SVGSVGElement): SVGGElement {
+  const existing = animationHostOf(dom);
+  if (existing) return existing;
+  const host = dom.ownerDocument.createElementNS(SVG_NS, "g") as SVGGElement;
+  host.setAttribute(ANIMATION_HOST_ATTR, "1");
+  dom.parentNode!.insertBefore(host, dom);
+  host.appendChild(dom);
+  return host;
+}
+
+/** Put the shape element back where its host was and drop the host. */
+function releaseHost(dom: Element): void {
+  const host = animationHostOf(dom);
+  if (!host || !host.parentNode) return;
+  host.parentNode.insertBefore(dom, host);
+  host.remove();
+}
+
+/**
+ * Remove a shape element from the canvas together with its animation host (a
+ * reshape replaces the element; an empty host must not stay behind).
+ */
+export function removeWithAnimationHost(element: any): void {
+  const host = animationHostOf(element);
+  element?.remove?.();
+  host?.remove();
+}
+
+/**
+ * The element's screen matrix at rest: what it would be with no node animation
+ * running (an animation's frame moves the drawn shape, never the note). Readers
+ * that place things from a note (connector ends, the sibling and its preview)
+ * use this so a note that is mid-animation, or whose entrance is still
+ * playing, is measured where it stands.
+ */
+export function restingScreenCTM(el: SVGGraphicsElement | null | undefined): DOMMatrix | null {
+  if (!el || typeof el.getScreenCTM !== "function") return null;
+  const ctm = el.getScreenCTM();
+  if (!ctm) return null;
+  try {
+    // A nested <svg> animated through its host: undo the host's frame.
+    let node: Element | null = el;
+    while (node && node.nodeType === 1) {
+      if ((node as Element).hasAttribute?.(ANIMATION_HOST_ATTR)) {
+        const host = node as SVGGElement;
+        const hostCtm = host.getScreenCTM();
+        const parentCtm = (host.parentNode as SVGGraphicsElement | null)?.getScreenCTM?.();
+        if (!hostCtm || !parentCtm) return ctm;
+        return parentCtm.multiply(hostCtm.inverse()).multiply(ctm);
+      }
+      if (node.tagName?.toLowerCase() === "svg" && !(node as SVGSVGElement).ownerSVGElement) break;
+      node = node.parentNode as Element | null;
+    }
+    // An element animated directly (a rectangle or circle note): its own
+    // transform attribute is the resting one, the animation only overrides it.
+    if (el.classList?.contains("sb-node-animation") && !isNestedSvg(el)) {
+      const parentCtm = (el.parentNode as SVGGraphicsElement | null)?.getScreenCTM?.();
+      if (!parentCtm) return ctm;
+      const own = el.transform?.baseVal?.consolidate?.()?.matrix;
+      return own ? parentCtm.multiply(DOMMatrix.fromMatrix(own as any)) : parentCtm;
+    }
+  } catch {
+    /* fall back to the drawn matrix */
+  }
+  return ctm;
 }
 
 export function getAvailableAnimations(): Record<string, AnimationDef> {
@@ -176,7 +248,7 @@ export function installAnimationStyles(element: any): void {
   const style = defs.element("style").id("sb-node-animation-styles");
   style.attr("type", "text/css");
   style.node.textContent =
-    baseCss + nestedBaseCss + Object.entries(animationDefs).map(([name, def]) => cssFor(name, def)).join("");
+    baseCss + Object.entries(animationDefs).map(([name, def]) => cssFor(name, def)).join("");
 }
 
 export function applyAnimation(element: any, name: string): boolean {
@@ -186,8 +258,15 @@ export function applyAnimation(element: any, name: string): boolean {
   const dom = element.node as SVGElement | undefined;
   // Restart finite animations when the same menu item is chosen again.
   if (dom) {
-    void (dom as SVGGraphicsElement).getBBox?.();
-    dom.classList.add("sb-node-animation", animationClass(name));
+    const classes = ["sb-node-animation", animationClass(name)];
+    if (isNestedSvg(dom) && dom.parentNode) {
+      const host = ensureHost(dom);
+      void host.getBBox?.();
+      host.classList.add(...classes);
+    } else {
+      void (dom as SVGGraphicsElement).getBBox?.();
+    }
+    dom.classList.add(...classes);
   }
   return true;
 }
@@ -197,4 +276,5 @@ export function removeAnimations(element: any): void {
   if (!dom) return;
   for (const name of Object.keys(animationDefs)) dom.classList.remove(animationClass(name));
   dom.classList.remove("sb-node-animation");
+  releaseHost(dom);
 }
