@@ -170,3 +170,25 @@ export function appearanceEditsBetween(before: { appearance?: WorkshopAppearance
   }
   return edits
 }
+
+/**
+ * What the board's chips say of its look (ruleControls.ts lays them out): Look, Cards and Lines for the rail, and for each
+ * column (or a 2 by 2's quadrant) its swatch, each with the set_appearance edit a press makes and what that press makes.
+ */
+export function appearanceChips(board: { appearance?: WorkshopAppearance; lanes: { id: string; label: string }[]; nest?: { layout?: string } }, keys: string[]) {
+  const look = board.appearance ?? {}, strong = look.borders === 'strong' && look.headers === 'strong'
+  const chip = (id: string, label: string, on: boolean, makes: string, edit: AppearanceEdit) => ({ id: 'look:' + id, label, on, said: makes + '. ' + label + ' now.', edit: { kind: 'set_appearance', ...edit } })
+  const names = Object.keys(appearancePalette)
+  return {
+    rail: [
+      chip('emphasis', strong ? 'Look: strong' : 'Look: standard', strong, strong ? 'Standard columns' : 'Stronger columns', { emphasis: strong ? 'normal' : 'strong' }),
+      chip('density', look.density ? 'Cards: compact' : 'Cards: roomy', !!look.density, look.density ? 'Roomy cards' : 'Compact cards', { density: look.density ? 'normal' : 'compact' }),
+      chip('lines', look.lines ? 'Lines: on' : 'Lines: off', !!look.lines, look.lines ? 'No grid lines' : 'Grid lines', { lines: !look.lines }),
+    ],
+    swatches: keys.flatMap(key => {
+      const label = board.lanes.find(lane => lane.id === key)?.label ?? appearanceQuadrants[key], now = look.colors?.[key], next = names[names.indexOf(now!) + 1]
+      return label && (board.nest?.layout !== 'matrix' || appearanceQuadrants[key]) ? [{ key, now: now ?? null, swatch: now ? appearancePalette[now] : '#ffffff', sentence: label + ': ' + (now ?? 'own color'),
+        said: label + ' in ' + (next ?? 'its own color') + '. Now ' + (now ?? 'its own color') + '.', edit: { kind: 'set_appearance', lane: { id: key }, color: next ?? 'none' } }] : []
+    }),
+  }
+}
