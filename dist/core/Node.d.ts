@@ -4,7 +4,7 @@ import type { Slate } from "./Slate";
 import { Connector, ConnectorOptions } from "./Connector";
 import { Relationships } from "./Relationships";
 import { Images } from "./Images";
-import { MediaNote } from "./MediaNote";
+import type { MediaNote } from "./MediaNote";
 import { Editor } from "./Editor";
 import { Links } from "./Links";
 import { Filters } from "./Filters";
@@ -168,7 +168,7 @@ export declare class Node {
     relationships: Relationships;
     images: Images;
     /** A video note (options.media): poster, play button, and the player when someone presses play. */
-    media: MediaNote;
+    media?: MediaNote;
     editor: Editor;
     links: Links;
     filters: Filters;
@@ -645,6 +645,16 @@ export declare class Node {
     private showConnectionHandles;
     private hideConnectionHandles;
     private showConnectionPreview;
+    /**
+     * The note's box at rest, in canvas coordinates: the matrix from `geo`'s own
+     * units to the canvas, and the box's centre. A running or finished node
+     * animation moves the drawn shape (a rectangle note is animated directly), so
+     * the plug dots, the sibling preview and the sibling are placed from the
+     * resting matrix (core/Animations.ts restingScreenCTM), never the frame.
+     */
+    private restingGeometry;
+    /** The outline the plug preview draws: any path shape but the plain rectangle (kept as the rounded ghost). */
+    private previewOutline;
     private createPreviewShape;
     private addArrowheadToConnector;
     private hideConnectionPreview;

@@ -1,12 +1,13 @@
-import { p as f, M as r, e as v, g } from "./canvas-canvas-DVNWgMna.mjs";
-const m = ["text/uri-list", "text/plain"], l = /* @__PURE__ */ new Set();
+import { p as f, M as r, s as v } from "./canvas-media-D5MZ8APN.mjs";
+import { g as m } from "./canvas-canvas-0lJsJ20e.mjs";
+const g = ["text/uri-list", "text/plain"], l = /* @__PURE__ */ new Set();
 let i = null;
 function p(o) {
   if (!o) return null;
   const t = String(o).split(/\r?\n/).map((e) => e.trim()).filter((e) => e && !e.startsWith("#"));
   return t.length !== 1 ? null : f(t[0]) ? t[0] : null;
 }
-class D {
+class P {
   constructor(t, e = {}) {
     this.onPaste = null, this.onDragOver = null, this.onDrop = null, this.onPress = null, this.slate = t, this.options = { enabled: !0, ...e };
   }
@@ -38,20 +39,20 @@ class D {
    * middle of the view when left out). False when the address is not a video a
    * note plays, or this viewer may not add notes.
    */
-  add(t, e, n = "call") {
-    const s = f(t);
-    if (!s || !this.canAdd()) return !1;
-    const d = e ?? this.viewCentre(), a = { url: t, media: s, x: Math.round(d.x), y: Math.round(d.y), via: n }, h = this.slate.options?.events?.onMediaRequested;
+  add(t, e, s = "call") {
+    const n = f(t);
+    if (!n || !this.canAdd()) return !1;
+    const d = e ?? this.viewCentre(), a = { url: t, media: n, x: Math.round(d.x), y: Math.round(d.y), via: s }, h = this.slate.options?.events?.onMediaRequested;
     if (typeof h == "function")
       return h(a), !0;
     const u = {
-      id: g(),
+      id: m(),
       x: a.x - r.width / 2,
       y: a.y - r.height / 2,
       width: r.width,
       height: r.height
     };
-    v(u, s);
+    v(u, n);
     const c = this.slate.addNode(u);
     try {
       this.slate.selectNodes?.([c], !1);
@@ -79,16 +80,16 @@ class D {
     return !e || !this.slate?.element || e.tagName === "INPUT" || e.tagName === "TEXTAREA" || e.isContentEditable || e.closest?.('[role="dialog"], [aria-modal="true"]') ? !1 : this.slate.element.contains(e) ? !0 : e !== document.body && e !== document.documentElement ? !1 : i ? i === this : l.size === 1;
   }
   handlePaste(t) {
-    if (!this.options.enabled || t.defaultPrevented || !this.ownsPaste(t.target) || this.slate.nodes?.allNodes?.some((n) => n?.editor?.isInlineEditing?.())) return;
+    if (!this.options.enabled || t.defaultPrevented || !this.ownsPaste(t.target) || this.slate.nodes?.allNodes?.some((s) => s?.editor?.isInlineEditing?.())) return;
     const e = p(t.clipboardData?.getData("text/plain"));
     e && this.add(e, void 0, "paste") && t.preventDefault();
   }
   dropped(t) {
     const e = t.dataTransfer;
     if (!e) return null;
-    for (const n of m) {
-      const s = p(e.getData(n));
-      if (s) return s;
+    for (const s of g) {
+      const n = p(e.getData(s));
+      if (n) return n;
     }
     return null;
   }
@@ -100,16 +101,16 @@ class D {
     if (!this.options.enabled || t.defaultPrevented) return;
     const e = this.dropped(t);
     if (!e) return;
-    let n;
+    let s;
     try {
-      n = this.slate.clientToWorld({ x: t.clientX, y: t.clientY });
+      s = this.slate.clientToWorld({ x: t.clientX, y: t.clientY });
     } catch {
-      n = void 0;
+      s = void 0;
     }
-    this.add(e, n, "drop") && (t.preventDefault(), t.stopPropagation());
+    this.add(e, s, "drop") && (t.preventDefault(), t.stopPropagation());
   }
 }
 export {
-  D as MediaInput,
+  P as MediaInput,
   p as videoAddressIn
 };

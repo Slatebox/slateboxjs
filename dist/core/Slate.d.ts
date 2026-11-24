@@ -21,7 +21,7 @@ import { Association } from "./Relationship";
 import type { EndAnchor, EndState, LineEnd } from "./LineEnds";
 import type { LineToolResult } from "./LineTool";
 import { ZoomSlider } from "./ZoomSlider";
-import { Presentation } from "./Presentation";
+import type { Presentation } from "./Presentation";
 import { Camera } from "./Camera";
 import { type AnimationDef } from "./Animations";
 import { type DragCancelReason, type DragPolicy, type NodeCapabilities, type NodeGovernance, type WorldPoint } from "./DragPolicy";

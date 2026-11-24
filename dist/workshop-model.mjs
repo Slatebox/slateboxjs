@@ -1,4 +1,4 @@
-import { D as Wn } from "./NoteDefaults-1xFW0br8.mjs";
+import { D as Wn } from "./NoteDefaults-BjVBa8YH.mjs";
 const sa = {
   kind: "offline-handoff",
   version: 1,

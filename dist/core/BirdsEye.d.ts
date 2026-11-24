@@ -56,6 +56,12 @@ export declare class BirdsEye {
      * cancelling any in-flight tween so it retargets smoothly (e.g. during a drag).
      */
     private animateShapeMove;
+    /**
+     * A note's silhouette in the minimap: a circle, the note's own outline for a
+     * path shape (a star stays a star, here and in its connected copies), or the
+     * box for a plain rectangle and anything without an outline.
+     */
+    private drawShape;
     addNodeShape(node: Node): void;
     /** The viewport rectangle is the last thing painted in the minimap. */
     private keepIndicatorOnTop;

@@ -5,7 +5,7 @@ const e = Object.freeze({
   borderColor: "#cccccc",
   borderWidth: 1,
   backgroundColor: "#f0f0f0"
-}), t = Object.freeze({
+}), o = Object.freeze({
   text: Object.freeze({
     shape: "rectangle",
     width: 270,
@@ -20,13 +20,19 @@ const e = Object.freeze({
     })
   }),
   sticky: Object.freeze({
-    shape: "stickynote",
-    width: 108,
-    height: 108,
-    style: Object.freeze({ borderOpacity: 0, effect: "postItNote" })
+    shape: "roundedrectangle",
+    width: 160,
+    height: 68,
+    style: Object.freeze({
+      borderOpacity: 0,
+      borderWidth: 0,
+      effect: "postItNote",
+      backgroundColor: "#fdeea6",
+      foregroundColor: "#1b1f1d"
+    })
   })
 });
 export {
   e as D,
-  t as N
+  o as N
 };

@@ -29,7 +29,7 @@ export declare function describeOperations(options?: ContractOptions): {
         };
     };
     selector: Record<string, any>;
-    layouts: ("grid" | "circle" | "row" | "column" | "align-left" | "align-center" | "align-right" | "align-top" | "align-middle" | "align-bottom" | "distribute-horizontal" | "distribute-vertical" | "tidy" | "tree")[];
+    layouts: ("circle" | "grid" | "row" | "column" | "align-left" | "align-center" | "align-right" | "align-top" | "align-middle" | "align-bottom" | "distribute-horizontal" | "distribute-vertical" | "tidy" | "tree")[];
     presets: ("text" | "sticky")[];
     limits: import("./contract").Limits;
     shapes: string[];

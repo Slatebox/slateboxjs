@@ -4,6 +4,8 @@ import type * as UndoRedoModule from './UndoRedo';
 import type * as MediaInputModule from './MediaInput';
 import type * as ContextMenuModule from './ContextMenu';
 import type * as KeyboardModule from './Keyboard';
+import type * as PresentationModule from './Presentation';
+import type * as MediaNoteModule from './MediaNote';
 export interface SlateParts {
     lineTool?: Pick<typeof LineToolModule, 'startLineTool'>;
     birdsEye?: Pick<typeof BirdsEyeModule, 'BirdsEye'>;
@@ -11,6 +13,8 @@ export interface SlateParts {
     mediaInput?: Pick<typeof MediaInputModule, 'MediaInput'>;
     contextMenu?: Pick<typeof ContextMenuModule, 'ContextMenu'>;
     keyboard?: Pick<typeof KeyboardModule, 'Keyboard'>;
+    presentation?: Pick<typeof PresentationModule, 'Presentation'>;
+    mediaNote?: Pick<typeof MediaNoteModule, 'MediaNote'>;
 }
 /** Whether the parts are part of the bundle from the start: never here (slatePartsEager.ts says yes, as a constant the build folds). */
 export declare const partsBuiltIn: boolean;
@@ -40,3 +44,11 @@ export declare const loadContextMenu: () => Promise<typeof ContextMenuModule>;
 export declare const keyboardNow: () => Pick<typeof KeyboardModule, "Keyboard"> | null;
 /** The keyboard, fetched as soon as a slate starts. */
 export declare const loadKeyboard: () => Promise<typeof KeyboardModule>;
+/** The presentation mode, when it is here already. */
+export declare const presentationNow: () => Pick<typeof PresentationModule, "Presentation"> | null;
+/** The presentation mode, fetched as soon as a slate starts. */
+export declare const loadPresentation: () => Promise<typeof PresentationModule>;
+/** A video note's poster, play button and player, when they are here already. */
+export declare const mediaNoteNow: () => Pick<typeof MediaNoteModule, "MediaNote"> | null;
+/** A video note's poster, play button and player, fetched the first time a note with a video is drawn. */
+export declare const loadMediaNote: () => Promise<Pick<typeof MediaNoteModule, "MediaNote">>;

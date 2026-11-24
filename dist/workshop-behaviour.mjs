@@ -1,5 +1,5 @@
 import { workshopRules as N, validateWorkshop as z, workshopReferences as F, workshopCandidate as O, workshopRefusal as D, workshopHardLimit as B, workshopRulesLoaded as H, workshopLaneHeld as M, said as P, registerRulebook as U, roundedBox as W } from "./workshop-model.mjs";
-import { D as C } from "./NoteDefaults-1xFW0br8.mjs";
+import { D as C } from "./NoteDefaults-BjVBa8YH.mjs";
 const de = ["capacity", "path", "gate", "bin"], K = 12, T = { pipeline: [{ id: "amount", noun: "an amount" }] }, A = (n) => Object.values(T).flat().find((e) => e.id === n)?.noun ?? n, Z = /* @__PURE__ */ new Set(["label", "text", "title", "name", "words"]), g = (n) => H(n.kind) ? N(n.kind).rulebook : void 0;
 function I(n) {
   return n.kind === "pipeline" ? "pipeline" : g(n) ? "time" : n.kind || n.experience || n.lanes.some((e) => e.station) ? null : "lanes";

@@ -1,5 +1,5 @@
 import { SHAPE_LIMITS as Lt, prepareShape as Xt, storeCustomShape as Te } from "./shapes.mjs";
-import { N as Pe } from "./NoteDefaults-1xFW0br8.mjs";
+import { N as Pe } from "./NoteDefaults-BjVBa8YH.mjs";
 const B = /* @__PURE__ */ new Map();
 B.set("rectangle", {
   path: "M 0 0 H 100 V 60 H 0 Z",

@@ -15,9 +15,12 @@ export declare const DEFAULT_NOTE_STYLE: Readonly<{
 }>;
 /**
  * The notes the toolbar makes (the app's QuickNodeActions): a text note has no
- * fill or border and at least 20 point text; a sticky note is the sticky shape
- * with the post-it effect and no border. An operation's own shape, size and
- * style win over a preset.
+ * fill or border and at least 20 point text; a sticky note is the default note
+ * (a 160 x 68 rounded rectangle) in sticky yellow (the palette's Lemon) with dark
+ * text, no border and the post-it shadow. An operation's own shape, size and
+ * style win over a preset. (The older square "stickynote" shape stays registered
+ * for slates that use it.) The sticky colours match the app's STICKY_NOTE
+ * (noteStyle.mjs, the palette's Lemon); the app's sticky-note test checks the two agree.
  */
 export declare const NOTE_PRESETS: Readonly<{
     text: Readonly<{
@@ -34,12 +37,15 @@ export declare const NOTE_PRESETS: Readonly<{
         }>;
     }>;
     sticky: Readonly<{
-        shape: "stickynote";
-        width: 108;
-        height: 108;
+        shape: "roundedrectangle";
+        width: 160;
+        height: 68;
         style: Readonly<{
             borderOpacity: 0;
+            borderWidth: 0;
             effect: "postItNote";
+            backgroundColor: "#fdeea6";
+            foregroundColor: "#1b1f1d";
         }>;
     }>;
 }>;

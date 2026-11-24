@@ -4,6 +4,8 @@ import { UndoRedo } from './UndoRedo';
 import { MediaInput } from './MediaInput';
 import { ContextMenu } from './ContextMenu';
 import { Keyboard } from './Keyboard';
+import { Presentation } from './Presentation';
+import { MediaNote } from './MediaNote';
 export declare const partsBuiltIn = true;
 export declare const lineToolNow: () => {
     startLineTool: typeof startLineTool;
@@ -40,4 +42,16 @@ export declare const keyboardNow: () => {
 };
 export declare const loadKeyboard: () => Promise<{
     Keyboard: typeof Keyboard;
+}>;
+export declare const presentationNow: () => {
+    Presentation: typeof Presentation;
+};
+export declare const loadPresentation: () => Promise<{
+    Presentation: typeof Presentation;
+}>;
+export declare const mediaNoteNow: () => {
+    MediaNote: typeof MediaNote;
+};
+export declare const loadMediaNote: () => Promise<{
+    MediaNote: typeof MediaNote;
 }>;

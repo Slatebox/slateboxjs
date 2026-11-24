@@ -28,6 +28,11 @@ export declare class ResizeRotate {
     private _didResize;
     private _endTimer?;
     private _start?;
+    private _rot?;
+    private _readout;
+    private _cancelled;
+    private _keyCommitTimer?;
+    private _keyPending;
     /**
      * Creates resize/rotate handle management for a node.
      *
@@ -43,11 +48,35 @@ export declare class ResizeRotate {
      * intentional because consumers can use the built JS without loading CSS.
      */
     private styleSelectionUi;
+    /** The rotate knob's group in the overlay, if drawn. */
+    private knobElement;
+    /**
+     * The knob is a keyboard control too: Tab reaches it, arrows turn the note by 1°
+     * (Shift: to the next 15°), Home puts it back to 0°. It handles its own keys so
+     * the canvas's arrow-key nudge never sees them.
+     */
+    private wireKnobKeyboard;
+    /** Move keyboard focus to the rotate knob, if it is drawn and usable. */
+    focusKnob(): boolean;
+    /** Turn the note from the keyboard now; save it when the key is released or after a pause. */
+    private previewKeyRotation;
+    /** Save the keyboard's pending turn as one step (broadcast + announce), if there is one. */
+    private commitKeyRotation;
+    /** Turn the note to an absolute angle as one finished step (keyboard). */
+    rotateTo(angle: number): void;
+    private overlayScale;
+    /** A client point in the canvas's world coordinates (the note's options space). */
+    private toWorld;
     /** Keep the selection outline but remove the handles a governed note may not use. */
     private hideHandles;
     /** Disable resize and rotate handles on the node. */
     disable(): void;
     private addEventListeners;
+    /**
+     * Escape while rotating: put the note back at its start angle and end the gesture
+     * without saving (the canvas does not also deselect).
+     */
+    private onGestureKey;
     private scheduleFinish;
     private finish;
     private removeEventListeners;

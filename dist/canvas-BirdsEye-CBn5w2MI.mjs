@@ -1,5 +1,5 @@
-import { S as f } from "./canvas-canvas-DVNWgMna.mjs";
-class w {
+import { r as f, p as g, t as y, S as w } from "./canvas-canvas-0lJsJ20e.mjs";
+class M {
   constructor(t, e = {}) {
     this.container = null, this.miniCanvas = null, this.viewportIndicator = null, this.nodeLayer = null, this.nodeShapes = /* @__PURE__ */ new Map(), this._enabled = !1, this.isDragging = !1, this.scale = 0.1, this.dragStartX = 0, this.dragStartY = 0, this.viewportStartX = 0, this.viewportStartY = 0, this.zoomControlsContainer = null, this.boundMouseMove = null, this.boundMouseUp = null, this.boundTouchMove = null, this.boundTouchEnd = null, this.refreshTimeoutId = null, this.pollIntervalId = null, this.zoomDisplayIntervalId = null, this.slate = t, this.options = {
       enabled: !1,
@@ -36,32 +36,32 @@ class w {
     if (!this._enabled || !this.viewportIndicator || !this.miniCanvas) return;
     const t = this.slate.panZoom;
     if (!t) return;
-    const e = t.getZoom() || 1, o = t.getPan() || { x: 0, y: 0 }, n = this.options.width || 200, a = this.options.height || 150, i = this.calculateContentBounds(), r = Math.max(i.maxX - i.minX, 1), l = Math.max(i.maxY - i.minY, 1), s = 100, h = r + s * 2, c = l + s * 2;
+    const e = t.getZoom() || 1, o = t.getPan() || { x: 0, y: 0 }, a = this.options.width || 200, n = this.options.height || 150, s = this.calculateContentBounds(), r = Math.max(s.maxX - s.minX, 1), h = Math.max(s.maxY - s.minY, 1), i = 100, l = r + i * 2, c = h + i * 2;
     this.scale = Math.min(
-      n / h,
-      a / c
+      a / l,
+      n / c
     );
-    const d = (this.slate.options.viewPort?.originalWidth || 800) / e, u = (this.slate.options.viewPort?.originalHeight || 600) / e, p = (o.x - i.minX + s) * this.scale, v = (o.y - i.minY + s) * this.scale, m = d * this.scale, b = u * this.scale;
-    this.viewportIndicator.move(p, v), this.viewportIndicator.size(Math.max(m, 10), Math.max(b, 10));
+    const d = (this.slate.options.viewPort?.originalWidth || 800) / e, u = (this.slate.options.viewPort?.originalHeight || 600) / e, p = (o.x - s.minX + i) * this.scale, m = (o.y - s.minY + i) * this.scale, v = d * this.scale, b = u * this.scale;
+    this.viewportIndicator.move(p, m), this.viewportIndicator.size(Math.max(v, 10), Math.max(b, 10));
   }
   updateNodePosition(t) {
     if (!this._enabled) return;
     const e = this.nodeShapes.get(t.id);
     if (!e) return;
-    const o = this.calculateContentBounds(), n = 100, a = (t.options.x - o.minX + n) * this.scale, i = (t.options.y - o.minY + n) * this.scale;
-    this.animateShapeMove(e, a, i);
-    const r = (t.options.width || 100) * this.scale, l = (t.options.height || 60) * this.scale;
-    this.applyShapeRotation(e, t, a, i, r, l);
+    const o = this.calculateContentBounds(), a = 100, n = (t.options.x - o.minX + a) * this.scale, s = (t.options.y - o.minY + a) * this.scale;
+    this.animateShapeMove(e, n, s);
+    const r = (t.options.width || 100) * this.scale, h = (t.options.height || 60) * this.scale;
+    this.applyShapeRotation(e, t, n, s, r, h);
   }
   /**
    * Rotate a minimap shape to match the node's rotation, about its center.
    * Absolute (transform, not the relative .rotate()) so repeated updates don't
    * accumulate. Position (x/y attrs from move) is unaffected.
    */
-  applyShapeRotation(t, e, o, n, a, i) {
+  applyShapeRotation(t, e, o, a, n, s) {
     const r = e.options.rotate?.rotationAngle || 0;
     try {
-      t.transform({ rotate: r, origin: [o + a / 2, n + i / 2] });
+      t.transform({ rotate: r, origin: [o + n / 2, a + s / 2] });
     } catch {
     }
   }
@@ -69,7 +69,7 @@ class w {
    * Q4: tween a minimap shape to (x,y) with a short easeInOutQuad rAF animation,
    * cancelling any in-flight tween so it retargets smoothly (e.g. during a drag).
    */
-  animateShapeMove(t, e, o, n = 220) {
+  animateShapeMove(t, e, o, a = 220) {
     if (typeof requestAnimationFrame > "u") {
       try {
         t.move(e, o);
@@ -77,9 +77,9 @@ class w {
       }
       return;
     }
-    let a = e, i = o;
+    let n = e, s = o;
     try {
-      a = t.x(), i = t.y();
+      n = t.x(), s = t.y();
     } catch {
     }
     if (t._beRaf)
@@ -87,31 +87,47 @@ class w {
         cancelAnimationFrame(t._beRaf);
       } catch {
       }
-    const r = (h) => h < 0.5 ? 2 * h * h : 1 - Math.pow(-2 * h + 2, 2) / 2;
-    let l = null;
-    const s = (h) => {
-      l === null && (l = h);
-      const c = Math.min(1, (h - l) / n), d = r(c);
+    const r = (l) => l < 0.5 ? 2 * l * l : 1 - Math.pow(-2 * l + 2, 2) / 2;
+    let h = null;
+    const i = (l) => {
+      h === null && (h = l);
+      const c = Math.min(1, (l - h) / a), d = r(c);
       try {
-        t.move(a + (e - a) * d, i + (o - i) * d);
+        t.move(n + (e - n) * d, s + (o - s) * d);
       } catch {
       }
-      c < 1 ? t._beRaf = requestAnimationFrame(s) : t._beRaf = null;
+      c < 1 ? t._beRaf = requestAnimationFrame(i) : t._beRaf = null;
     };
-    t._beRaf = requestAnimationFrame(s);
+    t._beRaf = requestAnimationFrame(i);
+  }
+  /**
+   * A note's silhouette in the minimap: a circle, the note's own outline for a
+   * path shape (a star stays a star, here and in its connected copies), or the
+   * box for a plain rectangle and anything without an outline.
+   */
+  drawShape(t, e, o, a, n, s) {
+    if (e.options.shape === "circle") {
+      const i = Math.min(n, s) / 2;
+      return t.circle(i * 2).move(o, a);
+    }
+    const h = String(e.options.vectorPath || e.options.shape || "rectangle").toLowerCase() === "rectangle" || e.options.svgContent ? void 0 : f(e.options.shape, e.options.vectorPath);
+    if (h)
+      try {
+        const i = g(h.path);
+        if (i.width > 0 && i.height > 0 && [i.x, i.y].every(Number.isFinite)) {
+          const l = y(h.path, `m${n / i.width},0,0,${s / i.height},${o - i.x * n / i.width},${a - i.y * s / i.height}`);
+          if (l) return t.path(l).attr("data-birdseye-outline", "1");
+        }
+      } catch {
+      }
+    return t.rect(n, s).move(o, a);
   }
   addNodeShape(t) {
     if (!this._enabled || !this.miniCanvas) return;
-    const e = this.calculateContentBounds(), o = 100, n = (t.options.x - e.minX + o) * this.scale, a = (t.options.y - e.minY + o) * this.scale, i = (t.options.width || 100) * this.scale, r = (t.options.height || 60) * this.scale, l = this.nodeLayer ?? this.miniCanvas;
-    let s;
-    if (t.options.shape === "circle") {
-      const h = Math.min(i, r) / 2;
-      s = l.circle(h * 2).move(n, a);
-    } else
-      s = l.rect(i, r).move(n, a);
-    s.fill(t.options.backgroundColor || this.options.nodeColor), s.stroke({ width: 0 }), this.applyShapeRotation(s, t, n, a, i, r), this.nodeShapes.set(t.id, s);
+    const e = this.calculateContentBounds(), o = 100, a = (t.options.x - e.minX + o) * this.scale, n = (t.options.y - e.minY + o) * this.scale, s = (t.options.width || 100) * this.scale, r = (t.options.height || 60) * this.scale, h = this.nodeLayer ?? this.miniCanvas, i = this.drawShape(h, t, a, n, s, r);
+    i.fill(t.options.backgroundColor || this.options.nodeColor), i.stroke({ width: 0 }), this.applyShapeRotation(i, t, a, n, s, r), this.nodeShapes.set(t.id, i);
     try {
-      s.opacity(0), s.animate(220).opacity(1);
+      i.opacity(0), i.animate(220).opacity(1);
     } catch {
     }
     this.keepIndicatorOnTop();
@@ -164,32 +180,26 @@ class w {
     this.slate.element.appendChild(this.container);
   }
   createMiniCanvas() {
-    this.container && (this.miniCanvas = f().addTo(this.container).size(this.options.width, this.options.height), this.miniCanvas.css({ "touch-action": "none" }), this.miniCanvas.rect(this.options.width, this.options.height).fill("#f8f9fa"), this.nodeLayer = this.miniCanvas.group().attr({ class: "slateboxjs-birdseye-nodes", "pointer-events": "none" }));
+    this.container && (this.miniCanvas = w().addTo(this.container).size(this.options.width, this.options.height), this.miniCanvas.css({ "touch-action": "none" }), this.miniCanvas.rect(this.options.width, this.options.height).fill("#f8f9fa"), this.nodeLayer = this.miniCanvas.group().attr({ class: "slateboxjs-birdseye-nodes", "pointer-events": "none" }));
   }
   renderNodes() {
     if (!this.miniCanvas) return;
-    this.nodeShapes.forEach((s) => s.remove()), this.nodeShapes.clear();
-    const t = this.calculateContentBounds(), e = 100, o = Math.max(t.maxX - t.minX, 1), n = Math.max(t.maxY - t.minY, 1), a = o + e * 2, i = n + e * 2;
+    this.nodeShapes.forEach((i) => i.remove()), this.nodeShapes.clear();
+    const t = this.calculateContentBounds(), e = 100, o = Math.max(t.maxX - t.minX, 1), a = Math.max(t.maxY - t.minY, 1), n = o + e * 2, s = a + e * 2;
     this.scale = Math.min(
-      this.options.width / a,
-      this.options.height / i
+      this.options.width / n,
+      this.options.height / s
     );
     const r = this.nodeLayer ?? this.miniCanvas;
-    this.slate.getAllNodes().forEach((s) => {
-      const h = (s.options.x - t.minX + e) * this.scale, c = (s.options.y - t.minY + e) * this.scale, d = Math.max((s.options.width || 100) * this.scale, 2), u = Math.max((s.options.height || 60) * this.scale, 2);
-      let p;
-      if (s.options.shape === "circle") {
-        const m = Math.min(d, u) / 2;
-        p = r.circle(m * 2).move(h, c);
-      } else
-        p = r.rect(d, u).move(h, c);
-      p.fill(s.options.backgroundColor || this.options.nodeColor), p.stroke({ width: 0 });
-      const v = s.options.rotate?.rotationAngle || 0;
-      if (v !== 0) {
-        const m = h + d / 2, b = c + u / 2;
-        p.rotate(v, m, b);
+    this.slate.getAllNodes().forEach((i) => {
+      const l = (i.options.x - t.minX + e) * this.scale, c = (i.options.y - t.minY + e) * this.scale, d = Math.max((i.options.width || 100) * this.scale, 2), u = Math.max((i.options.height || 60) * this.scale, 2), p = this.drawShape(r, i, l, c, d, u);
+      p.fill(i.options.backgroundColor || this.options.nodeColor), p.stroke({ width: 0 });
+      const m = i.options.rotate?.rotationAngle || 0;
+      if (m !== 0) {
+        const v = l + d / 2, b = c + u / 2;
+        p.rotate(m, v, b);
       }
-      this.nodeShapes.set(s.id, p);
+      this.nodeShapes.set(i.id, p);
     }), this.keepIndicatorOnTop();
   }
   createViewportIndicator() {
@@ -201,9 +211,9 @@ class w {
       "touchstart",
       (t) => {
         const e = t, o = e.touches?.[0];
-        o && (e.preventDefault(), e.stopPropagation(), this.beginDrag(o.clientX, o.clientY), this.removeTouchDragListeners(), this.boundTouchMove = (n) => {
-          const a = n.touches?.[0] ?? n.changedTouches?.[0];
-          a && (n.cancelable && n.preventDefault(), this.handleMouseMove({ clientX: a.clientX, clientY: a.clientY }));
+        o && (e.preventDefault(), e.stopPropagation(), this.beginDrag(o.clientX, o.clientY), this.removeTouchDragListeners(), this.boundTouchMove = (a) => {
+          const n = a.touches?.[0] ?? a.changedTouches?.[0];
+          n && (a.cancelable && a.preventDefault(), this.handleMouseMove({ clientX: n.clientX, clientY: n.clientY }));
         }, this.boundTouchEnd = () => {
           this.isDragging = !1, this.removeTouchDragListeners();
         }, document.addEventListener("touchmove", this.boundTouchMove, { passive: !1 }), document.addEventListener("touchend", this.boundTouchEnd), document.addEventListener("touchcancel", this.boundTouchEnd));
@@ -231,8 +241,8 @@ class w {
   /** Center the view on a point of the minimap. */
   jumpTo(t, e) {
     try {
-      const o = this.miniCanvas.point(t, e), n = this.viewportIndicator?.bbox().width || 50, a = this.viewportIndicator?.bbox().height || 40, i = this.calculateContentBounds(), r = 100, l = (o.x - n / 2) / this.scale + i.minX - r, s = (o.y - a / 2) / this.scale + i.minY - r;
-      this.slate.panZoom?.pan({ x: l, y: s });
+      const o = this.miniCanvas.point(t, e), a = this.viewportIndicator?.bbox().width || 50, n = this.viewportIndicator?.bbox().height || 40, s = this.calculateContentBounds(), r = 100, h = (o.x - a / 2) / this.scale + s.minX - r, i = (o.y - n / 2) / this.scale + s.minY - r;
+      this.slate.panZoom?.pan({ x: h, y: i });
     } catch {
     }
   }
@@ -241,10 +251,10 @@ class w {
   }
   handleMouseMove(t) {
     if (!this.isDragging || !this.viewportIndicator) return;
-    const e = t.clientX - this.dragStartX, o = t.clientY - this.dragStartY, n = this.viewportStartX + e, a = this.viewportStartY + o;
-    this.viewportIndicator.move(n, a);
-    const i = this.calculateContentBounds(), r = 100, l = n / this.scale + i.minX - r, s = a / this.scale + i.minY - r;
-    this.slate.panZoom?.pan({ x: l, y: s });
+    const e = t.clientX - this.dragStartX, o = t.clientY - this.dragStartY, a = this.viewportStartX + e, n = this.viewportStartY + o;
+    this.viewportIndicator.move(a, n);
+    const s = this.calculateContentBounds(), r = 100, h = a / this.scale + s.minX - r, i = n / this.scale + s.minY - r;
+    this.slate.panZoom?.pan({ x: h, y: i });
   }
   handleMouseUp() {
     this.isDragging = !1, this.boundMouseMove && (document.removeEventListener("mousemove", this.boundMouseMove), this.boundMouseMove = null), this.boundMouseUp && (document.removeEventListener("mouseup", this.boundMouseUp), this.boundMouseUp = null);
@@ -342,16 +352,16 @@ class w {
   calculateContentBounds() {
     const t = this.slate.getAllNodes();
     if (t.length === 0) {
-      const i = this.slate.options.viewPort?.originalWidth || 800, r = this.slate.options.viewPort?.originalHeight || 600;
-      return { minX: 0, minY: 0, maxX: i, maxY: r };
+      const s = this.slate.options.viewPort?.originalWidth || 800, r = this.slate.options.viewPort?.originalHeight || 600;
+      return { minX: 0, minY: 0, maxX: s, maxY: r };
     }
-    let e = 1 / 0, o = 1 / 0, n = -1 / 0, a = -1 / 0;
-    return t.forEach((i) => {
-      const r = i.options.x || 0, l = i.options.y || 0, s = i.options.width || 100, h = i.options.height || 60;
-      e = Math.min(e, r), o = Math.min(o, l), n = Math.max(n, r + s), a = Math.max(a, l + h);
-    }), { minX: e, minY: o, maxX: n, maxY: a };
+    let e = 1 / 0, o = 1 / 0, a = -1 / 0, n = -1 / 0;
+    return t.forEach((s) => {
+      const r = s.options.x || 0, h = s.options.y || 0, i = s.options.width || 100, l = s.options.height || 60;
+      e = Math.min(e, r), o = Math.min(o, h), a = Math.max(a, r + i), n = Math.max(n, h + l);
+    }), { minX: e, minY: o, maxX: a, maxY: n };
   }
 }
 export {
-  w as BirdsEye
+  M as BirdsEye
 };
