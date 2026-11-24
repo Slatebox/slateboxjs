@@ -191,7 +191,8 @@ export function ruleControls(board: Workshop, layout: RuleControlsLayout | null 
         const y = Math.min(limit ? at(limit.max) : foot - 8 * k, foot - 8 * k)
         const maxAt = (dy: number) => {
           const point = y + dy
-          if (point > foot + ROW * 0.75) return null
+          // Off the board takes the limit away: well past the foot, never one slot down (an arrow key's step), which adds a card.
+          if (point > Math.max(foot, y + ROW) + ROW * 0.75) return null
           if (limit) return clamp(limit.max + Math.round(dy / ROW), floor, MAX_HOLD)
           return clamp(Math.round((point + 6 - place.y - TOP) / ROW), floor, MAX_HOLD)
         }

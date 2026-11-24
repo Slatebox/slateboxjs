@@ -143,6 +143,10 @@ describe('rule controls: a drag changes the next drag', () => {
     const after = applyWorkshopEdits(board, up) as any
     expect(after.workshop.behaviour.rules.find((rule: any) => rule.where === 'done').max).toBe(5)
     expect(line.gestures.preview!({ dx: 0, dy: 200 })).toBe('No limit')
+    // One step down (an arrow key) from a line at the foot lets the column hold one more; it never takes the limit away.
+    const one = applyWorkshopEdits(empty, [{ kind: 'add_rule', rule: { kind: 'capacity', where: 'done', max: 1 } }]) as any
+    const low = ruleControls(one.workshop, layoutOf(one.workshop)).find(control => control.id === 'capacity:done')!
+    expect(low.gestures.preview!({ dx: 0, dy: low.gestures.step! })).toBe('holds 2')
   })
 
   it('a one-way chevron stops a card going back; tapped again, it goes both ways', () => {
