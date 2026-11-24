@@ -96,4 +96,27 @@ describe("MediaInput", () => {
     slate.isReadOnly = () => false;
     expect(paste(document.body, URL_YT).defaultPrevented).toBe(false);
   });
+
+  it("on a page of several canvases, a paste on the page goes to the one last pressed, else to none", () => {
+    const a = fakeSlate();
+    const b = fakeSlate();
+    const inputA = new MediaInput(a.slate);
+    const inputB = new MediaInput(b.slate);
+    inputA.enable();
+    inputB.enable();
+    // A page of slate cards: nobody pressed one, so the paste is the page's own.
+    expect(paste(document.body, URL_YT).defaultPrevented).toBe(false);
+    expect(a.added.length + b.added.length).toBe(0);
+    b.element.dispatchEvent(new Event("pointerdown", { bubbles: true }));
+    expect(paste(document.body, URL_YT).defaultPrevented).toBe(true);
+    expect(a.added).toHaveLength(0);
+    expect(b.added).toHaveLength(1);
+    // The one pressed goes away: back to none.
+    inputB.destroy();
+    inputA.disable();
+    inputA.enable();
+    expect(paste(document.body, URL_YT).defaultPrevented).toBe(true);
+    expect(a.added).toHaveLength(1);
+    inputA.destroy();
+  });
 });

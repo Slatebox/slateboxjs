@@ -32,6 +32,12 @@ export interface MediaInputOptions {
 
 const URL_TYPES = ["text/uri-list", "text/plain"];
 
+// Every listening canvas on the page, and the one a person last pressed. A paste with
+// no field focused (on the page itself) belongs to that canvas, or to the only one
+// listening: a page of slate cards, each a canvas, never turns a paste into notes.
+const listening = new Set<MediaInput>();
+let pressed: MediaInput | null = null;
+
 /** The first video address in pasted or dropped text (a uri-list may hold comments and several lines). */
 export function videoAddressIn(text: string | null | undefined): string | null {
   if (!text) return null;
@@ -50,6 +56,7 @@ export class MediaInput {
   private onPaste: ((e: ClipboardEvent) => void) | null = null;
   private onDragOver: ((e: DragEvent) => void) | null = null;
   private onDrop: ((e: DragEvent) => void) | null = null;
+  private onPress: (() => void) | null = null;
 
   constructor(slate: any, options: MediaInputOptions = {}) {
     this.slate = slate;
@@ -73,10 +80,15 @@ export class MediaInput {
     this.onPaste = (e) => this.handlePaste(e);
     this.onDragOver = (e) => this.handleDragOver(e);
     this.onDrop = (e) => this.handleDrop(e);
+    this.onPress = () => {
+      pressed = this;
+    };
     document.addEventListener("paste", this.onPaste);
     const el: HTMLElement | undefined = this.slate?.element;
     el?.addEventListener("dragover", this.onDragOver);
     el?.addEventListener("drop", this.onDrop);
+    el?.addEventListener("pointerdown", this.onPress, true);
+    listening.add(this);
   }
 
   public disable(): void {
@@ -85,7 +97,11 @@ export class MediaInput {
     const el: HTMLElement | undefined = this.slate?.element;
     if (this.onDragOver) el?.removeEventListener("dragover", this.onDragOver);
     if (this.onDrop) el?.removeEventListener("drop", this.onDrop);
+    if (this.onPress) el?.removeEventListener("pointerdown", this.onPress, true);
     this.onPaste = this.onDragOver = this.onDrop = null;
+    this.onPress = null;
+    listening.delete(this);
+    if (pressed === this) pressed = null;
   }
 
   public destroy(): void {
@@ -148,7 +164,10 @@ export class MediaInput {
     if (!el || !this.slate?.element) return false;
     if (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable) return false;
     if (el.closest?.('[role="dialog"], [aria-modal="true"]')) return false;
-    return el === document.body || el === document.documentElement || this.slate.element.contains(el);
+    if (this.slate.element.contains(el)) return true;
+    if (el !== document.body && el !== document.documentElement) return false;
+    // On the page itself: the canvas last pressed, or the only one listening.
+    return pressed ? pressed === this : listening.size === 1;
   }
 
   private handlePaste(e: ClipboardEvent): void {

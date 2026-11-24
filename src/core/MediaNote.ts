@@ -94,6 +94,17 @@ export class MediaNote {
     return this.player !== null;
   }
 
+  /**
+   * Whether this note may play here. A host that draws a still picture of a slate
+   * (a slate's card, a gallery tile, a draft, a presenter's overview) sets the
+   * slate option `mediaPlayback: false`: the note shows its poster, play button
+   * and caption, and pressing it does nothing (a press opens what the picture
+   * stands for, as on any other note).
+   */
+  public canPlay(): boolean {
+    return this.enabled && this.node?.slate?.options?.mediaPlayback !== false;
+  }
+
   // ─── Drawing ─────────────────────────────────────────────────────
 
   /** Draw (or redraw, after a resize) the poster's play button and caption. */
@@ -156,12 +167,19 @@ export class MediaNote {
     const r = clamp(Math.min(w, h) * 0.16, 12, 36);
     const cx = ox + w / 2;
     const cy = oy + (showCaption ? (h - band) / 2 : h / 2);
+    const playable = this.canPlay();
     const play = document.createElementNS(SVG_NS, "g");
     play.setAttribute("class", MEDIA_CLASSES.play);
-    play.setAttribute("role", "button");
-    play.setAttribute("tabindex", "0");
-    play.setAttribute("aria-label", `Play ${mediaLabel(media)}`);
-    play.setAttribute("style", "cursor:pointer");
+    if (playable) {
+      play.setAttribute("role", "button");
+      play.setAttribute("tabindex", "0");
+      play.setAttribute("aria-label", `Play ${mediaLabel(media)}`);
+      play.setAttribute("style", "cursor:pointer");
+    } else {
+      // A still picture: the button is part of the look, not something to press.
+      play.setAttribute("aria-hidden", "true");
+      play.setAttribute("pointer-events", "none");
+    }
     const ring = document.createElementNS(SVG_NS, "circle");
     ring.setAttribute("cx", String(cx));
     ring.setAttribute("cy", String(cy));
@@ -179,7 +197,7 @@ export class MediaNote {
     tri.setAttribute("pointer-events", "none");
     play.appendChild(tri);
     overlay.appendChild(play);
-    this.bindActivate(play, () => this.play());
+    if (playable) this.bindActivate(play, () => this.play());
 
     group.appendChild(overlay);
     this.overlay = overlay;
@@ -204,7 +222,7 @@ export class MediaNote {
   public play(): boolean {
     const media = this.get();
     const group = this.node?.svgGroup?.node as SVGGElement | undefined;
-    if (!this.enabled || !media || !group) return false;
+    if (!this.canPlay() || !media || !group) return false;
     if (this.player) return true;
     const src = mediaEmbedUrl(media, { play: true });
     if (!src) return false;

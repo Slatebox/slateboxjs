@@ -121,6 +121,23 @@ describe("MediaNote", () => {
     expect(group.children.length).toBe(0);
   });
 
+  it("on a still picture of the slate (mediaPlayback false) shows the poster's button but never plays", () => {
+    const { node, group } = fakeNode();
+    node.slate.options = { mediaPlayback: false };
+    const media = new MediaNote(node);
+    media.render();
+    const play = group.querySelector(`.${MEDIA_CLASSES.play}`)!;
+    expect(play).toBeTruthy();
+    expect(play.getAttribute("role")).toBeNull();
+    expect(play.getAttribute("tabindex")).toBeNull();
+    expect(play.getAttribute("aria-hidden")).toBe("true");
+    expect(play.getAttribute("pointer-events")).toBe("none");
+    play.dispatchEvent(new Event("click", { bubbles: true }));
+    expect(media.canPlay()).toBe(false);
+    expect(media.play()).toBe(false);
+    expect(group.querySelector("iframe")).toBeNull();
+  });
+
   it("cuts a long title to the caption's width", () => {
     expect(fitText("short", 300, 12)).toBe("short");
     const cut = fitText("a".repeat(200), 100, 12);

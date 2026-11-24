@@ -141,6 +141,13 @@ export interface SlateOptions {
    */
   contextToolbar?: "engine" | "host";
 
+  /**
+   * false on a still picture of a slate (a slate's card, a gallery tile, a draft,
+   * a presenter's overview): video notes show their poster, play button and
+   * caption, and never play there. Videos play everywhere else (the default).
+   */
+  mediaPlayback?: boolean;
+
   // Identity
   id?: string;
   name?: string;
