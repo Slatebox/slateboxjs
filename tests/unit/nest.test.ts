@@ -439,7 +439,8 @@ describe('the kit', () => {
     const board = tree()
     const verdict = checkNestMove(board, 'CSV import', { under: 'Activation to 40%' })
     expect(verdict).toEqual({ refused: { sentence: 'Solutions sit under an opportunity.', ruleId: ruleId(board, 'nests', 'solution'), nearest: 'Data trust',
-      set: { by: 'Slatebox', at: '2026-11-21T00:00:00.000Z', via: 'preset' } } })
+      // A nested board's refusal is a hard limit: never offered as "Move anyway" (model.ts, "Moving a card anyway").
+      overridable: false, set: { by: 'Slatebox', at: '2026-11-21T00:00:00.000Z', via: 'preset' } } })
     for (const card of board.cards) for (const target of board.cards) {
       const drag = nestLegal(board, card.id).some(({ spot }) => spot.under === target.id)
       const exec = 'ok' in checkNestMove(board, { id: card.id }, { under: { id: target.id } })

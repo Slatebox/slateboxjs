@@ -18,7 +18,7 @@ import {
   businessKind, validateWorkshop, workshopBoardScope, workshopFreeSpot, workshopCandidate, workshopCardAsNote, workshopCardAsNoteRefusal, workshopCardLines, workshopCardLookOf, workshopCardNoteText, workshopDestinations,
   roundedBox, workshopReserve, workshopLaneSpoken, workshopLaneHeld, workshopLanePlaces, workshopLineRefusal, workshopLinesOf, workshopNewLine, workshopNodeIds, workshopNoteCandidate, workshopRules,
   workshopCardLabelOf, workshopCardNoteWords, workshopKeepsLink, workshopNoteIdOf, workshopKeepsPicture, workshopNoteRefusal, workshopRefusal, workshopRenamedLines, workshopStandInId, workshopTakesLines, workshopTakesNotes, workshopToSlate, workshopWithLine,
-  workshopWithoutLine, type Workshop, type WorkshopBoardLayout, type WorkshopCard, type WorkshopCardAsNote, type WorkshopCardLook,
+  workshopWithoutLine, workshopOverrideCandidate, workshopOverrideLine, type Workshop, type WorkshopBoardLayout, type WorkshopCard, type WorkshopCardAsNote, type WorkshopCardLook,
   type WorkshopLine, type WorkshopNoteOffer, type WorkshopNoteStyle,
 } from './model'
 import { applyWorkshopEdits, type WorkshopEdit } from './edits'
@@ -52,6 +52,19 @@ export interface WorkshopChangeEvent {
    */
   edits?: WorkshopEdit[]
   via?: 'undo'
+  /** A move a rule refused, made anyway once the person confirmed it (confirmOverride): the server marks who and when. */
+  override?: true
+}
+
+/** A drop a rule refuses that may be made anyway: what confirmOverride shows the person. */
+export interface WorkshopOverrideAsk {
+  cardId: string
+  laneId: string
+  /** The card's and the lane's names. */
+  card: string
+  lane: string
+  /** The rule's sentence: what moving it anyway breaks. */
+  reason: string
 }
 
 /** One note a board kit draws: its artwork name (lane-, card-, caption-, column-, handle-, gauge-), box from the origin and look. */
@@ -198,6 +211,15 @@ export interface AttachWorkshopOptions {
   onChange?: (next: Workshop, change: WorkshopChangeEvent) => void | Promise<boolean | 'taken' | void>
   /** A drop or rename was refused. */
   onRefuse?: (refusal: WorkshopRefusalEvent) => void
+  /**
+   * A drop a rule refuses on a lane board or a map, which the person may make anyway: show them the rule's sentence
+   * with "Move anyway" and "Cancel", and answer true (or a promise of true) to move it. The card goes back first, as
+   * a refused drop does; confirmed, it moves and is marked with who (overrideBy) and when, and onChange hears it with
+   * `override: true`. Left out, a refused drop is only refused. A hard limit (model.ts workshopHardLimit) is never offered.
+   */
+  confirmOverride?: (ask: WorkshopOverrideAsk) => boolean | Promise<boolean>
+  /** The name a card moved anyway is marked with on this screen (the server stamps its own). Left out, "You". */
+  overrideBy?: () => string
   /** The board a held or keyboard-staged card would produce, or null when there is none. */
   onPreview?: (candidate: Workshop | null) => void
   /** Draw the same artwork with nothing draggable or editable. */
@@ -661,6 +683,8 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
         refuse(cardName(card), { cardId, laneId: outcome.laneId, reason: outcome.reason })
         // A plan's bar that could go nowhere its rules let it: the rule says why beside the bar.
         if (outcome.near) showGripRefusal('card-' + cardId, outcome.reason)
+        // A rule the person may break once they say so: asked, with the rule's sentence.
+        else askOverride(cardId, outcome.laneId, outcome.reason)
       } else if (outcome.kind === 'outside' && workshopTakesNotes(value) && !viewer()) {
         // Off the lanes, on the canvas: the card becomes an ordinary note there, or says why it may not.
         const reason = workshopCardAsNoteRefusal(value, cardId)
@@ -713,6 +737,9 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     onTextCommit(node: any, text, previous) {
       const target = kindOf(node.id)
       if (!target || readOnly || proposal) return false
+      // A card moved anyway shows who and when under its name: that line is not part of a new name.
+      const marked = target.kind === 'card' ? workshopOverrideLine(value.cards.find(item => item.id === target.key) ?? {}) : null
+      if (marked) text = text.split('\n').filter(line => line.trim() !== marked).join('\n')
       let label = text.replace(/\s+/g, ' ').trim()
       const edits: WorkshopEdit[] = []
       // On a business board the numbers typed on a card are its days or its amount.
@@ -1993,6 +2020,35 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       else if (result === 'taken') taken()
     }, () => refused())
     slate.holdUntil?.(settled)
+  }
+
+  /**
+   * Offer a refused drop as "Move anyway" (options.confirmOverride). Confirmed, the move is made on the board as it is
+   * then (a teammate's change may have come first): marked, drawn, announced and handed to onChange as an override.
+   */
+  function askOverride(cardId: string, laneId: string, reason: string) {
+    if (!options.confirmOverride || readOnly || proposal || viewer()) return
+    const probe = { by: 'check', at: new Date(0).toISOString() }
+    if (!workshopOverrideCandidate(value, cardId, laneId, probe)) return
+    const card = value.cards.find(item => item.id === cardId)!, lane = value.lanes.find(item => item.id === laneId)!
+    let answer: boolean | Promise<boolean> | undefined
+    try { answer = options.confirmOverride({ cardId, laneId, card: card.label, lane: lane.label, reason }) } catch (error) {
+      console.error('WORKSHOP: confirmOverride threw', error)
+      return
+    }
+    Promise.resolve(answer).then(yes => {
+      if (yes !== true || destroyed || readOnly || proposal || viewer()) return
+      const moving = value.cards.find(item => item.id === cardId)
+      const next = moving && workshopOverrideCandidate(value, cardId, laneId, { by: tell(options.overrideBy) || 'You', at: new Date().toISOString() })
+      if (!moving || !next) {
+        slate.announce?.(`${moving ? cardName(moving) : 'That card'} can't be moved to ${lane.label} now.`)
+        return
+      }
+      value = next
+      draw(value)
+      slate.announce?.(`${cardName(moving)} moved to ${lane.label} anyway. ${reason}`)
+      tell(options.onChange, value, { cardId, laneId, override: true })
+    }, () => { /* not confirmed */ })
   }
 
   function refuse(cardLabel: string, refusal: { cardId: string; laneId: string; reason: string }) {

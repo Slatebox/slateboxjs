@@ -4,6 +4,14 @@
 
 ### Added
 
+- Moving a card anyway: a drop the rules refuse on a lane board or a map is offered as "Move anyway" / "Cancel" with
+  the rule's sentence (`confirmOverride`, `overrideBy` on `attachWorkshop`; `WorkshopChangeEvent.override`). Confirmed,
+  the card moves marked with who and when (`WorkshopCard.override`, shown on the card as "Moved anyway by Sam ·
+  23 Nov"), and going back where it came from is never refused (one-step Undo). `workshopOverrideCandidate`,
+  `workshopHardLimit`, `workshopStampOverrides`, `workshopOverrideLine`; `move_card` takes `override: true` and a
+  refusal says `overridable`; `checkWorkshopMove` answers `refused.overridable`. Hard limits stay refused: business
+  boards, release plans, nested boards and startup experiences, whose cards are numbers the board computes.
+
 - `slateboxjs/canvas`: the canvas alone (`Slate`, and what agents show), for a page that draws slates. It registers
   the same SVG.js plugins as the main entry and draws a slate exactly as it does. Its first load is 124,479 bytes
   gzip served without whitespace (the main entry: 153,230), held to 138,000 by `npm run check:budget`. Its line tool

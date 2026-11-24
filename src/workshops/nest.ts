@@ -456,7 +456,7 @@ export function checkNestMove(input: Board, cardRef: WorkshopRef, to: { under?: 
   const pick = (ref: WorkshopRef) => typeof ref === 'object' ? byId(board, nestAlias(board, ref.id) ?? '') : byId(board, ref) ?? refs.cards.attempt(ref) ?? undefined
   const card = pick(cardRef)
   const under = to.under === undefined ? null : pick(to.under)
-  if (!card || under === undefined) return { refused: { sentence: 'There is no such card on this board.', ruleId: null, nearest: null } }
+  if (!card || under === undefined) return { refused: { sentence: 'There is no such card on this board.', ruleId: null, nearest: null, overridable: false } }
   const edit: WorkshopEdit = { kind: 'nest_card', card: { id: card.id }, ...(under ? { under: { id: under.id } } : to.lane ? { lane: to.lane } : {}) }
   const made = applyWorkshopEdits(board, [edit])
   if (!('refused' in made)) {
@@ -474,7 +474,8 @@ export function checkNestMove(input: Board, cardRef: WorkshopRef, to: { under?: 
   const legal = new Set(nestLegal(board, card.id).flatMap(({ spot }) => spot.under ? [spot.under] : []))
   const near = under ? [...nestKids(board, under.id), ...(under.parentId ? nestKids(board, under.parentId) : nestKids(board, null, under.laneId))] : []
   const nearest = near.find(item => legal.has(item.id) && item.id !== card.parentId)?.label ?? null
-  return { refused: { sentence, ruleId: rule?.id ?? null, nearest, ...(rule && { set: rule.set as RuleAudit }) } }
+  // A nested board's cards are what sits under what: a hard limit (model.ts, "Moving a card anyway").
+  return { refused: { sentence, ruleId: rule?.id ?? null, nearest, overridable: false, ...(rule && { set: rule.set as RuleAudit }) } }
 }
 
 // ---------------------------------------------------------------------------------------------

@@ -63,7 +63,8 @@ describe('behaviour as data', () => {
       { kind: 'add_rule', rule: { kind: 'path', from: 'Doing', to: ['Review'] } }))
     next = ok(apply(next, { kind: 'move_card', card: 'Export', lane: 'Done' }))
     const verdict = checkWorkshopMove(next, 'Search', 'Done')
-    expect(verdict).toEqual({ refused: { sentence: 'From Doing, cards go only to Review.', ruleId: 'rule-2', nearest: 'Review',
+    // Refused, and a person may confirm it anyway ("Move anyway", workshop-override.test.ts).
+    expect(verdict).toEqual({ refused: { sentence: 'From Doing, cards go only to Review.', ruleId: 'rule-2', nearest: 'Review', overridable: true,
       set: { by: 'Tim', at: '2026-11-21T10:00:00.000Z', via: 'chat' } } })
     expect(checkWorkshopMove(next, 'Billing', 'Done')).toMatchObject({ refused: { sentence: 'Done holds 1. It has 1.', ruleId: 'rule-1' } })
     expect(checkWorkshopMove(next, 'Search', 'Review')).toEqual({ ok: true, warnings: [] })

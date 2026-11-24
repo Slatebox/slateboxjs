@@ -67,6 +67,22 @@ export interface WorkshopCard {
    * the canvas. A map's token is a card without it, and only the token follows the paths (boards S2b).
    */
   free?: true
+  /**
+   * A move made anyway, past the rule that refused it, once the person confirmed it ("Move anyway"): who, when, the
+   * rule's sentence, and the lane it came from (Undo puts it back there). Shown on the card. Lane boards and maps only.
+   */
+  override?: WorkshopOverride
+}
+
+/** A card moved past a rule (WorkshopCard.override). */
+export interface WorkshopOverride {
+  by: string
+  /** ISO time. */
+  at: string
+  /** The rule's sentence, as the refusal said it. */
+  sentence: string
+  /** The lane the card was in before. */
+  from: string
 }
 
 /**
@@ -519,6 +535,18 @@ export const maxWorkshopCards = 24
 const mapGridSize = 3
 
 // Treat agent output and stored drafts alike. Only declarative fields survive.
+/** A stored move-anyway record (WorkshopOverride), read strictly. */
+function overrideOf(input: unknown, laneIds: string[], laneId: string): WorkshopOverride {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('A move made anyway says who made it, when, and past which rule.')
+  const raw = input as Record<string, unknown>
+  const text = (value: unknown, most: number) => typeof value === 'string' && value.trim().length > 0 && value.length <= most && !/[\u0000-\u001f\u007f<>]/.test(value)
+  if (!text(raw.by, 80) || !text(raw.at, 40) || Number.isNaN(Date.parse(raw.at as string)) || !text(raw.sentence, 300) ||
+    typeof raw.from !== 'string' || !laneIds.includes(raw.from) || raw.from === laneId || Object.keys(raw).some(key => !['by', 'at', 'sentence', 'from'].includes(key))) {
+    throw new Error('A move made anyway says who made it, when, past which rule, and the lane it came from.')
+  }
+  return { by: raw.by as string, at: raw.at as string, sentence: raw.sentence as string, from: raw.from }
+}
+
 export function validateWorkshop(input: unknown): Workshop {
   const value = record(input)
   if (value.version !== 1) throw new Error('Unsupported workshop version.')
@@ -587,11 +615,16 @@ export function validateWorkshop(input: unknown): Workshop {
     // business board's card is a task, deal, line item, hire or pile: it is named, in plain text.
     const card: WorkshopCard = { id: id(raw.id), label: business ? label(raw.label) : cardLabel(raw.label), laneId: id(raw.laneId) }
     if (!laneIds.includes(card.laneId)) throw new Error('Card refers to an unknown lane.')
+    if (raw.override !== undefined) {
+      if (business || release || value.experience !== undefined) throw new Error('Only the cards of lane boards and maps are moved past a rule.')
+      card.override = overrideOf(raw.override, laneIds, card.laneId)
+    }
     if (raw.allowedLaneIds !== undefined) {
       if (!Array.isArray(raw.allowedLaneIds) || raw.allowedLaneIds.length > lanes.length) throw new Error('Invalid allowed lanes.')
       card.allowedLaneIds = raw.allowedLaneIds.map(id)
       unique(card.allowedLaneIds, 'allowed lane')
-      if (!card.allowedLaneIds.includes(card.laneId) || !card.allowedLaneIds.every(key => laneIds.includes(key))) {
+      // A card moved anyway may stand in a lane its list leaves out.
+      if ((!card.allowedLaneIds.includes(card.laneId) && !card.override) || !card.allowedLaneIds.every(key => laneIds.includes(key))) {
         throw new Error('Allowed lanes must exist and include the starting lane.')
       }
     }
@@ -668,8 +701,9 @@ export function validateWorkshop(input: unknown): Workshop {
     if (problem) throw new Error(problem)
     return board
   }
+  // A card moved anyway past a lane's limit does not make the board unreadable: the lane shows it is over ("3 of 2").
   for (const lane of lanes) {
-    if (workshopLaneHeld({ cards }, lane.id) > (lane.capacity ?? Infinity)) {
+    if (workshopLaneHeld({ cards: cards.filter(card => !card.override) }, lane.id) > (lane.capacity ?? Infinity)) {
       throw new Error(`Lane "${lane.label}" exceeds its capacity.`)
     }
   }
@@ -742,7 +776,14 @@ export function moveWorkshopCard(board: Workshop, cardId: string, laneId: string
   }
   if (!card || !availableLanes(board, card).some(lane => lane.id === laneId)) throw new Error('Move is unavailable.')
   if (card.laneId === laneId) return board
-  return { ...board, cards: board.cards.map(item => item === card ? { ...card, laneId } : item) }
+  return { ...board, cards: board.cards.map(item => item === card ? withoutOverride({ ...card, laneId }) : item) }
+}
+
+/** A card as an ordinary move leaves it: no longer marked as moved anyway. */
+function withoutOverride(card: WorkshopCard): WorkshopCard {
+  if (!card.override) return card
+  const { override: _override, ...rest } = card
+  return rest
 }
 
 /**
@@ -757,9 +798,96 @@ export function moveWorkshopCard(board: Workshop, cardId: string, laneId: string
  * the stations reachable from here.
  */
 export function workshopCandidate(board: Workshop, cardId: string, laneId: string): Workshop | null {
-  const next = kindCandidate(board, cardId, laneId)
-  if (!next || next === board || !board.behaviour) return next
+  const made = kindCandidate(board, cardId, laneId)
+  if (!made || made === board) return made
+  // An ordinary move takes the card's move-anyway mark with it.
+  const next = made.cards.some(item => item.id === cardId && item.override) ? { ...made, cards: made.cards.map(item => item.id === cardId ? withoutOverride(item) : item) } : made
+  if (!board.behaviour) return next
   return 'refused' in rulebook().check(board, next) ? null : next
+}
+
+// ─── Moving a card anyway ────────────────────────────────────────────
+// A drop the rules refuse is offered as "Move anyway" (owner, 2026-11-23: "dropping the card where it shouldn't go
+// should be possible with a confirmation ... standard in the smart components"). Confirmed, the card moves and carries
+// who, when and the rule it broke (WorkshopCard.override), shown on the card; Undo puts it back in one step. The drag,
+// the chat, the server and exec's check_move all ask these same functions.
+//
+// Hard limits, refused even with a confirmation (workshopHardLimit):
+// - a card or lane that is not on the board: there is nothing to move;
+// - a release plan, a launch plan, a hiring plan, a budget, a pipeline or a nested board, and a startup experience:
+//   their cards are numbers and dates the board computes from where each card is (points per release, days, amounts,
+//   what sits under what), so a card placed past their rule would leave a board that does not add up. Their soft
+//   rules can be set to warn instead of refuse ("Just warn me when ...").
+// Nothing else is a hard limit: a full lane, a lane a card is not allowed in, a column skipped, a gate, a bin, a step
+// with no path to it.
+
+/** Whether a move refused on this board may be made anyway: lane boards and maps. */
+function takesOverrides(board: Workshop): boolean {
+  return !board.kind && !board.experience
+}
+
+/**
+ * Why this refused move may not be made even with a confirmation, as a sentence; null when it may be made anyway
+ * (or needs no override at all). See "Moving a card anyway" above for the hard limits.
+ */
+export function workshopHardLimit(board: Workshop, cardId: string, laneId: string): string | null {
+  const card = board.cards.find(item => item.id === cardId)
+  if (!card || !board.lanes.some(lane => lane.id === laneId)) return 'That card or lane is no longer on the board.'
+  if (card.laneId === laneId || workshopCandidate(board, cardId, laneId)) return null
+  if (workshopOverrideCandidate(board, cardId, laneId, { by: 'check', at: new Date(0).toISOString() })) return null
+  return workshopRefusal(board, cardId, laneId) ?? 'That move is not available.'
+}
+
+/**
+ * The board a refused move makes once the person confirmed it ("Move anyway"): the card in that lane, marked with who
+ * (`by`), when (`at`, ISO), the rule's sentence and the lane it came from. Null when the move needs no override
+ * (workshopCandidate has it) or when it is a hard limit (workshopHardLimit says why).
+ */
+export function workshopOverrideCandidate(board: Workshop, cardId: string, laneId: string, who: { by: string; at: string }): Workshop | null {
+  const card = board.cards.find(item => item.id === cardId)
+  if (!card || card.laneId === laneId || !board.lanes.some(lane => lane.id === laneId) || !takesOverrides(board)) return null
+  if (workshopCandidate(board, cardId, laneId)) return null
+  const sentence = (workshopRefusal(board, cardId, laneId) ?? 'That move is not available.').slice(0, 300)
+  // Only the rulebook refused: the move as the board's kind makes it. Otherwise (a path, a limit, the lanes a card may go
+  // in) the card simply goes there.
+  const kind = kindCandidate(board, cardId, laneId)
+  const base = kind && kind !== board ? kind : board
+  const override: WorkshopOverride = { by: String(who.by || 'Someone').replace(/[\u0000-\u001f\u007f<>]/g, '').slice(0, 80) || 'Someone', at: who.at, sentence, from: card.laneId }
+  try {
+    return validateWorkshop({ ...base, cards: base.cards.map(item => item.id === cardId ? { ...withoutOverride(item), laneId, override } : item) })
+  } catch {
+    return null
+  }
+}
+
+/**
+ * A whole board sent to replace `before` (a kept chat proposal, an Undo) with its move-anyway marks made true by the
+ * one who saves it: a card that moved past a rule is marked with `who` and the rule `before` refused it by; a mark on
+ * a card that did not move stays as stored; a mark on a move no rule refused, or on a new card, is dropped. A page
+ * never writes who moved a card anyway.
+ */
+export function workshopStampOverrides(before: Workshop, after: Workshop, who: { by: string; at: string }): Workshop {
+  const was = new Map(before.cards.map(card => [card.id, card]))
+  if (!after.cards.some(card => card.override || was.get(card.id)?.override)) return after
+  const cards = after.cards.map(card => {
+    const old = was.get(card.id)
+    const plain = withoutOverride(card)
+    if (!old) return plain
+    if (old.laneId === card.laneId) return old.override ? { ...plain, override: old.override } : plain
+    if (!card.override) return plain
+    const forced = workshopOverrideCandidate(before, card.id, card.laneId, who)
+    return forced?.cards.find(item => item.id === card.id)?.override ? { ...plain, override: forced.cards.find(item => item.id === card.id)!.override } : plain
+  })
+  return { ...after, cards }
+}
+
+const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+/** What a card moved anyway says under its name: "Moved anyway by Sam · 23 Nov". */
+export function workshopOverrideLine(card: Pick<WorkshopCard, 'override'>): string | null {
+  if (!card.override) return null
+  const when = new Date(card.override.at)
+  const day = Number.isNaN(when.getTime()) ? '' : ' · ' + when.getUTCDate() + ' ' + months[when.getUTCMonth()]
+  return 'Moved anyway by ' + card.override.by + day
 }
 
 /** The board a move would produce by the board kind's own rules, before its rulebook is asked. */
@@ -1085,7 +1213,10 @@ export function workshopCardNoteWords(board: Workshop, card: WorkshopCard): stri
 export function workshopCardText(board: Workshop, card: WorkshopCard): string {
   if (board.kind === 'release-plan') return card.label + '\n' + card.points + ' points'
   const business = businessKind(board)
-  return business ? workshopRules(business).cardText(board, card) : card.label
+  if (business) return workshopRules(business).cardText(board, card)
+  // A card moved anyway says so, under its name: who and when (the rule it broke is in its label for assistive tools).
+  const line = workshopOverrideLine(card)
+  return line ? card.label + '\n' + line : card.label
 }
 
 /** The words a card takes back to the canvas as a note, numbers and all: "Copy · 3 days", "Acme · $25k". */
@@ -1845,7 +1976,7 @@ export * from './moonGallery'
 export * from './darkroom/model'
 export * from './edits'
 export { said, listed, unquoted, named, countWord, pointing, workshopFinder, WorkshopReferenceError, type WorkshopFinder } from './names'
-export { attachWorkshop, type AttachWorkshopOptions, type AttachedWorkshop, type WorkshopCandidateChooser, type WorkshopChangeEvent, type WorkshopRefusalEvent, type WorkshopSelection,
+export { attachWorkshop, type AttachWorkshopOptions, type AttachedWorkshop, type WorkshopCandidateChooser, type WorkshopChangeEvent, type WorkshopRefusalEvent, type WorkshopSelection, type WorkshopOverrideAsk,
   type WorkshopBoardKit, type PartPlace, type BoardLayer, type BoardLayerState, type HandleResult } from './native'
 // The board layer's drawing, which the boards' kits and the native workshop share (also slateboxjs/boards): exported here
 // so the model's entry hands it to them by these names.

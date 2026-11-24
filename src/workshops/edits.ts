@@ -7,7 +7,7 @@
 // tool or CLI publishes for a board before anyone tries an edit.
 
 import {
-  addWorkshopBranch, addWorkshopCard, addWorkshopLane, businessKind, nextWorkshopId, startupExperienceKind, validateWorkshop, workshopCandidate, workshopCardLabelOf,
+  addWorkshopBranch, addWorkshopCard, addWorkshopLane, businessKind, nextWorkshopId, startupExperienceKind, validateWorkshop, workshopCandidate, workshopOverrideCandidate, workshopCardLabelOf,
   workshopLaneHeld, workshopLineRefusal, workshopNewLine, workshopPresentationLanes, workshopRefusal, workshopWithLine, workshopWithoutCardLines,
   type StationImage, type Workshop, type WorkshopCard, type WorkshopLane, type WorkshopSignal,
 } from './model'
@@ -44,7 +44,7 @@ export type WorkshopEdit =
   | { kind: 'add_card'; lane: WorkshopRef; label?: string; allowedLanes?: WorkshopRef[]; duration?: number; lag?: number; waitsOn?: WorkshopRef[]; amount?: number; band?: string; free?: boolean
       under?: WorkshopRef; role?: string; source?: string }
   | { kind: 'remove_card'; card: WorkshopRef }
-  | { kind: 'move_card'; card: WorkshopRef; lane: WorkshopRef }
+  | { kind: 'move_card'; card: WorkshopRef; lane: WorkshopRef; override?: boolean }
   | { kind: 'advance_card'; card: WorkshopRef }
   | { kind: 'set_lane_capacity'; lane: WorkshopRef; capacity: number | null }
   | { kind: 'set_card_lanes'; card: WorkshopRef; lanes: WorkshopRef[] | null }
@@ -148,6 +148,8 @@ export interface WorkshopEditRefusal {
   candidates?: string[]
   /** A number out of range: the range a person may use, and the sentence at each end. */
   limits?: WorkshopLimits
+  /** A move a rule refused that the person may make anyway: the same move_card again with override true, once they agree. */
+  overridable?: boolean
 }
 
 export type WorkshopEditResult = { workshop: Workshop; report: WorkshopEditReport } | { refused: WorkshopEditRefusal }
@@ -256,7 +258,9 @@ export const workshopEditKinds: WorkshopEditKind[] = [
   { kind: 'remove_card', summary: 'Remove a card or token, with the dependencies and outcomes that named it.', intent: false,
     fields: { card: card('The card or token.') }, boards: everyBoard, refusals: {} },
   { kind: 'move_card', summary: 'Move a card to a lane, or a token to a step, by the board’s rules. A release plan brings the features that must move with it.', intent: true,
-    fields: { card: card('The card or token.'), lane: lane('Where it goes.') }, boards: everyBoard, refusals: {} },
+    fields: { card: card('The card or token.'), lane: lane('Where it goes.'),
+      override: { type: 'flag', optional: true, about: 'True to move it anyway when a rule refuses it (lane boards and maps), once the person agreed to break that rule. The card shows who moved it anyway and when.' } },
+    boards: everyBoard, refusals: {} },
   { kind: 'advance_card', summary: 'Move a token on along the one path that leads on from its step.', intent: true,
     fields: { card: card('The token.') }, boards: ['map'], refusals: mapsOnly },
   { kind: 'set_lane_capacity', summary: 'Set how many cards (on a release plan, points; on a map, tokens) a lane holds, or null for any number.', intent: false,
@@ -445,6 +449,7 @@ export function workshopReferences(board: Workshop, selection?: WorkshopEditOpti
 // The reducer.
 
 class Refusal {
+  overridable?: boolean
   constructor(readonly reason: string, readonly code: WorkshopEditRefusalCode, readonly laneId: string | null = null,
     readonly cardId?: string, readonly candidates?: string[], readonly limits?: WorkshopLimits) {}
 }
@@ -660,7 +665,7 @@ function makeEdit(input: Workshop, edit: WorkshopEdit, family: WorkshopBoardKind
       const target = typeof edit.lane === 'object' ? board.lanes.find(item => item.id === (edit.lane as { id: string }).id) ?? null : quietLane(edit.lane)
       const subject = cardOf(edit.card, target?.id ?? null)
       const destination = laneOf(edit.lane, subject.laneId)
-      return moveTo(subject, destination)
+      return moveTo(subject, destination, edit.override === true)
     }
     case 'advance_card': {
       const subject = cardOf(edit.card)
@@ -887,13 +892,21 @@ function makeEdit(input: Workshop, edit: WorkshopEdit, family: WorkshopBoardKind
   }
   throw new Refusal('This workshop does not take ' + edit.kind + '.', 'not_on_this_board')
 
-  function moveTo(subject: WorkshopCard, destination: WorkshopLane): Step {
+  function moveTo(subject: WorkshopCard, destination: WorkshopLane, override = false): Step {
     const ids = { laneId: destination.id, cardId: subject.id }
     if (subject.laneId === destination.id) {
       return done(input, said(subject.label) + ' is already ' + (map ? 'at ' : 'in ') + said(destination.label) + '.', ids, false)
     }
     const next = workshopCandidate(input, subject.id, destination.id)
-    if (!next) throw new Refusal(workshopRefusal(input, subject.id, destination.id) ?? 'That move is not available.', 'refused', destination.id, subject.id)
+    if (!next) {
+      const sentence = workshopRefusal(input, subject.id, destination.id) ?? 'That move is not available.'
+      // Moved anyway, once the person agreed (model.ts, "Moving a card anyway"): marked with who and when.
+      const forced = workshopOverrideCandidate(input, subject.id, destination.id, { by: audit?.by ?? 'an agent', at: audit?.at ?? new Date().toISOString() })
+      if (override && forced) return done(settle(forced, family, destination.id, subject.id), 'Moved ' + said(subject.label) + ' to ' + said(destination.label) + ' anyway. ' + sentence, ids)
+      const refusal = new Refusal(sentence, 'refused', destination.id, subject.id)
+      if (forced) refusal.overridable = true
+      throw refusal
+    }
     return done(settle(next, family, destination.id, subject.id), 'Moved ' + said(subject.label) + ' to ' + said(destination.label) + '.', ids)
   }
 }
@@ -943,7 +956,7 @@ export function applyWorkshopEdits(board: Workshop, edits: readonly WorkshopEdit
     let step: Step
     try { step = makeEdit(current, edit, family, options.selection, audit) } catch (error) {
       if (!(error instanceof Refusal)) throw error
-      return refuse({ index, kind: entry.kind, reason: error.reason, code: error.code, laneId: error.laneId,
+      return refuse({ index, kind: entry.kind, reason: error.reason, code: error.code, laneId: error.laneId, ...(error.overridable && { overridable: true }),
         ...(error.cardId && { cardId: error.cardId }), ...(error.candidates && { candidates: error.candidates }), ...(error.limits && { limits: error.limits }) })
     }
     // What the board's rulebook says of every card this edit put in a lane (an edit of the rules moves nothing).

@@ -14,7 +14,7 @@
 import type { Workshop, WorkshopCard, WorkshopLane, WorkshopNoteStyle } from './model'
 import type { NodeJSON } from '../core/Serialization'
 // The model's own helpers, from the model's chunk (this module is slateboxjs/workshops/behaviour, loaded on demand).
-import { DEFAULT_NOTE_STYLE, registerRulebook, workshopLaneHeld, roundedBox, validateWorkshop, workshopCandidate, workshopReferences, workshopRefusal, workshopRules, workshopRulesLoaded, said, type BusinessBoardKind } from './model'
+import { DEFAULT_NOTE_STYLE, registerRulebook, workshopLaneHeld, roundedBox, validateWorkshop, workshopCandidate, workshopHardLimit, workshopReferences, workshopRefusal, workshopRules, workshopRulesLoaded, said, type BusinessBoardKind } from './model'
 import type { WorkshopEdit, WorkshopRef } from './edits'
 import type { BusinessEditStep, BusinessEditTools } from './kinds'
 import type { WorkshopFinder } from './names'
@@ -346,9 +346,13 @@ export function checkBehaviour(before: Workshop, after: Workshop): BehaviourVerd
     warnings.push(sentence)
   }
   const was = new Map(before.cards.map(card => [card.id, card.laneId]))
+  const marked = new Map(before.cards.map(card => [card.id, card.override]))
   for (const card of after.cards) {
     const from = was.get(card.id) ?? null
     if (from === card.laneId || binOf(card.laneId)) continue
+    // A move made anyway (the person confirmed it past the rule: model.ts workshopOverrideCandidate), or a card moved
+    // anyway going back where it came from (an Undo): no rule is asked again.
+    if ((from !== null && card.override?.from === from) || marked.get(card.id)?.from === card.laneId) continue
     const move = { card, from, to: card.laneId }
     for (const rule of rules) {
       const found = registry[rule.kind].check(rule, before, after, move)
@@ -469,7 +473,7 @@ export function applyRuleEdit(board: Workshop, edit: WorkshopEdit, audit: RuleAu
 
 export type WorkshopMoveCheck =
   | { ok: true; warnings: string[] }
-  | { refused: { sentence: string; ruleId: string | null; nearest: string | null; set?: RuleAudit } }
+  | { refused: { sentence: string; ruleId: string | null; nearest: string | null; set?: RuleAudit; overridable: boolean } }
 
 /**
  * Whether a card may move to a lane, read-only: exec's check_move and "Why can't I move X?". The same
@@ -482,7 +486,7 @@ export function checkWorkshopMove(input: Workshop, cardRef: WorkshopRef, laneRef
   const pick = <T extends { id: string }>(items: T[], finder: WorkshopFinder<T>, ref: WorkshopRef) =>
     typeof ref === 'object' ? items.find(item => item.id === ref.id) : items.find(item => item.id === ref) ?? finder.attempt(ref)
   const card = pick(board.cards, refs.cards, cardRef), lane = pick(board.lanes, refs.lanes, laneRef)
-  if (!card || !lane) return { refused: { sentence: card ? 'There is no such column on this board.' : 'There is no such card on this board.', ruleId: null, nearest: null } }
+  if (!card || !lane) return { refused: { sentence: card ? 'There is no such column on this board.' : 'There is no such card on this board.', ruleId: null, nearest: null, overridable: false } }
   const order = board.lanes.map(item => item.id)
   const nearest = () => board.lanes.filter(item => item.id !== card.laneId && item.id !== lane.id && workshopCandidate(board, card.id, item.id))
     .sort((a, b) => Math.abs(order.indexOf(a.id) - order.indexOf(lane.id)) - Math.abs(order.indexOf(b.id) - order.indexOf(lane.id)))[0]?.label ?? null
@@ -493,7 +497,9 @@ export function checkWorkshopMove(input: Workshop, cardRef: WorkshopRef, laneRef
   }
   const sentence = workshopRefusal(board, card.id, lane.id) ?? 'That move is not available.'
   const rule = behaviourOf(board).rules.find(item => item.on && sentence === refusalOf(board, card.id, lane.id, item))
-  return { refused: { sentence, ruleId: rule?.id ?? null, nearest: nearest(), ...(rule && { set: rule.set }) } }
+  // Whether a person may confirm it anyway ("Move anyway"): false only for a hard limit (model.ts workshopHardLimit).
+  const overridable = workshopHardLimit(board, card.id, lane.id) === null
+  return { refused: { sentence, ruleId: rule?.id ?? null, nearest: nearest(), overridable, ...(rule && { set: rule.set }) } }
 }
 
 /** What one rule alone says of a move. */

@@ -53,6 +53,8 @@ const log = {
   refusals: [] as WorkshopRefusalEvent[],
   previews: [] as (Workshop | null)[],
   selections: [] as WorkshopSelection[],
+  /** Every "Move anyway?" the board asked (?confirm). */
+  asks: [] as unknown[],
   /** Every package the engine handed the host through onSlateChanged. */
   packages: [] as { type: string; data: unknown }[],
   /** Every package the engine tried to send to collaborators. */
@@ -85,6 +87,28 @@ if (!params.has('empty')) {
   if (params.has('defaultnote')) slate.addNode({ id: 'default', x: 60, y: 200, width: 160, height: 80, text: 'Default note' })
 }
 
+/**
+ * ?confirm: the host's "Move anyway" dialog, as an app shows it: the rule's sentence with Move anyway and Cancel.
+ * Cards moved anyway are marked by "Sam".
+ */
+function confirmOverride(ask: { card: string; lane: string; reason: string }) {
+  log.asks.push(ask)
+  return new Promise<boolean>(resolve => {
+    const dialog = document.createElement('div')
+    dialog.setAttribute('role', 'alertdialog')
+    dialog.setAttribute('aria-label', 'Move anyway?')
+    dialog.style.cssText = 'position:fixed;left:50%;top:20px;transform:translateX(-50%);background:#fff;padding:12px;border:1px solid #333;z-index:10'
+    const words = document.createElement('p')
+    words.textContent = `Move ${ask.card} to ${ask.lane} anyway? ${ask.reason}`
+    const answer = (yes: boolean) => () => { dialog.remove(); resolve(yes) }
+    const yes = document.createElement('button'), no = document.createElement('button')
+    yes.textContent = 'Move anyway'; no.textContent = 'Cancel'
+    yes.onclick = answer(true); no.onclick = answer(false)
+    dialog.append(words, yes, no)
+    document.body.append(dialog)
+  })
+}
+
 async function attach(model: Workshop, options: Record<string, unknown> = {}) {
   const chooseCandidate = params.has('dragology')
     ? (await import('../../src/workshops/dragologyCandidates')).dragologyCandidates : undefined
@@ -92,6 +116,7 @@ async function attach(model: Workshop, options: Record<string, unknown> = {}) {
     readOnly: params.has('readonly'), chooseCandidate,
     ...(params.has('perRow') ? { layout: { lanesPerRow: Number(params.get('perRow')) } } : {}),
     ...(hostStyle ? { style: hostStyle } : {}),
+    ...(params.has('confirm') ? { confirmOverride, overrideBy: () => 'Sam' } : {}),
     ...options,
     onChange: (next, change) => {
       log.changes.push({ next, change })
