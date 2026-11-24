@@ -2,6 +2,8 @@ export declare const GHOST_PREFIX = "ghost-";
 export declare const ghostIdOf: (nodeId: string) => string;
 export type SuggestionKind = 'add' | 'update' | 'remove' | 'link' | 'unlink';
 export type SuggestionState = 'pending' | 'kept' | 'discarded' | 'applied' | 'undone' | 'refused';
+/** An action card's state, as its host keeps it (waiting for a person, being sent, done, failed, maybe made, declined). */
+export type CardState = 'waiting' | 'running' | 'done' | 'failed' | 'unclear' | 'declined';
 export interface SuggestionItem {
     id: string;
     kind: SuggestionKind;
@@ -22,6 +24,11 @@ export interface SuggestionItem {
         parentId?: string;
         childId?: string;
         [key: string]: any;
+    } | null;
+    /** add: set when the note is an action card, a change outside Slatebox a person approves (id: the host's card id). */
+    card?: {
+        id?: string;
+        state: CardState;
     } | null;
 }
 export interface SuggestionAction {
@@ -48,6 +55,8 @@ export interface AgentSuggestionsOptions {
     /** Keep all / Discard all on an action's frame: the host saves (or drops) its waiting items at once. */
     onKeepAll?: (actionId: string) => void;
     onDiscardAll?: (actionId: string) => void;
+    /** Try again anyway on an action card whose change may have been made already: the host makes it once more, on purpose (default: onKeep). */
+    onTryAgain?: (ref: SuggestionRef) => void;
     /** Turns a stored (v1) note's options into the engine's: pass compat.v1NodeToV2 (the default maps position, size and words). */
     toNode?: (v1: Record<string, any>) => Record<string, any>;
 }
@@ -105,6 +114,8 @@ export interface AgentSuggestions {
     /** Keep or Discard one suggestion, as its buttons do (for keyboard hosts and tests). */
     keep(ref: SuggestionRef): void;
     discard(ref: SuggestionRef): void;
+    /** Try again anyway on an action card, as its button does. */
+    tryAgain(ref: SuggestionRef): void;
     /** Keep all / Discard all of one action, as its frame's buttons do. */
     keepAll(actionId: string): void;
     discardAll(actionId: string): void;

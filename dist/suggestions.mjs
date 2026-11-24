@@ -1,18 +1,18 @@
-import { agentName as At, plainLine as et, canvasZoom as St, boxOf as z, agentColor as Mt, clip as B, overlap as Et, hexPoints as Pt } from "./presence.mjs";
-function Dt(r) {
-  const { xPos: a, yPos: l, ...b } = r;
-  return { ...b, x: Number(a ?? r.x) || 0, y: Number(l ?? r.y) || 0 };
+import { agentName as Mt, plainLine as ot, canvasZoom as Et, boxOf as X, agentColor as Pt, clip as F, overlap as Dt, hexPoints as Nt } from "./presence.mjs";
+function Ot(d) {
+  const { xPos: a, yPos: u, ...A } = d;
+  return { ...A, x: Number(a ?? d.x) || 0, y: Number(u ?? d.y) || 0 };
 }
-const Nt = "ghost-", j = (r) => Nt + r;
-function Y(r) {
+const Lt = "ghost-", z = (d) => Lt + d;
+function J(d) {
   const a = [];
-  for (const l of Array.isArray(r) ? r : [])
-    if (!(!l || typeof l.actionId != "string"))
-      for (const b of Array.isArray(l.items) ? l.items : [])
-        b && b.state === "pending" && typeof b.id == "string" && a.push({ action: l, item: b });
+  for (const u of Array.isArray(d) ? d : [])
+    if (!(!u || typeof u.actionId != "string"))
+      for (const A of Array.isArray(u.items) ? u.items : [])
+        A && A.state === "pending" && typeof A.id == "string" && a.push({ action: u, item: A });
   return a;
 }
-const Ot = Object.freeze({
+const Kt = Object.freeze({
   canMove: !1,
   canResize: !1,
   canRotate: !1,
@@ -23,308 +23,311 @@ const Ot = Object.freeze({
   canSelect: !1,
   persist: !1,
   exportable: !1
-}), ut = "Roboto, Helvetica, Arial, sans-serif", gt = "#b91c1c";
-function pt(r, a) {
-  const l = r.x + r.w / 2, b = r.y + r.h / 2, A = a.x + a.w / 2 - l, m = a.y + a.h / 2 - b;
-  if (!A && !m) return { x: l, y: b };
-  const I = A ? r.w / 2 / Math.abs(A) : 1 / 0, K = m ? r.h / 2 / Math.abs(m) : 1 / 0, F = Math.min(I, K, 1);
-  return { x: l + A * F, y: b + m * F };
+}), ht = "Roboto, Helvetica, Arial, sans-serif", pt = "#b91c1c";
+function yt(d, a) {
+  const u = d.x + d.w / 2, A = d.y + d.h / 2, k = a.x + a.w / 2 - u, x = a.y + a.h / 2 - A;
+  if (!k && !x) return { x: u, y: A };
+  const I = k ? d.w / 2 / Math.abs(k) : 1 / 0, R = x ? d.h / 2 / Math.abs(x) : 1 / 0, G = Math.min(I, R, 1);
+  return { x: u + k * G, y: A + x * G };
 }
-function ht(r) {
-  const a = r.changes || {};
-  if (typeof a.text == "string") return "Suggests: “" + B(et(a.text), 48) + "”";
-  const l = Object.keys(a), b = l.some((m) => ["xPos", "yPos", "x", "y"].includes(m)), A = l.some((m) => ["width", "height"].includes(m));
-  return b && l.every((m) => ["xPos", "yPos", "x", "y"].includes(m)) ? "Suggests moving it here" : A && l.every((m) => ["width", "height"].includes(m)) ? "Suggests resizing it" : "Suggests restyling it";
+function mt(d) {
+  const a = d.changes || {};
+  if (typeof a.text == "string") return "Suggests: “" + F(ot(a.text), 48) + "”";
+  const u = Object.keys(a), A = u.some((x) => ["xPos", "yPos", "x", "y"].includes(x)), k = u.some((x) => ["width", "height"].includes(x));
+  return A && u.every((x) => ["xPos", "yPos", "x", "y"].includes(x)) ? "Suggests moving it here" : k && u.every((x) => ["width", "height"].includes(x)) ? "Suggests resizing it" : "Suggests restyling it";
 }
-const Lt = [["add", "note", "notes"], ["update", "change", "changes"], ["remove", "removal", "removals"], ["link", "line", "lines"], ["unlink", "line removed", "lines removed"]];
-function Kt(r) {
-  return Lt.map(([a, l, b]) => {
-    const A = r.filter((m) => m.kind === a).length;
-    return A ? A + " " + (A === 1 ? l : b) : "";
+const Rt = [["add", "note", "notes"], ["update", "change", "changes"], ["remove", "removal", "removals"], ["link", "line", "lines"], ["unlink", "line removed", "lines removed"]];
+function Tt(d) {
+  return Rt.map(([a, u, A]) => {
+    const k = d.filter((x) => x.kind === a).length;
+    return k ? k + " " + (k === 1 ? u : A) : "";
   }).filter(Boolean).join(", ");
 }
-const tt = (r, a) => !r || !a ? r || a : { x: Math.min(r.x, a.x), y: Math.min(r.y, a.y), w: Math.max(r.x + r.w, a.x + a.w) - Math.min(r.x, a.x), h: Math.max(r.y + r.h, a.y + a.h) - Math.min(r.y, a.y) };
-function $t(r, a = {}) {
-  const l = r?.v2 && typeof r.v2.canvas?.group == "function" ? r.v2 : r, b = a.toNode ?? Dt, A = () => a.canAct ? !!a.canAct() : !1;
-  let m = [], I = null, K = !1, F = "";
+const nt = (d, a) => !d || !a ? d || a : { x: Math.min(d.x, a.x), y: Math.min(d.y, a.y), w: Math.max(d.x + d.w, a.x + a.w) - Math.min(d.x, a.x), h: Math.max(d.y + d.h, a.y + a.h) - Math.min(d.y, a.y) };
+function jt(d, a = {}) {
+  const u = d?.v2 && typeof d.v2.canvas?.group == "function" ? d.v2 : d, A = a.toNode ?? Ot, k = () => a.canAct ? !!a.canAct() : !1;
+  let x = [], I = null, R = !1, G = "";
   const O = /* @__PURE__ */ new Map();
-  let nt = [], q = [], R = null, J = "pointer", H = !1;
-  const yt = typeof l.setDragPolicy == "function" ? l.setDragPolicy({
-    governs: (t) => typeof t?.id == "string" && O.has(t.id) ? Ot : null,
+  let it = [], H = [], T = null, V = "pointer", Z = !1;
+  const xt = typeof u.setDragPolicy == "function" ? u.setDragPolicy({
+    governs: (t) => typeof t?.id == "string" && O.has(t.id) ? Kt : null,
     onEnd: () => ({ accept: !1 }),
     // A load from the room replaced every note, the ghosts too: draw them again.
     onNotesReplaced() {
-      O.clear(), ct(!0);
+      O.clear(), ft(!0);
     }
   }) : () => {
-  }, ot = (t) => typeof l.withPolicyAuthority == "function" ? l.withPolicyAuthority(t) : t();
-  function mt() {
-    return I && I.node?.isConnected !== !1 && I.node?.parentNode || (I = l.canvas.group(), I.attr({ "data-agent-suggestions": "", "data-export-never": "" })), I;
+  }, st = (t) => typeof u.withPolicyAuthority == "function" ? u.withPolicyAuthority(t) : t();
+  function vt() {
+    return I && I.node?.isConnected !== !1 && I.node?.parentNode || (I = u.canvas.group(), I.attr({ "data-agent-suggestions": "", "data-export-never": "" })), I;
   }
-  const $ = (t) => t ? l.nodes?.one?.(t) : void 0, G = (t) => t ? z($(t)) ?? z($(j(t))) : null, V = (t) => At(t);
-  function xt() {
+  const j = (t) => t ? u.nodes?.one?.(t) : void 0, q = (t) => t ? X(j(t)) ?? X(j(z(t))) : null, Q = (t) => Mt(t);
+  function wt() {
     const t = /* @__PURE__ */ new Map();
-    for (const { action: e, item: n } of Y(m))
-      n.kind === "add" && n.nodeId && n.node?.options && t.set(j(n.nodeId), { item: n, action: e });
-    ot(() => {
+    for (const { action: e, item: n } of J(x))
+      n.kind === "add" && n.nodeId && n.node?.options && t.set(z(n.nodeId), { item: n, action: e });
+    st(() => {
       for (const [e, n] of O) {
-        const c = t.get(e);
-        c && JSON.stringify(c.item.node) === n.json && l.nodes?.one?.(e) === n.node || (l.nodes?.one?.(e) === n.node && l.nodes.remove(e), O.delete(e));
+        const l = t.get(e);
+        l && JSON.stringify(l.item.node) === n.json && u.nodes?.one?.(e) === n.node || (u.nodes?.one?.(e) === n.node && u.nodes.remove(e), O.delete(e));
       }
-      for (const [e, { item: n, action: c }] of t) {
-        if (O.has(e) || n.nodeId && $(n.nodeId)) continue;
-        const p = { ...n.node.options, id: e };
+      for (const [e, { item: n, action: l }] of t) {
+        if (O.has(e) || n.nodeId && j(n.nodeId)) continue;
+        const h = { ...n.node.options, id: e };
         let s;
         try {
-          s = l.nodes.add(b(p));
+          s = u.nodes.add(A(h));
         } catch {
           continue;
         }
         O.set(e, { node: s, json: JSON.stringify(n.node) }), Promise.resolve(s?.ready).then(() => {
-          if (K || O.get(e)?.node !== s) return;
+          if (R || O.get(e)?.node !== s) return;
           s.applyGovernance?.();
-          const f = s.svgGroup?.node;
-          f && (f.style.opacity = "0.72", f.style.pointerEvents = "none", f.setAttribute("data-agent-ghost", n.nodeId || ""), f.setAttribute("aria-label", "Suggested by " + V(c) + ", not kept yet: " + et(n.node?.options?.text ?? "")), U(!1), dt());
+          const r = s.svgGroup?.node;
+          r && (r.style.opacity = "0.72", r.style.pointerEvents = "none", r.setAttribute("data-agent-ghost", n.nodeId || ""), r.setAttribute("aria-label", "Suggested by " + Q(l) + ", not kept yet: " + ot(n.node?.options?.text ?? "")), et(!1), lt());
         }).catch(() => {
         });
       }
     });
   }
-  function vt(t, e, n, c, p, s, f, u = p ? "keep" : "discard") {
-    const S = Math.round(18 + 6.8 * n.length), x = t.group().attr({
+  function It(t, e, n, l, h, s, r, f = h ? "keep" : "discard") {
+    const v = Math.round(18 + 6.8 * n.length), y = t.group().attr({
       role: "button",
       tabindex: 0,
-      "aria-label": c,
+      "aria-label": l,
       cursor: "pointer",
       "pointer-events": "all",
-      "data-suggestion-button": u
+      "data-suggestion-button": f
     });
-    x.rect(S, 22).radius(11).move(e, 0).fill(p ? s : "#ffffff").stroke({ color: s, width: 1.5 }), x.text((h) => h.plain(n)).font({ size: 12, weight: 600, family: ut, anchor: "middle" }).fill(p ? "#ffffff" : s).attr({ x: e + S / 2, y: 15 });
-    const T = (h) => {
-      h.stopPropagation?.(), h.preventDefault?.(), f();
+    y.rect(v, 22).radius(11).move(e, 0).fill(h ? s : "#ffffff").stroke({ color: s, width: 1.5 }), y.text((p) => p.plain(n)).font({ size: 12, weight: 600, family: ht, anchor: "middle" }).fill(h ? "#ffffff" : s).attr({ x: e + v / 2, y: 15 });
+    const B = (p) => {
+      p.stopPropagation?.(), p.preventDefault?.(), r();
     };
     let L = !1;
-    return x.on("pointerdown", (h) => {
-      L = !0, h.stopPropagation?.();
-    }), x.on("mousedown", (h) => {
-      h.stopPropagation?.(), L || h.preventDefault?.();
-    }), x.on("click", (h) => {
-      const i = L || !h.detail;
-      L = !1, i ? T(h) : (h.stopPropagation?.(), h.preventDefault?.());
-    }), x.on("keydown", (h) => {
-      (h.key === "Enter" || h.key === " ") && T(h);
-    }), S;
+    return y.on("pointerdown", (p) => {
+      L = !0, p.stopPropagation?.();
+    }), y.on("mousedown", (p) => {
+      p.stopPropagation?.(), L || p.preventDefault?.();
+    }), y.on("click", (p) => {
+      const i = L || !p.detail;
+      L = !1, i ? B(p) : (p.stopPropagation?.(), p.preventDefault?.());
+    }), y.on("keydown", (p) => {
+      (p.key === "Enter" || p.key === " ") && B(p);
+    }), v;
   }
-  function Z(t, e, n, c, p, s, f, u) {
-    const S = t.group().attr(e), x = S.group();
-    let T = 0;
-    return s.forEach(([L, h, i, y], d) => {
-      T += vt(x, T, L, h, !d, p, y, i) + 6;
-    }), S.transform({ translateX: n.x, translateY: n.y, scale: 1 / c, originX: 0, originY: 0 }), x.attr("transform", `translate(${f < 0 ? f - T + 6 : f} ${u})`), S;
+  function U(t, e, n, l, h, s, r, f) {
+    const v = t.group().attr(e), y = v.group();
+    let B = 0;
+    return s.forEach(([L, p, i, m], c) => {
+      B += It(y, B, L, p, !c, h, m, i) + 6;
+    }), v.transform({ translateX: n.x, translateY: n.y, scale: 1 / l, originX: 0, originY: 0 }), y.attr("transform", `translate(${r < 0 ? r - B + 6 : r} ${f})`), v;
   }
-  const It = Math.round(18 + 6.8 * 8) + 6 + Math.round(18 + 6.8 * 11), Q = (t) => Math.round(28 + 7 * B(t, 64).length), it = (t, e, n, c) => {
-    const p = " the suggestion from " + V(t).replace(/ · /g, ", ") + ": " + c, s = { actionId: t.actionId, itemId: e.id };
-    return [[n, n + p, "keep", () => X.keep(s)], ["Discard", "Discard" + p, "discard", () => X.discard(s)]];
+  const kt = (t) => Math.round(18 + 6.8 * t.length) + 6 + Math.round(18 + 6.8 * 11), tt = (t) => Math.round(28 + 7 * F(t, 64).length), at = (t, e, n, l) => {
+    const h = e.card?.state, s = " the suggestion from " + Q(t).replace(/ · /g, ", ") + ": " + l, r = { actionId: t.actionId, itemId: e.id }, f = h === "unclear", v = f ? "Try again anyway" : h ? "Approve" : n, y = h ? "Decline" : "Discard";
+    return /^(running|done|declined)$/.test(h) ? [] : [[v, v + s, "keep", () => f ? W.tryAgain(r) : W.keep(r)], [y, y + s, "discard", () => W.discard(r)]];
   };
-  function st(t, e, n, c, p) {
-    const s = t.group().attr({ "data-suggestion-tag": "", "pointer-events": "none" }), f = B(c, 64);
-    s.rect(Q(c), 22).radius(11).fill("#ffffff").stroke({ color: p, width: 1.2 }).attr("fill-opacity", 0.95), s.polygon(Pt(12, 12, 6)).fill(p), s.text((u) => u.plain(f)).font({ size: 12, family: ut }).fill("#111827").attr({ x: 22, y: 16 }), s.transform({ translateX: e.x, translateY: e.y, scale: 1 / n, originX: 0, originY: 0 });
+  function rt(t, e, n, l, h) {
+    const s = t.group().attr({ "data-suggestion-tag": "", "pointer-events": "none" }), r = F(l, 64);
+    s.rect(tt(l), 22).radius(11).fill("#ffffff").stroke({ color: h, width: 1.2 }).attr("fill-opacity", 0.95), s.polygon(Nt(12, 12, 6)).fill(h), s.text((f) => f.plain(r)).font({ size: 12, family: ht }).fill("#111827").attr({ x: 22, y: 16 }), s.transform({ translateX: e.x, translateY: e.y, scale: 1 / n, originX: 0, originY: 0 });
   }
-  function W(t, e = "pointer") {
-    e === "focus" && t !== null && t === R || (R = t, J = e, I?.node?.querySelectorAll?.("[data-on-hover]").forEach((n) => at(n, n.getAttribute("data-suggestion-controls") === t)));
+  function Y(t, e = "pointer") {
+    e === "focus" && t !== null && t === T || (T = t, V = e, I?.node?.querySelectorAll?.("[data-on-hover]").forEach((n) => dt(n, n.getAttribute("data-suggestion-controls") === t)));
   }
-  const at = (t, e) => {
+  const dt = (t, e) => {
     t.style.display = e ? "" : "none", t.style.visibility = e ? "" : "hidden";
   };
-  function rt(t) {
-    const e = typeof document < "u" ? document.activeElement : null, n = !!(e && I?.node?.contains?.(e)), c = n ? e.closest("[data-suggestion-hit]")?.getAttribute("data-suggestion-hit") : null, p = n ? e.closest("[data-suggestion-button]") : null, s = p?.parentElement?.closest("[data-suggestion-controls], [data-suggestion-all]"), f = (S, x) => `[${S}="${String(x).replace(/["\\]/g, "\\$&")}"]`, u = c != null ? f("data-suggestion-hit", c) : p && s ? (s.hasAttribute("data-suggestion-all") ? f("data-suggestion-all", s.getAttribute("data-suggestion-all")) : f("data-suggestion-controls", s.getAttribute("data-suggestion-controls"))) + " " + f("data-suggestion-button", p.getAttribute("data-suggestion-button")) : null;
-    H = !0;
+  function ct(t) {
+    const e = typeof document < "u" ? document.activeElement : null, n = !!(e && I?.node?.contains?.(e)), l = n ? e.closest("[data-suggestion-hit]")?.getAttribute("data-suggestion-hit") : null, h = n ? e.closest("[data-suggestion-button]") : null, s = h?.parentElement?.closest("[data-suggestion-controls], [data-suggestion-all]"), r = (v, y) => `[${v}="${String(y).replace(/["\\]/g, "\\$&")}"]`, f = l != null ? r("data-suggestion-hit", l) : h && s ? (s.hasAttribute("data-suggestion-all") ? r("data-suggestion-all", s.getAttribute("data-suggestion-all")) : r("data-suggestion-controls", s.getAttribute("data-suggestion-controls"))) + " " + r("data-suggestion-button", h.getAttribute("data-suggestion-button")) : null;
+    Z = !0;
     try {
       t();
     } finally {
-      H = !1;
+      Z = !1;
     }
-    u && document.activeElement !== e && I?.node?.querySelector?.(u)?.focus?.({ preventScroll: !0 });
+    f && document.activeElement !== e && I?.node?.querySelector?.(f)?.focus?.({ preventScroll: !0 });
   }
-  function dt() {
+  function lt() {
     const t = I?.node, e = t?.parentNode;
     if (!t || !e) return;
-    const n = [...e.children].find((c) => c.hasAttribute("data-agent-presence"));
-    t.nextElementSibling && t.nextElementSibling !== n && rt(() => e.appendChild(t)), n?.nextElementSibling && e.appendChild(n);
+    const n = [...e.children].find((l) => l.hasAttribute("data-agent-presence"));
+    t.nextElementSibling && t.nextElementSibling !== n && ct(() => e.appendChild(t)), n?.nextElementSibling && e.appendChild(n);
   }
-  function U(t = !1) {
-    if (K) return;
-    const e = St(l), n = Y(m), c = JSON.stringify([e.toFixed(4), A(), kt(n), n.map(({ action: f, item: u }) => [f.actionId, f.label, f.colorIndex, f.origin, f.via, f.invitedBy, u])]), p = !!I?.node?.isConnected;
-    if (!t && c === F && (p || !n.length)) return;
-    F = c, R && !n.some(({ item: f }) => f.id === R) && (R = null);
-    const s = mt();
-    rt(() => {
-      s.clear(), wt(s, e, n);
-    }), dt(), n.length || (I?.remove(), I = null, q = []);
+  function et(t = !1) {
+    if (R) return;
+    const e = Et(u), n = J(x), l = JSON.stringify([e.toFixed(4), k(), At(n), n.map(({ action: r, item: f }) => [r.actionId, r.label, r.colorIndex, r.origin, r.via, r.invitedBy, f])]), h = !!I?.node?.isConnected;
+    if (!t && l === G && (h || !n.length)) return;
+    G = l, T && !n.some(({ item: r }) => r.id === T) && (T = null);
+    const s = vt();
+    ct(() => {
+      s.clear(), bt(s, e, n);
+    }), lt(), n.length || (I?.remove(), I = null, H = []);
   }
-  function wt(t, e, n) {
-    const c = A(), p = [], s = [], f = /* @__PURE__ */ new Map();
-    for (const { action: i, item: y } of n) {
-      const d = f.get(i.actionId) ?? { action: i, items: [], frame: null };
-      d.items.push(y), f.set(i.actionId, d), y.kind === "add" && (d.frame = tt(d.frame, z($(j(y.nodeId || "")))));
+  function bt(t, e, n) {
+    const l = k(), h = [], s = [], r = /* @__PURE__ */ new Map();
+    for (const { action: i, item: m } of n) {
+      const c = r.get(i.actionId) ?? { action: i, items: [], frame: null };
+      c.items.push(m), r.set(i.actionId, c), m.kind === "add" && (c.frame = nt(c.frame, X(j(z(m.nodeId || "")))));
     }
-    for (const i of f.values())
+    for (const i of r.values())
       if (!i.frame)
-        for (const y of i.items)
-          (y.kind === "link" || y.kind === "unlink") && (i.frame = tt(tt(i.frame, G(y.parentId ?? y.association?.parentId)), G(y.association?.childId)));
-    const u = 6 / e, S = 28 / e, x = (i, y, d) => ({ x: i, y, w: d, h: 22 / e }), L = [...[...f.values()].filter((i) => i.frame).map((i) => i.frame = { x: i.frame.x - 2 * u, y: i.frame.y - 2 * u, w: i.frame.w + 4 * u, h: i.frame.h + 4 * u })];
-    for (const i of l.nodes?.allNodes || []) if (!O.has(i?.id)) {
-      const y = z(i);
-      y && L.push(y);
+        for (const m of i.items)
+          (m.kind === "link" || m.kind === "unlink") && (i.frame = nt(nt(i.frame, q(m.parentId ?? m.association?.parentId)), q(m.association?.childId)));
+    const f = 6 / e, v = 28 / e, y = (i, m, c) => ({ x: i, y: m, w: c, h: 22 / e }), L = [...[...r.values()].filter((i) => i.frame).map((i) => i.frame = { x: i.frame.x - 2 * f, y: i.frame.y - 2 * f, w: i.frame.w + 4 * f, h: i.frame.h + 4 * f })];
+    for (const i of u.nodes?.allNodes || []) if (!O.has(i?.id)) {
+      const m = X(i);
+      m && L.push(m);
     }
-    const h = (i, y) => {
-      const d = L.filter((N) => N !== y), D = (N) => d.reduce((o, v) => o + Et(N, v), 0);
-      let E = i.find((N) => !D(N));
-      return E || (E = [...i, ...[1, 2, 3, 4].map((o) => ({ ...i[0], y: i[0].y - o * S })), ...[1, 2, 3, 4].map((o) => ({ ...i[1] ?? i[0], y: (i[1] ?? i[0]).y + o * S }))].reduce((o, v) => D(v) < D(o) ? v : o)), L.push(E), E;
+    const p = (i, m) => {
+      const c = L.filter((N) => N !== m), D = (N) => c.reduce((o, w) => o + Dt(N, w), 0);
+      let P = i.find((N) => !D(N));
+      return P || (P = [...i, ...[1, 2, 3, 4].map((o) => ({ ...i[0], y: i[0].y - o * v })), ...[1, 2, 3, 4].map((o) => ({ ...i[1] ?? i[0], y: (i[1] ?? i[0]).y + o * v }))].reduce((o, w) => D(w) < D(o) ? w : o)), L.push(P), P;
     };
-    for (const { action: i, items: y, frame: d } of f.values()) {
-      const D = Mt(i.colorIndex), E = V(i), N = t.group().attr({ "data-suggestion-group": i.actionId });
-      if (d) {
-        const o = Kt(y);
-        N.rect(d.w, d.h).move(d.x, d.y).radius(10 / e).fill("none").stroke({ color: D, width: 1.5 / e, dasharray: `${10 / e} ${6 / e}` }).attr({ "pointer-events": "none", "data-suggestion-frame": i.actionId });
-        const v = Q(E + " · " + o) / e, _ = h([x(d.x, d.y - S, v), x(d.x, d.y + d.h + u, v), x(d.x + u, d.y + u, v)], d);
-        st(N, _, e, E + " · " + o, D);
-        const g = It / e, C = d.x + d.w - g, P = c ? h([x(C, d.y + d.h + u, g), x(C, d.y - S, g), x(d.x, d.y + d.h + S + u, g)], d) : null, M = " of the suggestion from " + E.replace(/ · /g, ", ") + ": " + o;
-        P && Z(
+    for (const { action: i, items: m, frame: c } of r.values()) {
+      const D = Pt(i.colorIndex), P = Q(i), N = t.group().attr({ "data-suggestion-group": i.actionId });
+      if (c) {
+        const o = Tt(m);
+        N.rect(c.w, c.h).move(c.x, c.y).radius(10 / e).fill("none").stroke({ color: D, width: 1.5 / e, dasharray: `${10 / e} ${6 / e}` }).attr({ "pointer-events": "none", "data-suggestion-frame": i.actionId });
+        const w = tt(P + " · " + o) / e, _ = p([y(c.x, c.y - v, w), y(c.x, c.y + c.h + f, w), y(c.x + f, c.y + f, w)], c);
+        rt(N, _, e, P + " · " + o, D);
+        const g = m.filter((K) => K.card).length, C = "Keep all" + (g ? " suggestions" : ""), E = kt(C) / e, S = c.x + c.w - E, b = l && g < m.length ? p([y(S, c.y + c.h + f, E), y(S, c.y - v, E), y(c.x, c.y + c.h + v + f, E)], c) : null, M = " of the suggestion from " + P.replace(/ · /g, ", ") + ": " + o;
+        b && U(
           N,
           { "data-suggestion-all": i.actionId },
-          P,
+          b,
           e,
           D,
-          [["Keep all", "Keep all" + M, "keep-all", () => X.keepAll(i.actionId)], ["Discard all", "Discard all" + M, "discard-all", () => X.discardAll(i.actionId)]],
+          [[C, C + M, "keep-all", () => W.keepAll(i.actionId)], ["Discard all", "Discard all" + M, "discard-all", () => W.discardAll(i.actionId)]],
           0,
           0
-        ), s.push({ actionId: i.actionId, frame: d, tag: _, all: P, words: o });
+        ), s.push({ actionId: i.actionId, frame: c, tag: _, all: b, words: o });
       }
-      for (const o of y) {
-        const v = N.group().attr({ "data-suggestion": o.id, "data-suggestion-kind": o.kind, "data-action": i.actionId }), _ = { color: o.kind === "remove" || o.kind === "unlink" ? gt : D, width: 2 / e, dasharray: `${8 / e} ${5 / e}` };
+      for (const o of m) {
+        const w = N.group().attr({ "data-suggestion": o.id, "data-suggestion-kind": o.kind, "data-action": i.actionId }), _ = { color: o.kind === "remove" || o.kind === "unlink" ? pt : D, width: 2 / e, dasharray: `${8 / e} ${5 / e}` };
         let g = null, C = !1;
         if (o.kind === "link" || o.kind === "unlink") {
-          const P = G(o.parentId ?? o.association?.parentId), M = G(o.association?.childId);
-          if (!P || !M) {
-            v.remove();
+          const E = q(o.parentId ?? o.association?.parentId), S = q(o.association?.childId);
+          if (!E || !S) {
+            w.remove();
             continue;
           }
-          const w = pt(P, M), k = pt(M, P);
-          v.line(w.x, w.y, k.x, k.y).stroke({ ..._, width: 2.5 / e }).attr({ "pointer-events": "none", "data-suggestion-line": "" }), g = { x: Math.min(w.x, k.x), y: Math.min(w.y, k.y), w: Math.abs(k.x - w.x), h: Math.abs(k.y - w.y) }, v.attr({ role: "img", "aria-label": E + (o.kind === "unlink" ? " suggests removing this line" : " suggests this line") });
+          const b = yt(E, S), M = yt(S, E);
+          w.line(b.x, b.y, M.x, M.y).stroke({ ..._, width: 2.5 / e }).attr({ "pointer-events": "none", "data-suggestion-line": "" }), g = { x: Math.min(b.x, M.x), y: Math.min(b.y, M.y), w: Math.abs(M.x - b.x), h: Math.abs(M.y - b.y) }, w.attr({ role: "img", "aria-label": P + (o.kind === "unlink" ? " suggests removing this line" : " suggests this line") });
         } else {
-          if (g = z($(o.kind === "add" ? j(o.nodeId || "") : o.nodeId)), !g) {
-            v.remove();
+          if (g = X(j(o.kind === "add" ? z(o.nodeId || "") : o.nodeId)), !g) {
+            w.remove();
             continue;
           }
-          v.rect(g.w + 2 * u, g.h + 2 * u).move(g.x - u, g.y - u).radius(u).fill("none").stroke(_).attr({ "pointer-events": "none", "data-suggestion-outline": "" });
-          const P = et(o.kind === "add" ? o.node?.options?.text ?? "" : $(o.nodeId)?.options?.text ?? "");
+          w.rect(g.w + 2 * f, g.h + 2 * f).move(g.x - f, g.y - f).radius(f).fill("none").stroke(_).attr({ "pointer-events": "none", "data-suggestion-outline": "" });
+          const E = ot(o.kind === "add" ? o.node?.options?.text ?? "" : j(o.nodeId)?.options?.text ?? "");
           if (o.kind === "add") {
-            if (c) {
-              v.rect(g.w, g.h).move(g.x, g.y).fill("#fff").attr({
+            const S = o.card?.state, b = at(i, o, "Keep", (S ? "" : "add ") + "“" + F(E, 40) + "”");
+            if (l && b.length) {
+              w.rect(g.w, g.h).move(g.x, g.y).fill("#fff").attr({
                 "fill-opacity": 0,
                 "pointer-events": "all",
                 tabindex: 0,
                 role: "group",
-                "aria-label": "Suggested by " + E + ": " + B(P, 60) + ". Keep or discard it alone.",
+                "aria-label": "Suggested by " + P + ": " + F(E, 60) + ". " + (S ? b[0][0] + " or decline it." : "Keep or discard it alone."),
                 "data-suggestion-hit": o.id
               });
-              const M = Z(v, { "data-suggestion-controls": o.id, "data-on-hover": "" }, { x: g.x + g.w, y: g.y + g.h }, e, D, it(i, o, "Keep", "add “" + B(P, 40) + "”"), -6, -28);
-              R !== o.id && at(M.node, !1);
-              const w = v.node;
-              w.addEventListener("pointerenter", (k) => {
-                k.pointerType !== "touch" && W(o.id);
-              }), w.addEventListener("pointerleave", (k) => {
-                k.pointerType !== "touch" && R === o.id && J === "pointer" && !w.contains(document.activeElement) && W(null);
-              }), w.addEventListener("pointerup", (k) => {
-                if (k.pointerType !== "touch" || k.target?.closest?.("[data-suggestion-button]")) return;
-                const ft = !(R === o.id && J !== "pointer");
-                W(ft ? o.id : null, "tap"), ft && w.querySelector("[data-suggestion-hit]")?.focus?.({ preventScroll: !0 });
-              }), w.addEventListener("focusin", () => W(o.id, "focus")), w.addEventListener("focusout", (k) => {
-                !H && R === o.id && !w.contains(k.relatedTarget) && W(null);
+              const M = U(w, { "data-suggestion-controls": o.id, "data-on-hover": "" }, { x: g.x + g.w, y: g.y + g.h }, e, D, b, -6, -28);
+              T !== o.id && dt(M.node, !1);
+              const K = w.node;
+              K.addEventListener("pointerenter", ($) => {
+                $.pointerType !== "touch" && Y(o.id);
+              }), K.addEventListener("pointerleave", ($) => {
+                $.pointerType !== "touch" && T === o.id && V === "pointer" && !K.contains(document.activeElement) && Y(null);
+              }), K.addEventListener("pointerup", ($) => {
+                if ($.pointerType !== "touch" || $.target?.closest?.("[data-suggestion-button]")) return;
+                const gt = !(T === o.id && V !== "pointer");
+                Y(gt ? o.id : null, "tap"), gt && K.querySelector("[data-suggestion-hit]")?.focus?.({ preventScroll: !0 });
+              }), K.addEventListener("focusin", () => Y(o.id, "focus")), K.addEventListener("focusout", ($) => {
+                !Z && T === o.id && !K.contains($.relatedTarget) && Y(null);
               }), C = !0;
             }
           } else {
-            const M = o.kind === "update", w = E + " — " + (M ? ht(o) : "Suggests removing this note"), k = Q(w) / e;
-            st(v, h([x(g.x - u, g.y - u - S, k), x(g.x - u, g.y + g.h + 2 * u, k)], null), e, w, M ? D : gt), c && (Z(v, { "data-suggestion-controls": o.id }, { x: g.x + g.w + u, y: g.y + g.h + u }, e, D, it(
+            const S = o.kind === "update", b = P + " — " + (S ? mt(o) : "Suggests removing this note"), M = tt(b) / e;
+            rt(w, p([y(g.x - f, g.y - f - v, M), y(g.x - f, g.y + g.h + 2 * f, M)], null), e, b, S ? D : pt), l && (U(w, { "data-suggestion-controls": o.id }, { x: g.x + g.w + f, y: g.y + g.h + f }, e, D, at(
               i,
               o,
-              M ? "Keep" : "Remove",
-              M ? ht(o).replace(/^Suggests/, "change “" + B(P, 24) + "”,").replace(/: “/, " to “") : "remove “" + B(P, 40) + "”"
+              S ? "Keep" : "Remove",
+              S ? mt(o).replace(/^Suggests/, "change “" + F(E, 24) + "”,").replace(/: “/, " to “") : "remove “" + F(E, 40) + "”"
             ), -1, 6), C = !0);
           }
         }
-        p.push({
+        h.push({
           actionId: i.actionId,
           itemId: o.id,
           kind: o.kind,
           nodeId: o.nodeId ?? null,
-          ghostId: o.kind === "add" && o.nodeId ? j(o.nodeId) : null,
-          label: E,
+          ghostId: o.kind === "add" && o.nodeId ? z(o.nodeId) : null,
+          label: P,
           box: g,
           controls: C,
-          frame: d
+          frame: c
         });
       }
     }
-    q = s, nt = p;
+    H = s, it = h;
   }
-  function kt(t) {
+  function At(t) {
     const e = /* @__PURE__ */ new Set();
     for (const { item: n } of t)
-      n.nodeId && (e.add(n.nodeId), e.add(j(n.nodeId))), n.parentId && e.add(n.parentId), n.association?.childId && (e.add(n.association.childId), e.add(j(n.association.childId)));
+      n.nodeId && (e.add(n.nodeId), e.add(z(n.nodeId))), n.parentId && e.add(n.parentId), n.association?.childId && (e.add(n.association.childId), e.add(z(n.association.childId)));
     return [...e].map((n) => {
-      const c = z($(n));
-      return c ? n + ":" + [c.x, c.y, c.w, c.h].map(Math.round).join(",") : "";
+      const l = X(j(n));
+      return l ? n + ":" + [l.x, l.y, l.w, l.h].map(Math.round).join(",") : "";
     }).join(";");
   }
-  function ct(t = !1) {
-    K || (xt(), U(t));
+  function ft(t = !1) {
+    R || (wt(), et(t));
   }
-  const bt = setInterval(() => {
-    !K && Y(m).length && U(!1);
+  const St = setInterval(() => {
+    !R && J(x).length && et(!1);
   }, 250);
-  function lt(t, e) {
-    if (!A()) return;
+  function ut(t, e) {
+    if (!k()) return;
     const n = e ? a.onKeepAll : a.onDiscardAll;
     if (n) return n(t);
-    const c = Y(m).filter(({ action: s }) => s.actionId === t), p = c.some(({ item: s }) => s.kind === "add");
-    for (const { item: s } of c) (!p || s.kind !== "link") && (e ? a.onKeep : a.onDiscard)?.({ actionId: t, itemId: s.id });
+    const l = J(x).filter(({ action: s }) => s.actionId === t), h = l.some(({ item: s }) => s.kind === "add");
+    for (const { item: s } of l) (!h || s.kind !== "link") && !(e && s.card) && (e ? a.onKeep : a.onDiscard)?.({ actionId: t, itemId: s.id });
   }
-  const X = {
+  const W = {
     set(t) {
-      K || (m = Array.isArray(t) ? t.filter((e) => e && typeof e.actionId == "string") : [], ct());
+      R || (x = Array.isArray(t) ? t.filter((e) => e && typeof e.actionId == "string") : [], ft());
     },
-    shown: () => nt.map((t) => ({ ...t, box: t.box && { ...t.box }, frame: t.frame && { ...t.frame } })),
-    groups: () => q.map((t) => ({ ...t })),
+    shown: () => it.map((t) => ({ ...t, box: t.box && { ...t.box }, frame: t.frame && { ...t.frame } })),
+    groups: () => H.map((t) => ({ ...t })),
     keep(t) {
-      A() && a.onKeep?.(t);
+      k() && a.onKeep?.(t);
     },
     discard(t) {
-      A() && a.onDiscard?.(t);
+      k() && a.onDiscard?.(t);
     },
-    // Without the host's own Keep all, each waiting item of the action is kept or discarded in turn.
-    keepAll: (t) => lt(t, !0),
-    discardAll: (t) => lt(t, !1),
+    tryAgain(t) {
+      k() && (a.onTryAgain ?? a.onKeep)?.(t);
+    },
+    keepAll: (t) => ut(t, !0),
+    discardAll: (t) => ut(t, !1),
     destroy() {
-      if (!K) {
-        K = !0, clearInterval(bt), ot(() => {
-          for (const [t, e] of O) l.nodes?.one?.(t) === e.node && l.nodes.remove(t);
+      if (!R) {
+        R = !0, clearInterval(St), st(() => {
+          for (const [t, e] of O) u.nodes?.one?.(t) === e.node && u.nodes.remove(t);
         }), O.clear();
         try {
-          yt();
+          xt();
         } catch {
         }
         I?.remove(), I = null;
       }
     }
   };
-  return X;
+  return W;
 }
 export {
-  Nt as GHOST_PREFIX,
-  $t as createAgentSuggestions,
-  j as ghostIdOf,
-  Kt as groupWords,
-  Y as pendingItems
+  Lt as GHOST_PREFIX,
+  jt as createAgentSuggestions,
+  z as ghostIdOf,
+  Tt as groupWords,
+  J as pendingItems
 };
