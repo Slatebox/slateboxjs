@@ -31,6 +31,8 @@ const levels: Record<string, string[]> = { borders: ['subtle', 'strong'], header
 
 /** A board's appearance, checked. A color for a column that is gone is dropped; anything unknown is left out. */
 export function readAppearance(input: unknown, keys: string[]): WorkshopAppearance | undefined {
+  // Null (a stored document or an agent's JSON) is no look, as left out is.
+  if (input === null || input === undefined) return undefined
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('A board’s appearance is an object.')
   const raw = input as Record<string, unknown>
   const out: Record<string, unknown> = {}

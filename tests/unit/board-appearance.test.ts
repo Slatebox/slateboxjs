@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
-  applyWorkshopEdits, describeWorkshopEdits, validateWorkshop, workshopLanePlaces, workshopToSlate, nightTransfer, type Workshop, type WorkshopEdit,
+  applyWorkshopEdits, attachWorkshop, describeWorkshopEdits, validateWorkshop, workshopLanePlaces, workshopToSlate, nightTransfer, type Workshop, type WorkshopEdit,
 } from '../../src/workshops/model'
-import { appearanceLook, readAppearance } from '../../src/workshops/appearance'
+import { appearanceLook, appearancePalette, appearanceQuadrants, readAppearance } from '../../src/workshops/appearance'
 import { catalogSamples, impactEffortSample } from '../../src/workshops/samples'
 import '../../src/workshops/rules'
 import '../../src/workshops/behaviour'
@@ -150,6 +150,84 @@ describe('board appearance: a whole save said as its edits', () => {
       expect(ok(board, edits).workshop).toEqual(after)
       // And back: the look taken away is said too.
       expect(ok(after, between(after, board)).workshop.appearance).toBeUndefined()
+    }
+  })
+})
+
+describe('board appearance: review fixes', () => {
+  function liveSlate() {
+    const notes = new Map<string, any>()
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+    document.body.appendChild(svg)
+    const make = (options: any) => {
+      const group = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+      svg.appendChild(group)
+      const node: any = { id: options.id, options: { ...options, fontColor: options.foregroundColor }, styled: [] as (string | undefined)[],
+        relationships: { associations: [], addAssociation() {}, removeAssociation() {}, getAssociations: () => [] },
+        position(x: number, y: number) { node.options.x = x; node.options.y = y }, setText(text: string) { node.options.text = text }, setShape() {},
+        applyTextStyle() { node.styled.push(node.options.fontWeight) }, svgGroup: { node: group, front() {} } }
+      notes.set(options.id, node)
+      return node
+    }
+    const slate: any = {
+      canvas: { node: svg }, element: document.createElement('div'), announce() {},
+      nodes: { add: make, one: (id: string) => notes.get(id), remove: (id: string) => { notes.get(id)?.svgGroup.node.remove(); notes.delete(id) }, get allNodes() { return [...notes.values()] } },
+      addNode: make, removeNode: (id: string) => notes.delete(id), hitTestNodes: () => null,
+      setDragPolicy() { return () => {} }, withPolicyAuthority: (fn: () => void) => fn(), getZoom: () => 1,
+    }
+    return { slate, svg, notes }
+  }
+
+  it('on a live board, bold headers switch on and off with the look (and its undo), not only when a note is made', async () => {
+    const { slate, svg, notes } = liveSlate()
+    const attached = attachWorkshop(slate, team, { origin: { x: 0, y: 0 } })
+    await attached.whenDrawn()
+    const header = [...notes.values()].find(node => /lane-todo$/.test(node.id))!
+    expect(header.options.fontWeight).toBeUndefined()
+    const bold = ok(team, [{ kind: 'set_appearance', headers: 'strong' }]).workshop
+    attached.update(bold)
+    await attached.whenDrawn()
+    expect(header.options.fontWeight).toBe('bold')
+    expect(header.styled.at(-1)).toBe('bold')
+    attached.update(team)
+    await attached.whenDrawn()
+    expect(header.options.fontWeight).toBeUndefined()
+    expect(header.styled.at(-1)).toBeUndefined()
+    attached.destroy(); svg.remove()
+  })
+
+  it('a compact card is fitted again at its new height, so a long label stays inside it', () => {
+    const long = validateWorkshop({ ...team, cards: [{ id: 'a', label: 'Reconcile the quarterly billing exports with the ledger and the refunds', laneId: 'todo' }] })
+    const compact = ok(long, [{ kind: 'set_appearance', density: 'compact' }]).workshop
+    const card = nodeOf(compact, 'card-a'), roomy = nodeOf(long, 'card-a')
+    expect(card.height as number).toBeLessThan(roomy.height as number)
+    // The same estimate the drawing fits by: lines times the font's line height fit inside the card.
+    const size = card.fontSize as number, perLine = Math.max(1, Math.floor(((card.width as number) - 16) / (size * 0.55)))
+    const lines = Math.ceil(String(card.text).length / perLine)
+    expect(size === 11 || lines * size * 1.3 <= (card.height as number) - 8).toBe(true)
+    expect(size).toBeLessThan(roomy.fontSize as number)
+  })
+
+  it('an appearance of null is no look, not a refused board', () => {
+    expect(readAppearance(null, ['todo'])).toBeUndefined()
+    expect(validateWorkshop({ ...team, appearance: null }).appearance).toBeUndefined()
+  })
+
+  it('an over-limit quadrant caption keeps AA contrast over every quadrant color and fill', () => {
+    const lum = (hex: string) => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255).map(s => s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4)
+      .reduce((sum, v, i) => sum + v * [0.2126, 0.7152, 0.0722][i], 0)
+    const ratio = (a: string, b: string) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05) }
+    const base = matrix()
+    // Plan it holds two cards in the sample; a limit of one puts its caption over.
+    const most = ['plan'] as const
+    const full = ok(base, [{ kind: 'add_rule', rule: { kind: 'quadrant', quadrant: most[0], max: 1 } as never }]).workshop
+    const caption = nestLayout(full).parts.find(part => part.name === 'caption-q-' + most[0]) as any
+    expect(caption.ink).toBeDefined()
+    const label = appearanceQuadrants['q-' + most[0]]
+    for (const color of Object.keys(appearancePalette)) for (const fill of [undefined, 'soft', 'strong'] as const) {
+      const board = ok(full, [{ kind: 'set_appearance', lane: label, color }, ...(fill ? [{ kind: 'set_appearance' as const, fill }] : [])]).workshop
+      const quadrant = partNotes(nestLayout(board).parts, board, { x: 0, y: 0 }, {}).find(note => note.options.id === 'column-q-' + most[0])!.options
+      expect(ratio(caption.ink, quadrant.backgroundColor as string)).toBeGreaterThanOrEqual(4.5)
     }
   })
 })

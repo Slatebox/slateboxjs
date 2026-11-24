@@ -2363,9 +2363,11 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
         if (!node?.svgGroup) continue
         const before = drawn.get(id) ?? {}
         const editing = node.editor?.isInlineEditing?.()
-        if (v1.fontSize !== before.fontSize || v1.foregroundColor !== before.foregroundColor) {
+        if (v1.fontSize !== before.fontSize || v1.foregroundColor !== before.foregroundColor || v1.fontWeight !== before.fontWeight) {
           node.options.fontSize = v1.fontSize
           node.options.fontColor = v1.foregroundColor
+          // Bold headers come and go with the board's look (and its undo), not only when a note is made.
+          node.options.fontWeight = v1.fontWeight
           node.applyTextStyle?.()
         }
         // The size first, so new words wrap to the note's new width (a counter's pill widening for a refusal).

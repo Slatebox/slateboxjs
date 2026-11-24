@@ -1937,7 +1937,11 @@ function nativeWorkshopToSlate(board: Workshop, options: WorkshopArtworkOptions)
   if (board.appearance) for (const { options: o } of nodes) {
     const look = appearanceLook(board.appearance, o.id as string, { fill: o.backgroundColor as string, line: o.borderColor as string, lineWidth: o.borderWidth as number,
       fontSize: o.fontSize as number, height: o.height as number })
-    if (look.height !== o.height) o.vectorPath = roundedBox(o.width as number, look.height!, style.card?.cornerRadius ?? radius)
+    if (look.height !== o.height) {
+      o.vectorPath = roundedBox(o.width as number, look.height!, style.card?.cornerRadius ?? radius)
+      // A compact card is fitted again at its new height, so a long label that only just fitted stays inside it.
+      look.fontSize = fittingFontSize(String(o.text ?? ''), look.fontSize ?? cardSize, (o.width as number) - 16, look.height! - 8)
+    }
     Object.assign(o, { backgroundColor: look.fill, borderColor: look.line, borderWidth: look.lineWidth, fontSize: look.fontSize, height: look.height }, look.weight && { fontWeight: look.weight })
   }
   const byId = new Map(nodes.map(item => [item.options.id as string, item]))
