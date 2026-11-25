@@ -4,8 +4,12 @@
   "description": "Slatebox.js \u2014 modern diagramming library for mind mapping, concept drawing, and brainstorming. Ground-up rewrite on svg.js.",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/slatebox/slateboxjs-v2.git"
+    "url": "git+https://github.com/Slatebox/slateboxjs.git"
   },
+  "bugs": {
+    "url": "https://github.com/Slatebox/slateboxjs/issues"
+  },
+  "homepage": "https://github.com/Slatebox/slateboxjs#readme",
   "main": "dist/slateboxjs.js",
   "module": "dist/slateboxjs.mjs",
   "types": "dist/index.d.ts",

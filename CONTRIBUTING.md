@@ -6,8 +6,8 @@ issues, discussion, and pull requests.
 ## Getting started
 
 ```bash
-git clone https://github.com/slatebox/slateboxjs-v2.git
-cd slateboxjs-v2
+git clone https://github.com/Slatebox/slateboxjs.git
+cd slateboxjs
 npm install
 npm run dev        # Vite dev server at http://localhost:5173
 ```

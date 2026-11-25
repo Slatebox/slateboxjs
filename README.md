@@ -2,6 +2,8 @@
 
 SlateboxJS 3 is the modern, MIT-licensed Slatebox diagramming engine. It is a ground-up TypeScript and SVG.js rewrite with draggable nodes, an infinite pan/zoom canvas, connectors, groups, collaboration, presentation, serialization, export, and a compatibility facade for applications built against SlateboxJS 2.x.
 
+SlateboxJS has lived at this repo since 2012; the original Raphael-era engine is preserved on the `legacy` branch and the `legacy-v1` tag.
+
 ## ✨ Features
 
 - **Modern Architecture**: Built with TypeScript, svg.js, and Vite
@@ -626,7 +628,7 @@ npx playwright test tests/e2e/collab.spec.ts --project=chromium
 
 ## 📞 Support
 
-For questions, issues, or contributions, please visit the [SlateboxJS repository](https://github.com/Slatebox/slateboxjs-v2).
+For questions, issues, or contributions, please visit the [SlateboxJS repository](https://github.com/Slatebox/slateboxjs).
 
 ---
 
