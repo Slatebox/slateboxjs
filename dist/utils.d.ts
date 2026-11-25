@@ -63,13 +63,6 @@ export declare function obtainProportionateWidthAndHeightForResizing(originalWid
     width: number;
     height: number;
 };
-/**
- * Build node style from a theme definition.
- */
-export declare function buildNodeStyleFromTheme(opts: {
-    theme: any;
-    childNumber: number;
-}): any;
 /** Make a string safe for use in URLs */
 export declare function safeForUrls(str: string): string;
 /** Check if value is a DOM element */

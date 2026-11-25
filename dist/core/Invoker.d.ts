@@ -42,7 +42,6 @@ export declare class Invoker {
     onLinePropertiesChanged(pkg: SlatePackage): void;
     onFollowMeChanged(pkg: SlatePackage): void;
     onCanvasMove(pkg: SlatePackage): void;
-    onSlateThemeChanged(pkg: SlatePackage): void;
     onSlateLayoutTypeChanged(pkg: SlatePackage): void;
     onSlateBackgroundEffectChanged(pkg: SlatePackage): void;
     onSlateBackgroundImageChanged(pkg: SlatePackage): void;

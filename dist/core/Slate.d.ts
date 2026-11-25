@@ -15,7 +15,6 @@ import type { ContextMenu } from "./ContextMenu";
 import { type ExportOptions } from "./Export";
 import { Collab, CollabUser, type NoteTrade, type NoteTrades } from "./Collab";
 import type { SlatePackage } from "./SlatePackage";
-import { type ThemeDefinition } from "./Theme";
 import { type LayoutMove } from "./Layout";
 import { Association } from "./Relationship";
 import type { EndAnchor, EndState, LineEnd } from "./LineEnds";
@@ -140,8 +139,6 @@ export interface SlateOptions {
     isPrivate?: boolean;
     isTemplate?: boolean;
     basedOnTemplate?: string;
-    basedOnThemeId?: string;
-    syncWithTheme?: boolean;
     allowCollaboration?: boolean;
     /**
      * The whole-slate replacement (undo/redo) this document was last built on:
@@ -159,7 +156,6 @@ export interface SlateOptions {
      * room has not been told of a trade, the stored document says what the traded note is.
      */
     collabTrades?: NoteTrades;
-    eligibleForThemeCompilation?: boolean;
     viewPort?: {
         originalWidth?: number;
         originalHeight?: number;
@@ -191,7 +187,15 @@ export interface SlateOptions {
         prevBackgroundColor?: string;
     };
     defaultLineColor?: string;
-    themeId?: string;
+    /**
+     * The style this slate wears: { id, overrides?, v }. A record only: the look itself is written
+     * into the slate's background, its notes and its style art (real notes), never derived from it.
+     */
+    style?: {
+        id: string;
+        overrides?: Record<string, any>;
+        v?: number;
+    };
     layoutType?: "manual" | "auto";
     disableAutoLayoutOfManuallyPositionedNodes?: boolean;
     nodeOrder?: string[];
@@ -1041,8 +1045,6 @@ export declare class Slate {
      * Alias for png() for v1 compatibility.
      */
     pngSync(opts?: ExportOptions): Promise<string | Blob>;
-    /** Apply a theme to this slate */
-    applyTheme(theme: ThemeDefinition, syncWithTheme?: boolean, revertTheme?: boolean): void;
     /** Remove overlapping nodes by pushing them apart */
     /** Optimize Layout: the shared tidy layout over the slate's notes, saved as one move. */
     removeLayoutOverlaps(gap?: number): void;

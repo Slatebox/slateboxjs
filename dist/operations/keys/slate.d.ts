@@ -36,8 +36,17 @@ export interface SlateKey {
  */
 export declare const SLATE_KEYS: Record<string, SlateKey>;
 export declare function checkBackground(value: any, label: string): string[];
+/**
+ * A style record ({id, overrides?, v?}, or null to take the style off). The engine does not know
+ * the styles (they are the host's data); it checks the record's shape: an id, colors that are
+ * colors, a palette of 1 to 12 colors (a "from-to" pair is a two-stop gradient), fonts the
+ * instance offers.
+ */
+export declare function checkStyle(value: any, label: string, fonts: readonly string[]): string[];
 /** The containerStyle fields a background sets. */
 export declare function backgroundToContainerStyle(background: Background): Record<string, any>;
+/** The style record's schema (null takes the style off). */
+export declare function styleSchema(): Record<string, any>;
 export declare function backgroundSchema(): Record<string, any>;
 /** The background a stored containerStyle paints, in the shape update_slate takes; null when none is stored. */
 export declare function backgroundOf(style: Record<string, any> | undefined): Background | null;
