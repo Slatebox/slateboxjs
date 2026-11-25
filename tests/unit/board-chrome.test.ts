@@ -12,6 +12,7 @@ import type { LayerShape } from '../../src/workshops/boardLayer'
 import { behaviourLines, checkWorkshopMove } from '../../src/workshops/behaviour'
 import { boardChromeBox, boardChromesOf, chromeScaleAt, chromeTagScaleAt, CHROME_CHIPS_MAX_SCALE } from '../../src/workshops/boardChrome'
 import { exportSVG } from '../../src/core/Export'
+import { HEADER_GAP, HEADER_SLOT, HEADER_TARGET } from '../../src/workshops/laneHeader'
 
 /**
  * Boards look designed (board polish, audit #3 #5 #7 #16): one counter format, the rules drawn as the board's
@@ -58,7 +59,7 @@ describe('2. no "How this board behaves" note', () => {
 })
 
 describe('3. the counter pill', () => {
-  it('fits its words, is centred under the header, and a full column takes the header colour', () => {
+  it('fits its words, sits in the strip under the header just before + (− , counter, + read as a stepper), and a full column takes the header colour', () => {
     const retro = cards(preset('retro'), [['well', 'A'], ['well', 'B'], ['well', 'C'], ['change', 'D']])
     const nodes = workshopToSlate(retro, { native: true }).nodes
     const byId = (id: string) => nodes.find(node => node.options.id === id)!.options as Record<string, any>
@@ -66,7 +67,9 @@ describe('3. the counter pill', () => {
       const pill = byId(workshopNodeIds.caption(lane.id)), header = byId(workshopNodeIds.lane(lane.id))
       expect(pill.width).toBeGreaterThanOrEqual(40)
       expect(pill.width).toBeLessThanOrEqual(header.width)
-      expect(Math.abs(pill.xPos + pill.width / 2 - (header.xPos + header.width / 2))).toBeLessThanOrEqual(1)
+      // Under the name, never on it; its right edge leaves +'s slot (a finger's 44 and a gap) at the header's right end.
+      expect(pill.yPos).toBeGreaterThanOrEqual(header.yPos + header.height)
+      expect(pill.xPos + pill.width).toBe(header.xPos + header.width + HEADER_SLOT - HEADER_TARGET - HEADER_GAP)
       expect(pill.backgroundColor).toBe(lane.id === 'well' ? laneColors[index] : 'rgba(255,255,255,0.72)')
     })
     expect(byId(workshopNodeIds.caption('well')).text).toBe('3 / 3')

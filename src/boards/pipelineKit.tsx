@@ -9,6 +9,7 @@ import { createBoardLayer, layerInk, type LayerShape } from '../workshops/boardL
 import { headlessDrag, inside, orColumnUnder, partsGeometry } from '../workshops/boardSpecs'
 import { overInk, tint, withMark } from './shared'
 import { partNotes, pipelineGauge, workshopEditsBetween } from './readouts'
+import { HEADER_SLOT, LANE_NAME_HEIGHT } from '../workshops/laneHeader'
 
 const GAUGE = 76
 
@@ -29,14 +30,15 @@ export function pipelineLayout(board: Workshop, layout: WorkshopBoardLayout = {}
     board.lanes.forEach((lane, i) => {
       // A deal that carries its move-anyway mark is a line taller, so its words stay at 12px or more.
       const marked = board.cards.filter(card => card.laneId === lane.id && card.override).length
-      const h = 96 + (counts[i] + 1) * 64 + marked * 18
+      // Its header (laneHeader.ts): the name, its color button's slot, the caption, and under them the strip of − and +.
+      const h = 138 + (counts[i] + 1) * 64 + marked * 18
       parts.push({ name: 'column-' + lane.id, x: 2, y, width: width - 4, height: h, ...column(i) })
       // The stage's name takes the room it needs; its caption ("3 deals · $170k · 60%") the rest, at the size of the
       // deals' words on up to three lines (a refusal is a sentence), so a phone that shows two stages at once still sets it at 12px or more.
-      const pill = (width - 16) * 0.36
-      parts.push({ name: 'lane-' + lane.id, x: 8, y: y + 6, width: pill, height: 36, text: lane.label, fill: color(i), fontSize: 15 })
-      parts.push({ name: 'caption-' + lane.id, x: 8 + pill + 6, y: y + 6, width: width - 16 - pill - 6, height: 56, text: pipelineCaption(board, lane.id).replace(' · over its limit', '\nover its limit'), fill: 'transparent', lineWidth: 0, fontSize: 15, ...over(i) })
-      let top = y + 72
+      const pill = Math.floor((width - 16) * 0.36)
+      parts.push({ name: 'lane-' + lane.id, x: 8, y: y + 6, width: pill, height: LANE_NAME_HEIGHT, text: lane.label, fill: color(i), fontSize: 15 })
+      parts.push({ name: 'caption-' + lane.id, x: 8 + pill + HEADER_SLOT, y: y + 6, width: width - 16 - pill - HEADER_SLOT, height: 56, text: pipelineCaption(board, lane.id).replace(' · over its limit', '\nover its limit'), fill: 'transparent', lineWidth: 0, fontSize: 15, ...over(i) })
+      let top = y + 114
       for (const card of board.cards.filter(item => item.laneId === lane.id)) {
         const tall = card.override ? 18 : 0
         parts.push({ name: 'card-' + card.id, x: 8, y: top, width: width - 16, height: 56 + tall, text: cardText(board, card.id), fontSize: 15 })
@@ -50,14 +52,16 @@ export function pipelineLayout(board: Workshop, layout: WorkshopBoardLayout = {}
     const most = Math.max(...counts)
     // A stage over its limit says so on a caption line of its own: every stage's deals move down to make room for it.
     const room = board.lanes.some(lane => pipelineStageOver(board, lane.id)) ? 24 : 0
-    const h = 116 + room + (most + 1) * 88
+    // The header (laneHeader.ts): the name and its color button's slot, the caption, then the strip of the stage's
+    // controls just above its deals, reserved whether or not the controls show.
+    const h = 148 + room + (most + 1) * 88
     board.lanes.forEach((lane, i) => {
       const x = i * pitch
       parts.push({ name: 'column-' + lane.id, x: x + 2, y: GAUGE, width: pitch - 4, height: h, ...column(i) })
-      parts.push({ name: 'lane-' + lane.id, x: x + 8, y: GAUGE + 6, width: 228, height: 58, text: lane.label, fill: color(i), fontSize: 16 })
-      parts.push({ name: 'caption-' + lane.id, x: x + 8, y: GAUGE + 66, width: 228, height: 48 + room, text: pipelineCaption(board, lane.id).replace(' · over its limit', '\nover its limit'), fill: 'transparent', lineWidth: 0, fontSize: 15, ...over(i) })
+      parts.push({ name: 'lane-' + lane.id, x: x + 8, y: GAUGE + 6, width: 228 - HEADER_SLOT, height: LANE_NAME_HEIGHT, text: lane.label, fill: color(i), fontSize: 16 })
+      parts.push({ name: 'caption-' + lane.id, x: x + 8, y: GAUGE + 48, width: 228, height: 48 + room, text: pipelineCaption(board, lane.id).replace(' · over its limit', '\nover its limit'), fill: 'transparent', lineWidth: 0, fontSize: 15, ...over(i) })
       board.cards.filter(card => card.laneId === lane.id).forEach((card, k) =>
-        parts.push({ name: 'card-' + card.id, x: x + 8, y: GAUGE + 116 + room + k * 88, width: 228, height: 76, text: cardText(board, card.id), fontSize: 15 }))
+        parts.push({ name: 'card-' + card.id, x: x + 8, y: GAUGE + 148 + room + k * 88, width: 228, height: 76, text: cardText(board, card.id), fontSize: 15 }))
     })
     width = board.lanes.length * pitch
     height = GAUGE + h

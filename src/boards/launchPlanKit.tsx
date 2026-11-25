@@ -18,6 +18,7 @@ import { headlessDrag, inside, partsGeometry } from '../workshops/boardSpecs'
 import { overInk, tint } from './shared'
 import { brokenWaits } from '../workshops/schedule'
 import { handleLabel, launchLinkTargets, partNotes, workshopEditsBetween } from './readouts'
+import { HEADER_SLOT } from '../workshops/laneHeader'
 
 const CRITICAL = '#c2410c'
 /** The grips on a dated plan's first day and a hiring plan's last week (a card id never starts with "_"). */
@@ -112,7 +113,8 @@ export function launchLayout(board: Workshop, layout: WorkshopBoardLayout = {}):
       const tasks = board.cards.filter(card => card.laneId === lane.id)
       const height = Math.max(92, tasks.length * 44 + 20)
       parts.push({ name: 'column-' + lane.id, x: 0, y, width, height, fill: tint(color(lane.id), 0.65), line: tint(color(lane.id), 0.1) })
-      parts.push({ name: 'lane-' + lane.id, x: 8, y: y + 8, width: x0 - 24, height: 32, text: lane.label, fill: color(lane.id), fontSize: 15 })
+      // The team's name leaves its color button's slot on its right, in the gutter before the days (laneHeader.ts).
+      parts.push({ name: 'lane-' + lane.id, x: 8, y: y + 8, width: x0 - 24 - HEADER_SLOT, height: 32, text: lane.label, fill: color(lane.id), fontSize: 15 })
       parts.push({ name: 'caption-' + lane.id, x: 8, y: y + 44, width: x0 - 24, height: 40, text: '', fill: 'transparent', lineWidth: 0, fontSize: 13 })
       tasks.forEach((card, i) => bar(card.id, y + 10 + i * 44))
       y += height + 4

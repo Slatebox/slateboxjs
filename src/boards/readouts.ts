@@ -8,6 +8,7 @@ import { dateName, offsetOf } from '../workshops/calendar'
 import { pipelineForecast } from '../workshops/pipeline'
 import { budgetOver, withBudgetTotal } from '../workshops/budget'
 import { money, moneyExact } from '../workshops/numbers'
+import { fitName } from '../workshops/laneHeader'
 /**
  * The edits that turn `before` into `after` on a launch plan, pipeline or budget: what a canvas
  * change carries (change.edits) so a server applies it with applyWorkshopEdits to the board as it
@@ -116,14 +117,18 @@ export function partNotes(parts: PartPlace[], board: Workshop, origin: { x: numb
     const look = appearanceLook(board.appearance, drawn.name, drawn)
     const part = { ...drawn, ...look, height: look.height ?? drawn.height }
     const handle = part.name.startsWith('handle-')
-    const text = part.text ?? ''
-    return { options: { id: part.name, text, name: board.cards.find(card => 'card-' + card.id === part.name)?.label ?? text,
+    const words = part.text ?? ''
+    // A lane's name never runs out of its box (a control stands beside it): a long one ends in an ellipsis, and the note's
+    // name keeps all of it for a screen reader and a tooltip.
+    const fitted = part.name.startsWith('lane-') ? fitName(words, part.fontSize ?? size, part.width - 12, part.height - 6) : null
+    const text = fitted?.text ?? words
+    return { options: { id: part.name, text, name: board.cards.find(card => 'card-' + card.id === part.name)?.label ?? words,
       xPos: origin.x + part.x, yPos: origin.y + part.y, width: part.width, height: part.height, shapeHint: 'rectangle',
       vectorPath: `M 0 0 H ${part.width} V ${part.height} H 0 Z`,
       backgroundColor: handle ? 'transparent' : part.fill ?? style.backgroundColor ?? '#fffdf6', foregroundColor: part.ink ?? ink,
       borderColor: part.line ?? line, borderWidth: handle ? 0 : part.lineWidth ?? 1,
       ...(style.fontFamily ? { fontFamily: style.fontFamily } : {}), ...(part.weight && { fontWeight: part.weight }),
-      fontSize: fitText(text, part.fontSize ?? size, part.width - 12, part.height - 6) }, relationships: { associations: [] } }
+      fontSize: fitted?.fontSize ?? fitText(text, part.fontSize ?? size, part.width - 12, part.height - 6) }, relationships: { associations: [] } }
   })
 }
 

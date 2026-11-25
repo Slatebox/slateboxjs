@@ -26,6 +26,8 @@ export interface RuleControlsLayer {
 }
 
 const svgNS = 'http://www.w3.org/2000/svg'
+/** How long a pointer rests on a control before its hint shows (ms). */
+export const HINT_DELAY = 400
 /** The controls' colours: the chrome's tokens (light and dark), with these defaults behind them. */
 export const controlInk = {
   on: 'var(--slatebox-board-focus, #1f4a3a)',
@@ -69,6 +71,8 @@ function glyph(icon: RuleControlLook['icon'], x: number, y: number, size: number
     rank: 'M2 10 L2 6 M6 10 L6 3 M10 10 L10 1',
     depth: 'M3 1 L3 11 M9 1 L9 11 M3 3 L9 3 M3 6 L9 6 M3 9 L9 9',
     holds: 'M6 1 L6 4 M2 7 L2 11 M6 7 L6 11 M10 7 L10 11 M2 7 L10 7 M6 4 L6 7',
+    // A drop of paint: the lane's color.
+    color: 'M6 1.5 C6 1.5 2.5 5.6 2.5 7.8 A3.5 3.5 0 0 0 9.5 7.8 C9.5 5.6 6 1.5 6 1.5 Z',
   }
   if (!icon || !d[icon]) return null
   const s = size / 12
@@ -87,8 +91,9 @@ function text(x: number, y: number, words: string, size: number, color: string, 
 const round = (x: number, y: number, w: number, h: number, r: number) =>
   `M${x + r},${y} H${x + w - r} A${r},${r} 0 0 1 ${x + w},${y + r} V${y + h - r} A${r},${r} 0 0 1 ${x + w - r},${y + h} H${x + r} A${r},${r} 0 0 1 ${x},${y + h - r} V${y + r} A${r},${r} 0 0 1 ${x + r},${y} Z`
 
-/** A control's hint: the first sentence of its label ("Make To do a bin that archives cards"), short enough to sit above it. */
+/** A control's hint: its own (an action: "Change color (now: own)"), or the first sentence of its label ("Make To do a bin that archives cards"), short enough to sit by it. */
 export function hintOf(control: RuleControl): string {
+  if (control.hint) return control.hint.length > 42 ? control.hint.slice(0, 41).replace(/\s+\S*$/, '') + '…' : control.hint
   const first = control.label.split(/\.\s/)[0].replace(/\.$/, '').replace(/\s*\([^)]*\)/g, '')
   return first.length > 42 ? first.slice(0, 41).replace(/\s+\S*$/, '') + '…' : first
 }
@@ -122,9 +127,10 @@ function drawLook(control: RuleControl, offset: { dx: number; dy: number }, said
   } else if (look.shape === 'badge' || look.shape === 'step') {
     const r = (look.shape === 'step' ? 13 : 15) * k
     const filled = look.shape === 'badge' ? Boolean(look.on) : false
-    g.appendChild(el('circle', { cx, cy, r, 'stroke-width': 1.4, ...(look.shape === 'badge' && !look.on ? { 'stroke-dasharray': '3 3' } : {}) },
+    // Every round button reads as one: a solid ring (an off toggle is an outlined button, never a dashed placeholder), its glyph in ink.
+    g.appendChild(el('circle', { cx, cy, r, 'stroke-width': 1.4 },
       { fill: look.swatch ?? (filled ? controlInk.on : controlInk.off), stroke: look.swatch ? controlInk.ink : filled ? controlInk.on : look.shape === 'step' && look.on ? color : controlInk.offLine }))
-    const icon = glyph(look.icon, cx - 7 * k, cy - 7 * k, 14 * k, filled ? controlInk.onInk : look.on || look.shape === 'step' ? controlInk.ink : controlInk.offLine)
+    const icon = glyph(look.icon, cx - 7 * k, cy - 7 * k, 14 * k, filled ? controlInk.onInk : controlInk.ink)
     if (icon) g.appendChild(icon)
     if (busy) g.appendChild(el('circle', { cx, cy, r: r + 3 * k, fill: 'none', 'stroke-width': 2, 'stroke-dasharray': '4 4' }, { stroke: controlInk.line }))
   } else if (look.shape === 'ghost') {
@@ -205,12 +211,15 @@ export function drawRuleControls(slate: unknown, boardId: string, controls: Rule
     const focused = active && group.contains(active) ? active.getAttribute('data-rule-control') : null
     while (group.firstChild) group.removeChild(group.firstChild)
     group.setAttribute('transform', `translate(${origin.x} ${origin.y})`)
+    // A lane's controls are one group to a screen reader ("Lead controls"), in the order they are drawn: the DOM's order is
+    // the visual order, so Tab goes name row, then strip, left to right, a lane at a time.
+    const groups = new Map<string, SVGGElement>()
     for (const control of current) {
       const dragging = held?.control.id === control.id && held.moved
       const offset = dragging ? held!.delta : { dx: 0, dy: 0 }
       const said = dragging ? control.gestures.preview?.(offset) ?? null : null
       const item = el('g', { 'data-rule-control': control.id, 'data-primitive': control.primitive, role: control.gestures.drag ? 'slider' : 'button', tabindex: 0,
-        'aria-label': control.label, ...(control.look.on !== undefined && !control.gestures.drag ? { 'aria-pressed': String(Boolean(control.look.on)) } : {}),
+        'aria-label': control.label, ...(control.pressed !== undefined && !control.gestures.drag ? { 'aria-pressed': String(control.pressed) } : {}),
         ...(control.gestures.drag ? { 'aria-valuetext': control.state.sentence } : {}), cursor: control.gestures.drag ? (control.gestures.axis === 'x' ? 'ew-resize' : 'ns-resize') : 'pointer' }) as SVGGElement
       item.style.setProperty('outline', 'none')
       item.appendChild(drawLook(control, offset, said, busy === control.id))
@@ -225,25 +234,39 @@ export function drawRuleControls(slate: unknown, boardId: string, controls: Rule
         fill: 'none', 'stroke-width': 2.5, 'pointer-events': 'none', 'data-rule-focus': '', opacity: 0 }, { stroke: controlInk.line })
       item.appendChild(ring)
       // What a tap does, in words, on hover and on focus: a glyph alone (a box, a +) never has to be guessed.
-      // A limit line says it on its own pill. A <title> gives the same words to a pointer's tooltip.
+      // A limit line says it on its own pill. A <title> gives the full words to a pointer's tooltip. A header control says
+      // it under the header (hintAt), never over a lane's name; elsewhere just above the control.
       const tip = el('title', {}) as SVGElement
       tip.textContent = control.label
       item.appendChild(tip)
+      const scale = Math.min(hit.width, hit.height) / 44
+      const hintX = control.hintAt?.x ?? hit.x + hit.width / 2, hintY = control.hintAt?.y ?? hit.y - 8 * scale
       const hint = control.look.shape === 'line' || control.look.shape === 'ladder' ? null
-        : text(hit.x + hit.width / 2, hit.y - 8 * (Math.min(hit.width, hit.height) / 44), hintOf(control), 12 * (Math.min(hit.width, hit.height) / 44), controlInk.ink, 'middle', true, true)
+        : text(hintX, hintY, hintOf(control), 12 * scale, controlInk.ink, 'middle', true, true)
       if (hint) { hint.setAttribute('opacity', '0'); hint.setAttribute('data-rule-hint', ''); item.appendChild(hint) }
       const show = (on: boolean) => hint?.setAttribute('opacity', on ? '1' : '0')
+      // A pointer's hint waits a moment: a control just drawn under a resting pointer (a lane selected by a click) says
+      // nothing until the pointer stays on it. The keyboard's focus says it at once.
+      let hover: ReturnType<typeof setTimeout> | undefined
       item.addEventListener('focus', () => { ring.setAttribute('opacity', '1'); show(true) })
       item.addEventListener('blur', () => { ring.setAttribute('opacity', '0'); show(false) })
-      item.addEventListener('pointerenter', () => show(true))
-      item.addEventListener('pointerleave', () => { if (document.activeElement !== item) show(false) })
+      item.addEventListener('pointerenter', () => { clearTimeout(hover); hover = setTimeout(() => { if (!gone && item.isConnected) show(true) }, HINT_DELAY) })
+      item.addEventListener('pointerleave', () => { clearTimeout(hover); if (document.activeElement !== item) show(false) })
       wire(item, control)
       if (flash?.id === control.id && flash.until > Date.now()) {
         const words = flash.ok ? control.state.sentence : 'Not changed'
-        item.appendChild(text(hit.x + hit.width / 2, hit.y - 8 * (hit.height / 44), words, 13 * (hit.height / 44), flash.ok ? controlInk.line : controlInk.refuse, 'middle', true, true))
+        item.appendChild(text(hintX, control.hintAt ? hintY : hit.y - 8 * (hit.height / 44), words, 13 * scale, flash.ok ? controlInk.line : controlInk.refuse, 'middle', true, true))
         item.setAttribute('data-rule-flash', words)
       }
-      group.appendChild(item)
+      if (control.group) {
+        let lane = groups.get(control.group)
+        if (!lane) {
+          lane = el('g', { role: 'group', 'aria-label': control.group + ' controls', 'data-rule-group': control.group }) as SVGGElement
+          groups.set(control.group, lane)
+          group.appendChild(lane)
+        }
+        lane.appendChild(item)
+      } else group.appendChild(item)
     }
     // Above every note of the slate, as the chrome's badges are.
     if (root!.lastChild !== group) root!.appendChild(group)

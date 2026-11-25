@@ -7,7 +7,7 @@ import { behaviourOf, validateBehaviour } from '../../src/workshops/behaviour'
 import { kitFor } from '../../src/boards'
 import '../../src/boards/nest'
 import { ruleControls, RULE_CONTROL_EDITS, type RuleControl } from '../../src/workshops/controls'
-import { drawRuleControls, hintOf } from '../../src/boards/ruleControlsLayer'
+import { drawRuleControls, hintOf, HINT_DELAY } from '../../src/boards/ruleControlsLayer'
 
 // The rule controls (library spec §4.3, §4.4): the drag primitives of a board's rulebook drawn on the
 // board. Each gesture is an edit the reducer takes (the same add_rule, set_rule and remove_rule chat and
@@ -59,13 +59,18 @@ describe('rule controls: what each board shows', () => {
     expect(controlsOf(preset('budget'))).toEqual([])
   })
 
-  it('every control is at least a finger’s size (44 by 44), and grows with the chrome’s scale', () => {
+  it('every control is at least a finger’s size (44 by 44); off the headers it grows with the chrome’s scale', () => {
     for (const entry of catalog) {
       for (const control of controlsOf(preset(entry.id))) {
         expect(control.hit.width, entry.id + ' ' + control.id).toBeGreaterThanOrEqual(44)
         expect(control.hit.height, entry.id + ' ' + control.id).toBeGreaterThanOrEqual(44)
       }
-      for (const control of controlsOf(preset(entry.id), 2)) expect(control.hit.height).toBeGreaterThanOrEqual(88)
+      // A lane header's controls keep to the strip and slot the layout reserves for them (laneHeader.ts): grown, they would
+      // cover the lane's name. Everything else (a limit line, a seam, the rail, a ladder) grows with the chrome.
+      for (const control of controlsOf(preset(entry.id), 2)) {
+        const header = control.anchor.kind === 'lane' && control.look.shape !== 'line'
+        expect(control.hit.height, entry.id + ' ' + control.id).toBeGreaterThanOrEqual(header ? 44 : 88)
+      }
     }
   })
 
@@ -232,7 +237,11 @@ describe('rule controls: the layer', () => {
     expect(hint.getAttribute('opacity')).toBe('1')
     bin.dispatchEvent(new Event('blur'))
     expect(hint.getAttribute('opacity')).toBe('0')
+    // A pointer's hint shows once the pointer rests on the control.
+    vi.useFakeTimers()
     bin.dispatchEvent(new Event('pointerenter'))
+    vi.advanceTimersByTime(HINT_DELAY)
+    vi.useRealTimers()
     expect(hint.getAttribute('opacity')).toBe('1')
     expect(bin.querySelector('title')!.textContent).toBe(controls.find(control => control.id === 'bin:todo')!.label)
     // The archive box: a lid across the top (a closed rectangle), never the trash can's tapered sides.

@@ -13,6 +13,7 @@ export { registerRulebook, rulebook, rulebookLoaded, registerWorkshopRules, work
   type WorkshopFieldReader, type WorkshopLimits } from './kinds'
 import type { NodeJSON, SlateJSON } from '../core/Serialization'
 import { DEFAULT_NOTE_STYLE } from '../core/NoteDefaults'
+import { fitName, laneHeaderBoxes, type HeaderBox } from './laneHeader'
 /** How the engine draws an ordinary note when nothing says otherwise: what a card looks like with no style. */
 export { DEFAULT_NOTE_STYLE }
 
@@ -1871,6 +1872,17 @@ export function workshopLanePlaces(input: Workshop, options: Pick<WorkshopArtwor
 }
 
 
+/**
+ * A board of columns' header in a column at `place` (board coordinates): its name's box and its counter's (the limit's
+ * value, between − and +). The rule controls stand around these (ruleControls.ts), the notes are drawn in them.
+ */
+export function workshopLaneHeader(board: Workshop, place: { laneId: string; x: number; y: number }, style: Pick<WorkshopNoteStyle, 'fontSize' | 'captionFontSize'> = {}): { label: HeaderBox; value: HeaderBox } {
+  const size = style.captionFontSize ?? Math.max(11, (style.fontSize ?? DEFAULT_NOTE_STYLE.fontSize) - 1)
+  const counter = workshopLaneCaption(board, place.laneId)
+  const { label, counter: value } = laneHeaderBoxes(place.x, place.y, Math.max(40, Math.ceil(counter.length * size * 0.6) + 24), workshopLayout.width)
+  return { label, value }
+}
+
 function nativeWorkshopToSlate(board: Workshop, options: WorkshopArtworkOptions): SlateJSON {
   const { pitch, width, row, height, top } = workshopLayout
   const origin = options.origin ?? { x: 0, y: 0 }
@@ -1902,15 +1914,20 @@ function nativeWorkshopToSlate(board: Workshop, options: WorkshopArtworkOptions)
       vectorPath: roundedBox(pitch - 4, place.height, radius ? radius + 2 : 0),
       backgroundColor: map ? '#fcf9ed' : tint(laneColors[index], 0.6), borderColor: map ? '#a8b5aa' : tint(laneColors[index], 0.1), borderWidth: 1,
       ...(map ? { borderStyle: 'dashed' } : {}) })
-    note({ id: laneNodeId(lane.id), text: lane.label, name: lane.label, xPos: x + 8, yPos: y + 6, width, height: 58,
-      backgroundColor: laneColors[index], fontSize: fittingFontSize(lane.label, laneSize, width - 16, 50) })
-    // The counter: a small pill under the column's name ("2 / 3", "2"), centred; a full column's pill takes the
-    // header's colour. A map's station shows its token itself: no counter.
+    // A map's station keeps its whole width (it shows no controls). A board of columns' name leaves a slot on its right
+    // for its color button, and its counter sits in the strip under it, just before + (laneHeader.ts): no control
+    // ever covers either.
+    const header = map ? null : workshopLaneHeader(board, place, style)
+    const nameBox = header?.label ?? { x: x + 8 - origin.x, y: y + 6 - origin.y, width, height: 58 }
+    const name = fitName(lane.label, laneSize, nameBox.width - 16, nameBox.height - 8)
+    note({ id: laneNodeId(lane.id), text: name.text, name: lane.label, xPos: origin.x + nameBox.x, yPos: origin.y + nameBox.y, width: nameBox.width, height: nameBox.height,
+      backgroundColor: laneColors[index], fontSize: name.fontSize })
+    // The counter: a small pill ("2 / 3", "2"); a full column's pill takes the header's colour. A map's station shows its token itself: no counter.
     const counter = map ? '' : workshopLaneCaption(board, lane.id)
     const pillSize = captionSize
-    const pillW = map ? width : Math.min(width, Math.max(40, Math.ceil(counter.length * pillSize * 0.6) + 24))
-    note({ id: captionNodeId(lane.id), text: counter, name: lane.label, xPos: x + 8 + Math.round((width - pillW) / 2), yPos: y + 68, width: pillW, height: 22,
-      vectorPath: roundedBox(pillW, 22, map ? 0 : 11), backgroundColor: map ? 'transparent' : workshopLaneFull(board, lane.id) ? laneColors[index % laneColors.length] : 'rgba(255,255,255,0.72)',
+    const pill = header?.value ?? { x: x + 8 - origin.x, y: y + 68 - origin.y, width, height: 22 }
+    note({ id: captionNodeId(lane.id), text: counter, name: lane.label, xPos: origin.x + pill.x, yPos: origin.y + pill.y, width: pill.width, height: pill.height,
+      vectorPath: roundedBox(pill.width, pill.height, map ? 0 : 11), backgroundColor: map ? 'transparent' : workshopLaneFull(board, lane.id) ? laneColors[index % laneColors.length] : 'rgba(255,255,255,0.72)',
       borderWidth: 0, fontSize: pillSize })
     if (image) {
       nodes.push({ options: { id: imageNodeId(lane.id), name: image.alt, text: '', xPos: x + 8, yPos: y + top, width, height: stationImageHeight,

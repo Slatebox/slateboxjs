@@ -16,6 +16,7 @@ import { appearanceEditsBetween } from '../workshops/model'
 import { headlessDrag, inside, partsGeometry } from '../workshops/boardSpecs'
 import { overInk, tint, withMark } from './shared'
 import { partNotes } from './readouts'
+import { HEADER_SLOT } from '../workshops/laneHeader'
 
 const fills: Record<string, string> = { pile: '#fbdfac', theme: '#efd7dc', outcome: '#d5e9e3', opportunity: '#dedef4', problem: '#efd7dc', cause: '#fbdfac', action: '#dcebf3',
   objective: '#d5e9e3', 'key result': '#dedef4', initiative: '#dcebf3', manager: '#d5e9e3', 'open role': '#f3eee0', designer: '#efd7dc' }
@@ -66,7 +67,8 @@ export function nestLayout(board: Workshop, layout: WorkshopBoardLayout = {}): {
   const { main, tray } = nestAreas(board)
   const parts: PartPlace[] = []
   const header = (laneId: string, x: number, y: number, width: number, caption: string) => {
-    parts.push({ name: 'lane-' + laneId, x, y, width, height: 40, text: board.lanes.find(lane => lane.id === laneId)!.label, fill: laneId === tray ? '#e9e5da' : '#d5e9e3', fontSize: 16 })
+    // The name leaves its color button's slot on its right (laneHeader.ts): no control covers it.
+    parts.push({ name: 'lane-' + laneId, x, y, width: width - HEADER_SLOT, height: 40, text: board.lanes.find(lane => lane.id === laneId)!.label, fill: laneId === tray ? '#e9e5da' : '#d5e9e3', fontSize: 16 })
     parts.push({ name: 'caption-' + laneId, x, y: y + 44, width, height: 26, text: caption, fill: 'transparent', lineWidth: 0, fontSize: 14 })
   }
   const caption = (laneId: string) => nestRules.caption(board, laneId)
@@ -81,7 +83,7 @@ export function nestLayout(board: Workshop, layout: WorkshopBoardLayout = {}): {
       const x = g.left + (q.high[0] ? g.size / 2 : 0), y = g.top + (q.high[1] ? 0 : g.size / 2)
       const n = board.cards.filter(item => quadrantOf(board, item) === q.id).length, limit = limitOf(q.id)
       parts.push({ name: 'column-q-' + q.id, x, y, width: g.size / 2, height: g.size / 2, fill: tint(squareFills[q.id], 0.35), line: tint(squareFills[q.id], 0.1) })
-      parts.push({ name: 'caption-q-' + q.id, x: x + 6, y: y + (q.high[1] ? 6 : g.size / 2 - 32), width: g.size / 2 - 12, height: 26, fill: 'transparent', lineWidth: 0, fontSize: g.narrow ? 12 : 14,
+      parts.push({ name: 'caption-q-' + q.id, x: x + 6, y: y + (q.high[1] ? 6 : g.size / 2 - 32), width: g.size / 2 - 12 - HEADER_SLOT, height: 26, fill: 'transparent', lineWidth: 0, fontSize: g.narrow ? 12 : 14,
         text: q.label + ' · ' + (limit ? n + ' / ' + limit.max : String(n)), ...(limit && n > limit.max && { ink: overInk.ink }) })
     }
     parts.push({ name: 'caption-axis-y', x: g.left, y: g.top - 26, width: 200, height: 22, text: '↑ ' + axes.y.label, fill: 'transparent', lineWidth: 0, fontSize: 13 })

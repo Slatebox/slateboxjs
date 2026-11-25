@@ -16,7 +16,7 @@ import type { NodeJSON } from '../core/Serialization'
 import { prefersReducedMotion, type DragPolicy, type NodeCapabilities, type WorldPoint } from '../core/DragPolicy'
 import {
   businessKind, validateWorkshop, workshopBoardScope, workshopFreeSpot, workshopCandidate, workshopCardAsNote, workshopCardAsNoteRefusal, workshopCardLines, workshopCardLookOf, workshopCardNoteText, workshopDestinations,
-  roundedBox, workshopReserve, workshopLaneSpoken, workshopLaneHeld, workshopLanePlaces, workshopLineRefusal, workshopLinesOf, workshopNewLine, workshopNodeIds, workshopNoteCandidate, workshopRules,
+  roundedBox, workshopReserve, workshopLaneSpoken, workshopLaneHeld, workshopLaneHeader, workshopLanePlaces, workshopLineRefusal, workshopLinesOf, workshopNewLine, workshopNodeIds, workshopNoteCandidate, workshopRules,
   workshopCardLabelOf, workshopCardNoteWords, workshopKeepsLink, workshopNoteIdOf, workshopKeepsPicture, workshopNoteRefusal, workshopRefusal, workshopRenamedLines, workshopStandInId, workshopTakesLines, workshopTakesNotes, workshopToSlate, workshopWithLine,
   workshopWithoutLine, workshopOverrideCandidate, workshopOverrideLine, type Workshop, type WorkshopBoardLayout, type WorkshopCard, type WorkshopCardAsNote, type WorkshopCardLook,
   type WorkshopLine, type WorkshopNoteOffer, type WorkshopNoteStyle,
@@ -24,6 +24,7 @@ import {
 import { applyWorkshopEdits, type WorkshopEdit } from './edits'
 import { createBoardLayer } from './boardLayer'
 import { boardChromeBox, chromeScaleAt, chromeTagScaleAt, createBoardChrome } from './boardChrome'
+import { ruleControlsLayoutOf } from './laneHeader'
 import { mapEditsBetween, mapGripLabel, mapGripNotes, mapGripOf, mapGripSize, mapPathDrop, mapStationAt, paintMap } from './mapPaths'
 
 /**
@@ -816,6 +817,9 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       const marked = target.kind === 'card' ? workshopOverrideLine(value.cards.find(item => item.id === target.key) ?? {}) : null
       if (marked) text = text.split('\n').filter(line => line.trim() !== marked).join('\n')
       let label = text.replace(/\s+/g, ' ').trim()
+      // A long lane name is shown cut short with an ellipsis (laneHeader.ts fitName): committed as shown, it is no rename.
+      const whole = target.kind === 'lane' ? value.lanes.find(item => item.id === target.key)?.label : undefined
+      if (whole && label.endsWith('…') && whole !== label && whole.startsWith(label.slice(0, -1).trimEnd())) label = whole
       const edits: WorkshopEdit[] = []
       // On a business board the numbers typed on a card are its days or its amount.
       const business = businessKind(value)
@@ -2474,10 +2478,11 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     }
     chrome.draw({ board: shown, scope, origin, size: { width: drawnBox.width, height: drawnBox.height }, ...chromeOptions(), places, under: first,
       ...(options.onFocusDone && { onDone: () => tell(options.onFocusDone) }) })
-    // A kit's columns are its column parts (a pipeline's stages): the controls stand on them as on a board's columns.
-    const kitColumns = kit ? (drawnBox as { parts: PartPlace[] }).parts.filter(part => part.name.startsWith('column-'))
-      .map(part => ({ laneId: part.name.slice('column-'.length), x: part.x, y: part.y, width: part.width, height: part.height, row: 0 })) : undefined
-    controlsAt = { places: places ?? kitColumns, width: drawnBox.width, height: drawnBox.height }
+    // A kit's columns are its column parts (a pipeline's stages), each with its name and caption: the controls stand
+    // beside those words as on a board's columns, never on them (laneHeader.ts).
+    const kitColumns = kit ? ruleControlsLayoutOf((drawnBox as { parts: PartPlace[] }).parts, drawnBox.width, drawnBox.height).places : undefined
+    const laneColumns = places?.map(place => ({ ...place, ...workshopLaneHeader(shown, place, style) }))
+    controlsAt = { places: laneColumns ?? kitColumns, width: drawnBox.width, height: drawnBox.height }
     paintControls()
   }
 

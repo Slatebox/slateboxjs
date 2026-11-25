@@ -7,6 +7,7 @@
 import type { Workshop, WorkshopBoardLayout } from './model'
 import { rulebook, rulebookLoaded } from './kinds'
 import { renderLayerShapes, type LayerShape } from './boardLayer'
+import { HEADER_TARGET, LANE_ROW, LANE_TOP, laneHeaderBoxes } from './laneHeader'
 
 /** Colours of the chrome, as tokens a host sets (light and dark) with these defaults behind them. */
 export const chromeInk = {
@@ -294,14 +295,20 @@ export function boardBadgeShapes(board: Workshop, options: ChromeOptions = {}): 
   if (!places?.length || board.kind || board.lanes[0]?.station) return []
   const shapes: LayerShape[] = []
   const place = (id: string) => places.find(item => item.laneId === id)
+  // A lane's badge stands in its header's status slot, and a seam's at the first card row: just where the rule's own
+  // control is drawn while the board is selected (ruleControls.ts), so the control covers its badge and the rule is
+  // never shown twice, and neither ever sits on a lane's name (laneHeader.ts).
   for (const item of boardLegend(board)) {
     const at = item.lane ? place(item.lane) : undefined
-    if (at) shapes.push(...badge(item.icon, at.x + at.width - 22, at.y + 18, 'badge-' + item.lane))
+    if (at) {
+      const { label, strip } = laneHeaderBoxes(at.x, at.y, 0)
+      shapes.push(...badge(item.icon, label.x + HEADER_TARGET / 2, strip.y + strip.height / 2, 'badge-' + item.lane))
+    }
     for (const [from, to] of item.seams ?? []) {
       const a = place(from), b = place(to)
       // Only between two columns side by side: a wrapped row has no seam.
       if (!a || !b || a.row !== b.row) continue
-      shapes.push(...badge(item.icon, (a.x + a.width + b.x) / 2, a.y + 35, 'seam-' + from + '>' + to))
+      shapes.push(...badge(item.icon, (a.x + a.width + b.x) / 2, a.y + LANE_TOP + LANE_ROW / 2, 'seam-' + from + '>' + to))
     }
   }
   return shapes
