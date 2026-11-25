@@ -4,6 +4,21 @@
 
 ### Added
 
+- A slate wears a style: `update_slate { style: {id, overrides?: {bg, palette, fonts}, v} }` (or `null` to take it off)
+  records which style the slate wears, checked by `checkStyle`, stored as `options.style`, serialized and read back
+  (`readSlate().style`, `toSlateDocument`). The look itself is real slate content: the background, the notes' fields
+  and the style's art as notes marked `options.styleRole` (read as the `styleRole` note field). The styles' faces
+  Anton, Space Grotesk, Fraunces and Inter join `DEFAULT_FONTS`. SVG export draws the slate's own background (color or
+  gradient) as `rect[data-background]` unless `noBackground`, so a dark styled slate exports dark.
+
+### Removed
+
+- The theme system: `Theme` (and `window.Theme`), `applyTheme`, `slate.applyTheme()`, `buildNodeStyleFromTheme`, the
+  `ThemeStyle`/`ThemeDefinition` types, the `themeId`/`basedOnThemeId`/`syncWithTheme`/`eligibleForThemeCompilation`
+  slate options and the `onSlateThemeChanged` package. A slate's style (above) replaces it; the app styles a slate by
+  writing its notes, so no engine theme runs at draw time. 3.1.3 is unpublished, so no npm release had the old API
+  removed from under it.
+
 - Moving a card anyway: a drop the rules refuse on a lane board or a map is offered as "Move anyway" / "Cancel" with
   the rule's sentence (`confirmOverride`, `overrideBy` on `attachWorkshop`; `WorkshopChangeEvent.override`). Confirmed,
   the card moves marked with who and when (`WorkshopCard.override`, shown on the card as "Moved anyway by Sam ·

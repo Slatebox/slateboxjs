@@ -19,7 +19,7 @@ import {
 } from "./contract";
 import { NODE_CHANGE_KEYS, NODE_INTENT_KEYS, NODE_KEYS, NODE_STYLE_KEYS } from "./keys/node";
 import { CONNECTOR_KEYS, CONNECTOR_STYLE_KEYS } from "./keys/connector";
-import { checkBackground, SLATE_KEYS } from "./keys/slate";
+import { checkBackground, checkStyle, SLATE_KEYS } from "./keys/slate";
 import { checkSelector } from "./keys/selector";
 import { checkValue, isObject, type Lists } from "./keys/values";
 import { readMediaValue } from "./media";
@@ -321,6 +321,10 @@ export function validatePlan(plan: any, options: ValidateOptions = {}): SlateOpe
           ...checkKeys(operation.changes, Object.keys(SLATE_KEYS), prefix, "slate change", (key, value, list) => {
             if (key === "background") {
               list.push(...checkBackground(value, `${prefix} background`));
+              return;
+            }
+            if (key === "style") {
+              list.push(...checkStyle(value, `${prefix} style`, lists.fonts));
               return;
             }
             const problem = checkValue(SLATE_KEYS[key].spec, value, `${prefix} ${key}`);

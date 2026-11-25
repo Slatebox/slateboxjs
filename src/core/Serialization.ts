@@ -128,6 +128,9 @@ async function deserializeInner(
   if (data.options) {
     const slateOpts = deserializeSlateOptions(data.options);
     Object.assign(slate.options, slateOpts);
+    // The style record belongs to the whole document: a slate loaded (or undone to) without
+    // one wears none, even when the slate it replaces did.
+    if (!preserve && !("style" in data.options)) delete slate.options.style;
 
     // Apply shareId
     if (data.shareId) {
@@ -401,9 +404,8 @@ function serializeSlateOptions(options: SlateOptions): Record<string, any> {
     "showbirdsEye", "sizeOfbirdsEye", "showMultiSelect",
     "showZoom", "showUndoRedo", "showStatus", "showLocks",
     "isPublic", "isUnlisted", "isPrivate", "isTemplate",
-    "basedOnTemplate", "basedOnThemeId", "syncWithTheme",
-    "allowCollaboration", "eligibleForThemeCompilation",
-    "defaultLineColor", "themeId",
+    "basedOnTemplate", "allowCollaboration",
+    "defaultLineColor", "style",
     "layoutType", "disableAutoLayoutOfManuallyPositionedNodes",
     "nodeOrder",
     "huddleType", "huddleEnabled",

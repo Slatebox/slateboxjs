@@ -249,17 +249,12 @@ slate.nodes.one('node1')?.connector?.connectTo(
 )
 ```
 
-### Theme System
+### Slate style
 
-```typescript
-interface ThemeOptions {
-  themeId?: string
-  // Theme defines node type styles, colors, fonts
-}
-
-// Apply a theme
-slate.applyTheme({ /* theme object */ })
-```
+A slate can wear a style: `slate.options.style = { id, overrides?, v }` is a record of which style it wears. The look
+itself is written into the slate (its background, its notes' fills, fonts and shapes, and the style's art as real
+notes, each marked with `options.styleRole`), so what the canvas draws is what a presentation shows. The host owns the
+styles; the engine checks the record (`update_slate { style }`). The old theme system (`applyTheme`, `Theme`) is gone.
 
 ### Serialization
 
@@ -454,7 +449,6 @@ slateboxjs/
 │   │   ├── UndoRedo.ts           # Snapshot-based undo/redo
 │   │   ├── Serialization.ts      # JSON save/load
 │   │   ├── Export.ts             # SVG/PNG/PDF export
-│   │   ├── Theme.ts              # Theming system
 │   │   ├── ShapeRegistry.ts      # Shape type definitions
 │   │   ├── Relationship.ts       # Node relationship management
 │   │   ├── Relationships.ts      # Association collection

@@ -230,9 +230,6 @@ vi.mock("../../src/core/Export", () => ({
   exportPNG: vi.fn().mockResolvedValue("data:image/png;base64,"),
 }));
 
-vi.mock("../../src/core/Theme", () => ({
-  applyTheme: vi.fn(),
-}));
 
 vi.mock("../../src/core/Layout", () => ({
   removeLayoutOverlaps: vi.fn(),
@@ -263,7 +260,6 @@ import { ZoomSlider } from "../../src/core/ZoomSlider";
 import { Presentation } from "../../src/core/Presentation";
 import * as Serialization from "../../src/core/Serialization";
 import * as Export from "../../src/core/Export";
-import * as Theme from "../../src/core/Theme";
 import * as Layout from "../../src/core/Layout";
 import * as FontLoader from "../../src/core/FontLoader";
 
@@ -1059,18 +1055,6 @@ describe("Slate", () => {
       const result = await slate.pngSync({});
       expect(Export.exportPNG).toHaveBeenCalledWith(slate, {}, undefined);
       expect(result).toBe("data:image/png;base64,");
-    });
-  });
-
-  // -----------------------------------------------------------------------
-  // 9. Theme API
-  // -----------------------------------------------------------------------
-  describe("applyTheme", () => {
-    it("delegates to Theme.applyTheme", () => {
-      const slate = new Slate(container);
-      const themeDef = { id: "dark" } as any;
-      slate.applyTheme(themeDef, true, false);
-      expect(Theme.applyTheme).toHaveBeenCalledWith(slate, themeDef, true, false);
     });
   });
 

@@ -137,16 +137,6 @@ describe("shape packages from the room", () => {
   });
 });
 
-describe("a theme style with a custom outline", () => {
-  it("passes the fill rule and text box to the note", async () => {
-    const { applyStyleToNode } = await import("../../src/core/Theme");
-    const node: any = { options: {}, setShape: vi.fn((shape: string, path: string) => Object.assign(node.options, { shape, vectorPath: path })) };
-    (applyStyleToNode as any)(node, { shape: "custom", vectorPath: BUBBLE, fillRule: "evenodd", textBox: { x: 0.2, y: 0.1, w: 0.7, h: 0.7 } });
-    expect(node.options).toMatchObject({ fillRule: "evenodd", textBox: { w: 0.7 } });
-    expect(node.setShape).toHaveBeenCalledWith("custom", BUBBLE);
-  });
-});
-
 // Notes that store a raw path but are not custom shapes: the app's quick-add
 // shapes (addNote stores the drawn path with shapeHint "rect", "star", ...),
 // theme outlines (defaultThemes.json vectorPath), icons and comments. They
@@ -171,10 +161,9 @@ describe("older raw-path notes stay as they were", () => {
     expect(grows(node)).toBe(true);
   });
 
-  it("a themed rounded rectangle (raw path as its shape) grows with its text", async () => {
-    const { applyStyleToNode } = await import("../../src/core/Theme");
+  it("a rounded rectangle stored as a raw path (its shape) grows with its text", async () => {
     const node = await note({ shape: "rectangle", vectorPath: "rectangle" });
-    (applyStyleToNode as any)(node, { vectorPath: THEMED_ROUNDED });
+    node.setShape(THEMED_ROUNDED, THEMED_ROUNDED);
     expect(node.options.shape).toBe(THEMED_ROUNDED);
     expect(node.isCustomShape()).toBe(false);
     expect(node.textArea().custom).toBe(false);
@@ -186,10 +175,10 @@ describe("older raw-path notes stay as they were", () => {
     expect(node.isCustomShape()).toBe(false);
   });
 
-  it("a theme outline with a fill rule becomes a custom shape", async () => {
-    const { applyStyleToNode } = await import("../../src/core/Theme");
+  it("an outline with a fill rule becomes a custom shape", async () => {
     const node = await note({ shape: "rectangle", vectorPath: "rectangle" });
-    (applyStyleToNode as any)(node, { vectorPath: BUBBLE, fillRule: "evenodd" });
+    node.options.fillRule = "evenodd";
+    node.setShape("custom", BUBBLE);
     expect(node.options.shape).toBe("custom");
     expect(node.isCustomShape()).toBe(true);
   });

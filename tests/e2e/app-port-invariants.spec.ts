@@ -192,10 +192,10 @@ test("Meteor host persists collaborative text, grouping, themes, and primitive p
     expect(await a.evaluate(() => (window as any).slate.undoRedo.redo())).toBe(true);
     await waitForGroup(groupId);
 
-    // Saved app themes are host-owned mutations: Canvas applies the package
-    // through collab.invoke(), then collab.send() drives peer sync and Mongo
-    // persistence. Prove that exact boundary also records undo history and
-    // carries the full SVG shape/style, not just palette colors.
+    // Wearing a style is a host-owned whole-slate change: the app draws the styled slate as
+    // one step of this person's own (ownStep + the engine's onSlateReplaced), then broadcasts
+    // the same replacement, which drives peer sync and Mongo persistence. Prove that exact
+    // boundary records undo history and carries the full SVG shape/style, not just colors.
     const themeBaseline = await a.evaluate(({ id }) => {
       const s = (window as any).slate.v2;
       const node = s.nodes.one(id);
@@ -209,35 +209,31 @@ test("Meteor host persists collaborative text, grouping, themes, and primitive p
     const themePath = "M0 50L50 0L100 50L50 100Z";
     const themeColor = "#1355aa";
     await a.evaluate(
-      ({ path, color }) => {
+      async ({ id, path, color }) => {
         const s = (window as any).slate.v2;
-        const pkg = {
-          type: "onSlateThemeChanged",
-          data: {
-            syncWithTheme: true,
-            theme: {
-              _id: "port-invariant-theme",
-              styles: {
-                parent: {
-                  vectorPath: path,
-                  backgroundColor: color,
-                  foregroundColor: "#ffffff",
-                  borderColor: "#ffeb3b",
-                  borderWidth: 6,
-                  borderStyle: "dashed",
-                  fontFamily: "Bangers",
-                  fontSize: 28,
-                  fontStyle: "italic",
-                  filters: { vect: "postItNote" },
-                },
-              },
-            },
-          },
-        };
-        s.collab.invoke(pkg);
-        s.collab.send(pkg);
+        const doc = JSON.parse(s.exportJSON());
+        doc.options = { ...doc.options, style: { id: "custom", v: 4 } };
+        const node = doc.nodes.find((item: any) => item.options.id === id);
+        Object.assign(node.options, {
+          vectorPath: path,
+          shape: path,
+          shapeHint: path,
+          backgroundColor: color,
+          foregroundColor: "#ffffff",
+          fontColor: "#ffffff",
+          borderColor: "#ffeb3b",
+          borderWidth: 6,
+          borderStyle: "dashed",
+          fontFamily: "Bangers",
+          fontSize: 28,
+          fontStyle: "italic",
+          filters: { vect: "postItNote" },
+        });
+        const snapshot = JSON.stringify(doc);
+        await s.ownStep(() => s.invoker.onSlateReplaced({ type: "onSlateReplaced", data: { snapshot } }));
+        s.broadcast("onSlateReplaced", { action: "style", snapshot });
       },
-      { path: themePath, color: themeColor }
+      { id: baseline.id, path: themePath, color: themeColor }
     );
 
     const waitForTheme = async (

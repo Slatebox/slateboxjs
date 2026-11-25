@@ -4,7 +4,6 @@
  * Provides all utility functions used by the app.
  */
 
-import { buildNodeStyleFromTheme as buildThemeStyle } from "./core/Theme";
 import { pathBBox, transformPath } from "./core/PathGeometry";
 
 /** Generate a unique ID string */
@@ -212,16 +211,6 @@ export function obtainProportionateWidthAndHeightForResizing(
     width: originalWidth * ratio,
     height: originalHeight * ratio,
   };
-}
-
-/**
- * Build node style from a theme definition.
- */
-export function buildNodeStyleFromTheme(opts: {
-  theme: any;
-  childNumber: number;
-}): any {
-  return buildThemeStyle(opts.theme, opts.childNumber);
 }
 
 /** Make a string safe for use in URLs */

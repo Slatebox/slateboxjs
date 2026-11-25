@@ -353,15 +353,6 @@ export class Invoker {
     }
   }
 
-  onSlateThemeChanged(pkg: SlatePackage) {
-    const theme = pkg.data?.theme
-    if (theme?._id) this.slate.options.themeId = theme._id
-    if (theme) {
-      // Apply the theme (container bg, line color, per-node parent/child styles).
-      this.slate.applyTheme(theme, (pkg.data as any)?.syncWithTheme)
-    }
-  }
-
   onSlateLayoutTypeChanged(pkg: SlatePackage) {
     if (pkg.data.layoutType != null) {
       this.slate.options.layoutType = pkg.data.layoutType

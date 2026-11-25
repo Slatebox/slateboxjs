@@ -660,3 +660,32 @@ describe("inlinePictures: a PNG shows every note's picture", () => {
     expect(fetcher).toHaveBeenCalledTimes(2);
   });
 });
+
+describe("exportSVG draws the slate's own background", () => {
+  it("a styled slate's dark canvas becomes rect[data-background] behind everything", () => {
+    const slate = createMockSlate({ options: { containerStyle: { backgroundColor: "#0b0016" } } });
+    const svg = exportSVG(slate);
+    const doc = new DOMParser().parseFromString(svg.replace(/^<\?xml[^>]*>\n/, ""), "image/svg+xml");
+    const rects = doc.querySelectorAll("rect[data-background]");
+    expect(rects.length).toBe(1);
+    expect(rects[0].getAttribute("fill")).toBe("#0b0016");
+    expect(doc.documentElement.firstElementChild).toBe(rects[0]);
+  });
+
+  it("a gradient background is drawn with a gradient", () => {
+    const slate = createMockSlate({
+      options: { containerStyle: { backgroundColor: "#111111", backgroundColorAsGradient: true, backgroundGradientType: "linear", backgroundGradientColors: ["#111111", "#333333"], backgroundGradientStrategy: "vertical" } },
+    });
+    const svg = exportSVG(slate);
+    expect(svg).toContain("linearGradient");
+    expect(svg).toContain('fill="url(#sb-export-background)"');
+  });
+
+  it("noBackground, a white slate and an image background add none", () => {
+    expect(exportSVG(createMockSlate({ options: { containerStyle: { backgroundColor: "#0b0016" } } }), { noBackground: true })).not.toContain("data-background");
+    const white = exportSVG(createMockSlate());
+    expect(white.match(/data-background/g)?.length ?? 0).toBeLessThanOrEqual(1);
+    const image = exportSVG(createMockSlate({ options: { containerStyle: { backgroundColor: "#0b0016", backgroundImage: "https://example.com/a.png" } } }));
+    expect(image).not.toContain('fill="#0b0016"');
+  });
+});

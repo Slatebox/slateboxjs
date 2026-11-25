@@ -51,7 +51,6 @@ import * as ExportModule from './core/Export'
 import { Collab } from './core/Collab'
 
 // App Integration (function-based modules)
-import * as Theme from './core/Theme'
 import * as Layout from './core/Layout'
 import { ZoomSlider } from './core/ZoomSlider'
 import * as Comments from './core/Comments'
@@ -107,7 +106,6 @@ export {
   // Collaboration
   Collab,
   // App Integration
-  Theme,
   Layout,
   ZoomSlider,
   Comments,
@@ -146,7 +144,6 @@ export type { Association } from './core/Relationship'
 export type { CollabOptions, CollabUser, CollabPackage } from './core/Collab'
 export type { SlatePackage } from './core/SlatePackage'
 export type { ExportOptions } from './core/Export'
-export type { ThemeStyle, ThemeDefinition } from './core/Theme'
 export type { LayoutMove } from './core/Layout'
 export type { CommentOptions } from './core/Comments'
 export type { PresentationStep } from './core/Presentation'
@@ -221,7 +218,6 @@ if (typeof window !== 'undefined') {
   ;(window as any).MediaInput = MediaInput
   ;(window as any).Export = ExportModule
   ;(window as any).Collab = Collab
-  ;(window as any).Theme = Theme
   ;(window as any).Layout = Layout
   ;(window as any).ZoomSlider = ZoomSlider
   ;(window as any).Comments = Comments

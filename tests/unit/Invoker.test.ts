@@ -60,11 +60,9 @@ describe("Invoker", () => {
     mockSlate = {
       pan: vi.fn(),
       applyContainerStyle: vi.fn(),
-      applyTheme: vi.fn(),
       panZoom: { zoom: vi.fn() },
       options: {
         followMe: false,
-        themeId: undefined,
         name: "Test Slate",
         description: "",
         layoutType: undefined,
@@ -827,29 +825,6 @@ describe("Invoker", () => {
       expect(mockSlate.options.name).toBe("Restored");
       expect(mockSlate.beginRemoteApply).toHaveBeenCalledOnce();
       expect(mockSlate.endRemoteApply).toHaveBeenCalledOnce();
-    });
-  });
-
-  describe("onSlateThemeChanged", () => {
-    it("should set the theme id and log", () => {
-      const pkg = {
-        data: {
-          theme: { _id: "theme-123" },
-        },
-      };
-
-      invoker.onSlateThemeChanged(pkg);
-
-      expect(mockSlate.options.themeId).toBe("theme-123");
-      // The theme is actually applied now (no longer a stub).
-      expect(mockSlate.applyTheme).toHaveBeenCalledWith(pkg.data.theme, undefined);
-    });
-
-    it("should handle theme set to null (no theme data)", () => {
-      invoker.onSlateThemeChanged({ data: {} });
-
-      expect(mockSlate.options.themeId).toBeUndefined();
-      expect(console.log).not.toHaveBeenCalled();
     });
   });
 

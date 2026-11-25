@@ -22,7 +22,7 @@ import { backgroundOf } from "./keys/slate";
 import { allConnectors, box, isFreeEnd, noteId, selectNotes, toStoredSlate, type StoredNode, type StoredSlate } from "./stored";
 
 /** Keys every note read carries besides the writable ones: what a person sees but cannot yet set by plan. */
-export const NOTE_READ_KEYS = ["id", ...Object.keys(NODE_KEYS), "image", "media"] as const;
+export const NOTE_READ_KEYS = ["id", ...Object.keys(NODE_KEYS), "image", "media", "styleRole"] as const;
 export const READ_LIMITS = Object.freeze({ notes: 100, maxNotes: 500, maxChars: 60000 });
 
 export interface ReadSelection {
@@ -46,6 +46,8 @@ export interface SlateRead {
   name: string;
   description: string;
   background: { color: string; gradient?: Record<string, any> } | null;
+  /** The style the slate wears ({id, overrides?, v}), or null. */
+  style: Record<string, any> | null;
   /** The box around every note on the slate, or null when it has none. */
   bounds: { x: number; y: number; width: number; height: number } | null;
   /** Notes the selection matches, on every page. */
@@ -72,6 +74,8 @@ export function readNote(node: StoredNode, fields?: readonly string[]): Record<s
   if (want("image")) out.image = options.image || null;
   // A media note reads as its video (provider, url, title, poster), never the player's internals.
   if (want("media")) out.media = readMedia(options);
+  // A note the slate's style added (a title card, a quote, decoration) says which part it plays.
+  if (want("styleRole")) out.styleRole = typeof options.styleRole === "string" ? options.styleRole : null;
   return out;
 }
 
@@ -203,6 +207,7 @@ export function readSlate(input: any, selection: ReadSelection = {}): SlateRead 
     name: slate.options.name || "",
     description: slate.options.description || "",
     background: backgroundOf(slate.options.containerStyle),
+    style: slate.options.style && typeof slate.options.style === "object" ? slate.options.style : null,
     bounds: boundsOf(drawn),
     nodeCount: matched.length,
     nodes,
@@ -216,8 +221,7 @@ export const DOCUMENT_OPTION_KEYS = [
   "id", "name", "description", "enabled", "allowDrag", "followMe", "mindMapMode",
   "autoResizeNodesBasedOnText", "useLayoutQuadrants", "autoEnableDefaultFilters",
   "showbirdsEye", "sizeOfbirdsEye", "showMultiSelect", "showZoom", "showUndoRedo", "showStatus", "showLocks",
-  "isTemplate", "basedOnTemplate", "basedOnThemeId", "syncWithTheme", "allowCollaboration",
-  "eligibleForThemeCompilation", "defaultLineColor", "themeId", "layoutType",
+  "isTemplate", "basedOnTemplate", "allowCollaboration", "defaultLineColor", "style", "layoutType",
   "disableAutoLayoutOfManuallyPositionedNodes", "nodeOrder", "viewPort", "containerStyle",
 ] as const;
 

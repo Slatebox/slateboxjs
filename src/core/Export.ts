@@ -23,6 +23,53 @@ export interface ExportOptions {
   scale?: number;
 }
 
+const SVG_NS = "http://www.w3.org/2000/svg";
+const SAFE_COLOR = /^(#[0-9a-f]{3,8}|[a-z]{3,20}|(rgb|hsl)a?\([\d\s.,%]+\))$/i;
+
+/**
+ * Draw the containerStyle background (a color, or a two-or-more-stop gradient) as
+ * rect[data-background] behind everything in the exported SVG. No color, white, or an
+ * image background (which the export does not carry) adds nothing.
+ */
+function paintBackground(svgNode: Element, cs: Record<string, any> | undefined): void {
+  const color = String(cs?.backgroundColor || "").trim();
+  if (!SAFE_COLOR.test(color) || /^(#fff(fff)?|white|transparent)$/i.test(color) || cs?.backgroundImage) return;
+  const box = (svgNode.getAttribute("viewBox") || "").split(/[\s,]+/).map(Number);
+  if (box.length !== 4 || !box.every(Number.isFinite)) return;
+  svgNode.querySelector("rect[data-background]")?.remove();
+  const doc = svgNode.ownerDocument;
+  const rect = doc.createElementNS(SVG_NS, "rect");
+  rect.setAttribute("data-background", "");
+  rect.setAttribute("x", String(box[0]));
+  rect.setAttribute("y", String(box[1]));
+  rect.setAttribute("width", String(box[2]));
+  rect.setAttribute("height", String(box[3]));
+  rect.setAttribute("fill", color);
+  const stops: string[] = Array.isArray(cs?.backgroundGradientColors) ? cs!.backgroundGradientColors.filter((c: unknown) => SAFE_COLOR.test(String(c))) : [];
+  if (cs?.backgroundColorAsGradient && stops.length > 1) {
+    const radial = cs.backgroundGradientType === "radial";
+    const grad = doc.createElementNS(SVG_NS, radial ? "radialGradient" : "linearGradient");
+    grad.setAttribute("id", "sb-export-background");
+    if (!radial) {
+      const way = cs.backgroundGradientStrategy;
+      grad.setAttribute("x2", way === "vertical" ? "0" : "1");
+      grad.setAttribute("y2", way === "horizontal" ? "0" : "1");
+    }
+    stops.forEach((stopColor, i) => {
+      const stop = doc.createElementNS(SVG_NS, "stop");
+      stop.setAttribute("offset", String(i / (stops.length - 1)));
+      stop.setAttribute("stop-color", stopColor);
+      grad.appendChild(stop);
+    });
+    const defs = doc.createElementNS(SVG_NS, "defs");
+    defs.appendChild(grad);
+    svgNode.insertBefore(defs, svgNode.firstChild);
+    rect.setAttribute("fill", "url(#sb-export-background)");
+  }
+  const after = svgNode.querySelector(":scope > defs");
+  svgNode.insertBefore(rect, after ? after.nextSibling : svgNode.firstChild);
+}
+
 const OMIT = "data-export-omit";
 /** Set by layers that are only ever drawn for the view (AgentPresence, AgentSuggestions): no export keeps them. */
 const NEVER = "data-export-never";
@@ -266,6 +313,10 @@ export function exportSVG(
     } catch (e) {
       /* noop — fall back to the cloned canvas viewBox */
     }
+
+    // The slate's own background (a style's dark canvas, a gradient) is part of the picture: the
+    // canvas paints it on its container, so the export draws it as the first thing in the SVG.
+    if (!opts.noBackground) paintBackground(svgNode, slate.options?.containerStyle);
 
     // Serialize to string
     const serializer = new XMLSerializer();

@@ -81,6 +81,8 @@ export const DEFAULT_FONTS: readonly string[] = Object.freeze([
   "IBM Plex Sans", "IBM Plex Serif", "Lemon", "Lora", "Nixie One", "Noto Sans", "Open Sans", "Poppins",
   "PT Sans", "PT Sans Narrow", "PT Serif", "Permanent Marker", "Rammetto One", "Roboto",
   "Roboto Condensed", "Roboto Mono", "Roboto Slab", "Rubik", "Titan One", "Urbanist",
+  // The presentation styles' faces (a slate that wears a style draws its notes in them).
+  "Anton", "Space Grotesk", "Fraunces", "Inter",
 ]);
 
 /** What an instance may change about the contract: its own fonts, shapes and limits. */

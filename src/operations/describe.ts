@@ -17,7 +17,7 @@ import {
 } from "./contract";
 import { NODE_INTENT_KEYS, NODE_KEYS, NODE_STYLE_KEYS } from "./keys/node";
 import { CONNECTOR_KEYS, CONNECTOR_STYLE_KEYS } from "./keys/connector";
-import { backgroundSchema, SLATE_KEYS } from "./keys/slate";
+import { backgroundSchema, SLATE_KEYS, styleSchema } from "./keys/slate";
 import { selectorSchema } from "./keys/selector";
 import { namesOnlyShape, schemaFor } from "./keys/values";
 import { MEDIA_LIMITS } from "./media";
@@ -36,7 +36,7 @@ export function describeOperations(options: ContractOptions = {}) {
     slateKeys: Object.fromEntries(
       Object.entries(SLATE_KEYS).map(([key, entry]) => [
         key,
-        { ...(key === "background" ? backgroundSchema() : schemaFor(entry.spec)), description: entry.description },
+        { ...(key === "background" ? backgroundSchema() : key === "style" ? styleSchema() : schemaFor(entry.spec)), description: entry.description },
       ]),
     ),
     selector: selectorSchema(),
@@ -172,7 +172,7 @@ export function slateOperationPlanSchema(options: ContractOptions = {}, form: { 
                 ...Object.fromEntries(Object.entries(NODE_INTENT_KEYS).map(([key, entry]) => [key, schemaFor(entry.spec)])),
                 ...connectorProperties(Object.keys(CONNECTOR_KEYS)),
                 ...Object.fromEntries(
-                  Object.entries(SLATE_KEYS).map(([key, entry]) => [key, key === "background" ? backgroundSchema() : schemaFor(entry.spec)]),
+                  Object.entries(SLATE_KEYS).map(([key, entry]) => [key, key === "background" ? backgroundSchema() : key === "style" ? styleSchema() : schemaFor(entry.spec)]),
                 ),
               },
             },

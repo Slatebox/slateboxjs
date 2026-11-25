@@ -347,7 +347,7 @@ describe("Collab", () => {
       const collab = new Collab(mockSlate);
       collab.invoke([
         { type: "onNodeTextChanged", data: { id: "a", text: "after" } },
-        { type: "onSlateThemeChanged", data: { theme: { _id: "theme" } } },
+        { type: "onSlateBackgroundColorChanged", data: { color: "#0b0016" } },
       ]);
       expect(mockSlate.recordUndoFor).toHaveBeenNthCalledWith(
         1,
@@ -355,7 +355,7 @@ describe("Collab", () => {
       );
       expect(mockSlate.recordUndoFor).toHaveBeenNthCalledWith(
         2,
-        "onSlateThemeChanged"
+        "onSlateBackgroundColorChanged"
       );
     });
   });

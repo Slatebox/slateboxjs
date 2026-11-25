@@ -66,7 +66,6 @@ npx playwright test tests/e2e/connectors.spec.ts --project=chromium
 - `Serialization.ts` — JSON save/load (`SlateJSON`, `NodeJSON`)
 - `ShapeRegistry.ts` — Shape type definitions and registration
 - `Relationship.ts` / `Relationships.ts` — Node relationship/association management
-- `Theme.ts` — Theming system (style definitions per node type)
 - `Layout.ts` — Layout algorithms
 - `Filters.ts` — SVG filter management (drop-shadow, blur, etc.)
 - `Links.ts` — URL/click-through link handling on nodes

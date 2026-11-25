@@ -51,9 +51,18 @@ export const SLATE_KEYS: Record<string, SlateKey> = {
       slate.options.containerStyle = style;
     },
   },
+  style: {
+    spec: { type: "object" },
+    description:
+      "The style the slate wears, as a record: {id, overrides?: {bg?, palette?, fonts?: {display?, body?}}, v?}, or null to take it off. The look itself lives in the slate's background, its notes and its style art (real notes the app writes with the style); sent alone, the app wears the whole style.",
+    store: (slate, value) => {
+      if (value === null) delete slate.options.style;
+      else slate.options.style = value;
+    },
+  },
   mindMapMode: {
     spec: { type: "boolean" },
-    description: "Mind map mode: a theme colours notes by their depth in the connected tree.",
+    description: "Mind map mode: the slate's style colors notes by their depth in the connected tree.",
     ...option("mindMapMode"),
   },
   autoResizeNodesBasedOnText: {
@@ -108,6 +117,68 @@ export function checkBackground(value: any, label: string): string[] {
   return errors;
 }
 
+/** Style ids: lowercase words joined by hyphens, as the app's styles are named. */
+const STYLE_ID = /^[a-z][a-z-]{0,39}$/;
+const STYLE_OVERRIDES = ["bg", "palette", "fonts"];
+
+/**
+ * A style record ({id, overrides?, v?}, or null to take the style off). The engine does not know
+ * the styles (they are the host's data); it checks the record's shape: an id, colors that are
+ * colors, a palette of 1 to 12 colors (a "from-to" pair is a two-stop gradient), fonts the
+ * instance offers.
+ */
+export function checkStyle(value: any, label: string, fonts: readonly string[]): string[] {
+  if (value === null) return [];
+  if (!isObject(value)) return [`${label} must be an object {id, overrides?, v?} or null.`];
+  const errors: string[] = [];
+  for (const key of Object.keys(value)) {
+    if (!["id", "overrides", "v"].includes(key)) errors.push(`${label} has an unknown field: ${key}.`);
+  }
+  if (typeof value.id !== "string" || !STYLE_ID.test(value.id)) errors.push(`${label}.id must be a style name (lowercase letters and hyphens, at most 40).`);
+  if (value.v !== undefined && (typeof value.v !== "number" || !Number.isInteger(value.v) || value.v < 1 || value.v > 1000)) {
+    errors.push(`${label}.v must be a whole number from 1 to 1000.`);
+  }
+  const overrides = value.overrides;
+  if (overrides === undefined) return errors;
+  if (!isObject(overrides)) return [...errors, `${label}.overrides must be an object.`];
+  for (const key of Object.keys(overrides)) {
+    if (!STYLE_OVERRIDES.includes(key)) errors.push(`${label}.overrides has an unknown field: ${key}.`);
+  }
+  if (overrides.bg !== undefined) {
+    const problem = checkValue({ type: "color" }, overrides.bg, `${label}.overrides.bg`);
+    if (problem) errors.push(problem);
+  }
+  if (overrides.palette !== undefined) {
+    if (!Array.isArray(overrides.palette) || overrides.palette.length < 1 || overrides.palette.length > 12) {
+      errors.push(`${label}.overrides.palette must list 1 to 12 colors.`);
+    } else {
+      overrides.palette.forEach((item: unknown, index: number) => {
+        const parts = typeof item === "string" ? item.split("-") : [item];
+        if (parts.length > 2) errors.push(`${label}.overrides.palette[${index}] must be a color or a "from-to" pair.`);
+        for (const part of parts) {
+          const problem = checkValue({ type: "color" }, part, `${label}.overrides.palette[${index}]`);
+          if (problem) {
+            errors.push(problem);
+            break;
+          }
+        }
+      });
+    }
+  }
+  if (overrides.fonts !== undefined) {
+    if (!isObject(overrides.fonts)) errors.push(`${label}.overrides.fonts must be an object {display?, body?}.`);
+    else {
+      for (const [key, font] of Object.entries(overrides.fonts)) {
+        if (key !== "display" && key !== "body") errors.push(`${label}.overrides.fonts has an unknown field: ${key}.`);
+        else if (typeof font !== "string" || !fonts.some((name) => name.toLowerCase() === font.toLowerCase())) {
+          errors.push(`${label}.overrides.fonts.${key} must be a font this instance offers.`);
+        }
+      }
+    }
+  }
+  return errors;
+}
+
 /** The containerStyle fields a background sets. */
 export function backgroundToContainerStyle(background: Background): Record<string, any> {
   return {
@@ -116,6 +187,28 @@ export function backgroundToContainerStyle(background: Background): Record<strin
     backgroundGradientType: background.gradient?.type ?? "linear",
     backgroundGradientColors: background.gradient?.colors ?? [],
     backgroundGradientStrategy: background.gradient?.direction ?? "horizontal",
+  };
+}
+
+/** The style record's schema (null takes the style off). */
+export function styleSchema(): Record<string, any> {
+  return {
+    type: ["object", "null"],
+    additionalProperties: false,
+    required: ["id"],
+    properties: {
+      id: { type: "string", pattern: "^[a-z][a-z-]{0,39}$" },
+      v: { type: "integer", minimum: 1, maximum: 1000 },
+      overrides: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          bg: schemaFor({ type: "color" }),
+          palette: { type: "array", minItems: 1, maxItems: 12, items: { type: "string", maxLength: 64 } },
+          fonts: { type: "object", additionalProperties: false, properties: { display: { type: "string" }, body: { type: "string" } } },
+        },
+      },
+    },
   };
 }
 

@@ -25,7 +25,6 @@ import { AngleReadout, KNOB_HIT, KNOB_OFFSET, KNOB_SIZE, ROTATE_CURSOR, clientPo
 /** How far right of a frame the rotate knob can reach, in screen px. */
 const KNOB_REACH = KNOB_OFFSET + KNOB_HIT / 2 + 4;
 import { guid } from "../utils";
-import { applyTheme, type ThemeDefinition } from "./Theme";
 import {
   removeLayoutOverlaps,
   applyLayout as applyLayoutMoves,
@@ -183,8 +182,6 @@ export interface SlateOptions {
   isPrivate?: boolean;
   isTemplate?: boolean;
   basedOnTemplate?: string;
-  basedOnThemeId?: string;
-  syncWithTheme?: boolean;
 
   // Collaboration
   allowCollaboration?: boolean;
@@ -200,7 +197,6 @@ export interface SlateOptions {
    * room has not been told of a trade, the stored document says what the traded note is.
    */
   collabTrades?: NoteTrades;
-  eligibleForThemeCompilation?: boolean;
 
   // Viewport
   viewPort?: {
@@ -238,7 +234,11 @@ export interface SlateOptions {
 
   // Defaults
   defaultLineColor?: string;
-  themeId?: string;
+  /**
+   * The style this slate wears: { id, overrides?, v }. A record only: the look itself is written
+   * into the slate's background, its notes and its style art (real notes), never derived from it.
+   */
+  style?: { id: string; overrides?: Record<string, any>; v?: number };
 
   // Layout
   layoutType?: "manual" | "auto";
@@ -443,7 +443,6 @@ export class Slate {
         prevBackgroundColor: "#ffffff",
       },
       defaultLineColor: "#000000",
-      themeId: undefined,
       layoutType: "manual",
       disableAutoLayoutOfManuallyPositionedNodes: false,
       huddleType: "none",
@@ -3683,17 +3682,6 @@ export class Slate {
    */
   public pngSync(opts?: ExportOptions): Promise<string | Blob> {
     return this.png(opts);
-  }
-
-  // ─── Theme API ──────────────────────────────────────────────────
-
-  /** Apply a theme to this slate */
-  public applyTheme(
-    theme: ThemeDefinition,
-    syncWithTheme?: boolean,
-    revertTheme?: boolean
-  ): void {
-    applyTheme(this, theme, syncWithTheme, revertTheme);
   }
 
   // ─── Layout API ─────────────────────────────────────────────────
