@@ -11,11 +11,11 @@ const K = (n, e) => new Date(v(n) + Math.round(e) * L).toISOString().slice(0, 10
 };
 function I(n, e) {
   const t = new Date(v(n) + Math.floor(e) * L);
-  return qn[t.getUTCDay()] + " " + t.getUTCDate() + " " + tn[t.getUTCMonth()];
+  return qn[t.getUTCDay()] + ", " + tn[t.getUTCMonth()] + " " + t.getUTCDate();
 }
 function Y(n) {
   const e = new Date(v(n));
-  return e.getUTCDate() + " " + tn[e.getUTCMonth()];
+  return tn[e.getUTCMonth()] + " " + e.getUTCDate();
 }
 function an(n) {
   const e = v(n) || Date.UTC((/* @__PURE__ */ new Date()).getUTCFullYear(), (/* @__PURE__ */ new Date()).getUTCMonth(), (/* @__PURE__ */ new Date()).getUTCDate()), t = new Date(e).toISOString().slice(0, 10);
@@ -1035,7 +1035,7 @@ const Se = (n, e) => w(e.label) + " now starts " + I(n.clock.origin, Bn(n, e.id)
     const t = n.cards.filter((a) => a.laneId === e);
     return t.length + (t.length === 1 ? " hire" : " hires");
   },
-  cardText: (n, e) => e.label + " · " + I(n.clock.origin, Bn(n, e.id)).replace(/^\w+ /, ""),
+  cardText: (n, e) => e.label + " · " + I(n.clock.origin, Bn(n, e.id)).replace(/^\w+, /, ""),
   noteText: (n, e) => e.label,
   fromNote(n, e, t) {
     return { label: (e.replace(/\s+/g, " ").trim() || t).slice(0, 80), duration: 42 };

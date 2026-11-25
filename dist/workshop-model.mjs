@@ -3987,7 +3987,7 @@ function ol(e, n, t) {
 const ia = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 function li(e) {
   if (!e.override) return null;
-  const n = new Date(e.override.at), t = Number.isNaN(n.getTime()) ? "" : " · " + n.getDate() + " " + ia[n.getMonth()];
+  const n = new Date(e.override.at), t = Number.isNaN(n.getTime()) ? "" : " · " + ia[n.getMonth()] + " " + n.getDate();
   return "Moved anyway by " + e.override.by + t;
 }
 function Ro(e, n, t) {

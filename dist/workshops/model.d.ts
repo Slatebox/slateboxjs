@@ -364,7 +364,7 @@ export declare function workshopStampOverrides(before: Workshop, after: Workshop
     by: string;
     at: string;
 }): Workshop;
-/** What a card moved anyway says under its name: "Moved anyway by Sam · 23 Nov". */
+/** What a card moved anyway says under its name: "Moved anyway by Sam · Nov 23". */
 export declare function workshopOverrideLine(card: Pick<WorkshopCard, 'override'>): string | null;
 /** Every lane the card may be dropped in, including the one it is in. */
 export declare function workshopDestinations(board: Workshop, cardId: string): WorkshopLane[];

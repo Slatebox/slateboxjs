@@ -7173,7 +7173,7 @@ class fh {
       }
   }
 }
-const $ = {}, ph = () => $.lineTool ?? null, mh = async () => $.lineTool ?? ($.lineTool = await import("./canvas-LineTool-Da4rq9LY.mjs")), gh = () => $.birdsEye ?? null, yh = async () => $.birdsEye ?? ($.birdsEye = await import("./canvas-BirdsEye-CExEeSPL.mjs")), bh = () => $.undoRedo ?? null, vh = async () => $.undoRedo ?? ($.undoRedo = await import("./canvas-UndoRedo-EAZUKF4l.mjs")), wh = () => $.mediaInput ?? null, xh = async () => $.mediaInput ?? ($.mediaInput = await import("./canvas-MediaInput-BGDt1Qfi.mjs")), _h = () => $.contextMenu ?? null, Ch = async () => $.contextMenu ?? ($.contextMenu = await import("./canvas-ContextMenu-9y1Rua77.mjs")), Eh = () => $.keyboard ?? null, Sh = async () => $.keyboard ?? ($.keyboard = await import("./canvas-Keyboard-D3xNFevP.mjs")), Ah = () => $.presentation ?? null, Mh = async () => $.presentation ?? ($.presentation = await import("./canvas-Presentation-ydUBNUZh.mjs")), Th = () => $.mediaNote ?? null, Rh = async () => $.mediaNote ?? ($.mediaNote = await import("./canvas-MediaNote-afRCQoQe.mjs")), qe = /* @__PURE__ */ new Set(), Qt = /* @__PURE__ */ new Map(), kh = /* @__PURE__ */ new Set([
+const $ = {}, ph = () => $.lineTool ?? null, mh = async () => $.lineTool ?? ($.lineTool = await import("./canvas-LineTool-Dmdj8Rav.mjs")), gh = () => $.birdsEye ?? null, yh = async () => $.birdsEye ?? ($.birdsEye = await import("./canvas-BirdsEye-Cl0b_ys6.mjs")), bh = () => $.undoRedo ?? null, vh = async () => $.undoRedo ?? ($.undoRedo = await import("./canvas-UndoRedo-B3IYQwPI.mjs")), wh = () => $.mediaInput ?? null, xh = async () => $.mediaInput ?? ($.mediaInput = await import("./canvas-MediaInput-DClWShfx.mjs")), _h = () => $.contextMenu ?? null, Ch = async () => $.contextMenu ?? ($.contextMenu = await import("./canvas-ContextMenu-DSxKoLv7.mjs")), Eh = () => $.keyboard ?? null, Sh = async () => $.keyboard ?? ($.keyboard = await import("./canvas-Keyboard-B9lIUfLc.mjs")), Ah = () => $.presentation ?? null, Mh = async () => $.presentation ?? ($.presentation = await import("./canvas-Presentation-ydUBNUZh.mjs")), Th = () => $.mediaNote ?? null, Rh = async () => $.mediaNote ?? ($.mediaNote = await import("./canvas-MediaNote-afRCQoQe.mjs")), qe = /* @__PURE__ */ new Set(), Qt = /* @__PURE__ */ new Map(), kh = /* @__PURE__ */ new Set([
   "arial",
   "arial, sans-serif",
   "helvetica",
@@ -12874,6 +12874,7 @@ class lu {
         /* @vite-ignore */
         "y-websocket"
       )).WebsocketProvider;
+      if (!this.slate?.options) return;
       this.doc = new e.Doc(), this.clientID = this.doc.clientID;
       let s;
       const o = this.slate.options.events?.onInitCollaboration;
@@ -12886,6 +12887,10 @@ class lu {
             l
           );
         }
+      if (!this.slate?.options) {
+        this.doc?.destroy?.(), this.doc = null;
+        return;
+      }
       s && (this.userBaseData = s, s.websocketUrl && (this.options.wsUrl = s.websocketUrl), s.websocketParams && (this.options.wsParams = s.websocketParams), s.userName && (this.options.userName = s.userName), s.color && (this.options.userColor = s.color), s.personKey && (this.options.personKey = String(s.personKey))), this.collabMap = this.doc.getMap("collabPackages"), this.collabMap.observe((l) => {
         l.transaction.local || this.applyRemoteChanges(l.keysChanged);
       });

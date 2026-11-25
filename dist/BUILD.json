@@ -1,8 +1,8 @@
 {
   "name": "slateboxjs",
   "version": "3.1.3",
-  "commit": "67ea6277da09222f73dd2008368a63d989145079",
-  "branch": "release/slate-style",
+  "commit": "d283caf18f7b7a8a181af395e6db3df3129b0c2c",
+  "branch": "feat/guest-first-slate-e2e",
   "dirty": false,
-  "builtAt": "2026-11-25T18:24:04.322Z"
+  "builtAt": "2026-11-25T21:52:56.100Z"
 }

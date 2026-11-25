@@ -15271,6 +15271,7 @@ class Ac {
         /* @vite-ignore */
         "y-websocket"
       )).WebsocketProvider;
+      if (!this.slate?.options) return;
       this.doc = new e.Doc(), this.clientID = this.doc.clientID;
       let i;
       const o = this.slate.options.events?.onInitCollaboration;
@@ -15283,6 +15284,10 @@ class Ac {
             c
           );
         }
+      if (!this.slate?.options) {
+        this.doc?.destroy?.(), this.doc = null;
+        return;
+      }
       i && (this.userBaseData = i, i.websocketUrl && (this.options.wsUrl = i.websocketUrl), i.websocketParams && (this.options.wsParams = i.websocketParams), i.userName && (this.options.userName = i.userName), i.color && (this.options.userColor = i.color), i.personKey && (this.options.personKey = String(i.personKey))), this.collabMap = this.doc.getMap("collabPackages"), this.collabMap.observe((c) => {
         c.transaction.local || this.applyRemoteChanges(c.keysChanged);
       });

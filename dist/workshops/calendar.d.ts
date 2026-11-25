@@ -9,9 +9,9 @@ export declare const offsetOf: (origin: string, iso: string) => number;
 /** 0 Sunday … 6 Saturday. */
 export declare const weekdayAt: (origin: string, offset: number) => number;
 export declare const weekendAt: (origin: string, offset: number) => boolean;
-/** "Thu 17 Dec". */
+/** "Thu, Dec 17" (American order). */
 export declare function dateName(origin: string, offset: number): string;
-/** "17 Dec" for a date given as ISO. */
+/** "Dec 17" for a date given as ISO. */
 export declare function shortDate(iso: string): string;
 /** The first Monday on or after `today` (YYYY-MM-DD; left out, today): where a new plan starts. */
 export declare function nextMonday(today?: string): string;

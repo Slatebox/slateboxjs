@@ -1,11 +1,11 @@
 import { Vec2 as Mt, getElementPositionCheap as rn, translate as on, dragSpecToBehavior as ln, param as Ft, moreThan as Bt, lessThan as Ct, inOrder as cn } from "./dragology.mjs";
 import { workshopOverrideLine as Dt, appearanceEditsBetween as hn, appearanceLook as dn, createBoardLayer as pt, laneColors as H, layerInk as w, workshopDestinations as Nt, workshopCandidate as Ht } from "./workshop-model.mjs";
 import { renderLayerShapes as We } from "./workshop-model.mjs";
-import { startHandleCard as et, dayWords as L, scheduleLaunch as A, e as Kt, m as T, dateName as ot, lineWord as U, withPlanStart as un, offsetOf as ht, launchLinkRefusal as Gt, snapStep as q, dayMap as fn, clockOf as It, waitsRefusal as vt, tryTask as Vt, launchPlanLimits as gn, launchOverrun as pn, withTaskValue as K, hireStarts as Ut, isoAt as D, launchHard as Wt, pastTheLine as xn, dragTaskEdge as mn, moveLaunch as _t, movePlanStart as yn, planWeeksProblem as wn, cascadeStops as kn, legalRuns as Mn, startHandle as vn, checkTime as Wn, holdOthers as _n, withLink as Jt, launchFinish as jt, weekdayAt as St, shortDate as B, brokenWaits as Sn, runwayMonths as Rn, runwayWords as Ln } from "./workshop-plans.mjs";
-import { a as Se, d as Re, bandOf as Le, c as $e, dayFromWords as Te, g as Oe, downstreamTasks as ze, earliestLaunch as Ae, edgeValues as Ee, extendWorkshopEdits as Pe, goLiveSample as Fe, hireLagFor as Be, hiringPlanRules as Ce, hiringPlanSample as De, isoTime as Ne, landPlanNote as He, launchDayOn as Ke, launchIndex as Ge, launchPlanCaption as Ie, launchPlanRefusal as Ve, launchPlanRules as Ue, launchPlanSample as Je, launchTaskText as je, launchTooEarly as Ye, monthNames as Xe, n as Ze, nextMonday as qe, b as Qe, o as be, planDrags as ti, planEdit as ni, planFixed as ei, planLaunchPlanMove as ii, planPastRule as si, planProblem as ai, planProblems as ri, planStartBy as oi, planWords as li, presetRules as ci, readClock as hi, f as di, r as ui, runwayCap as fi, runwayHeader as gi, sampleLaunchPlan as pi, timeFamily as xi, timeProblems as mi, timeRuleKindIds as yi, timeSentence as wi, validateHiringPlan as ki, validateLaunchPlan as Mi, weekendAt as vi } from "./workshop-plans.mjs";
+import { startHandleCard as et, dayWords as $, scheduleLaunch as A, e as Kt, m as T, dateName as ot, lineWord as U, withPlanStart as un, offsetOf as ht, launchLinkRefusal as Gt, snapStep as q, dayMap as fn, clockOf as It, waitsRefusal as vt, tryTask as Vt, launchPlanLimits as gn, launchOverrun as pn, withTaskValue as K, hireStarts as Ut, isoAt as D, launchHard as Wt, pastTheLine as xn, dragTaskEdge as mn, moveLaunch as _t, movePlanStart as yn, planWeeksProblem as wn, cascadeStops as kn, legalRuns as Mn, startHandle as vn, checkTime as Wn, holdOthers as _n, withLink as Jt, launchFinish as jt, weekdayAt as St, shortDate as B, brokenWaits as Sn, runwayMonths as Rn, runwayWords as $n } from "./workshop-plans.mjs";
+import { a as Se, d as Re, bandOf as $e, c as Le, dayFromWords as Te, g as Oe, downstreamTasks as ze, earliestLaunch as Ae, edgeValues as Ee, extendWorkshopEdits as Pe, goLiveSample as Fe, hireLagFor as Be, hiringPlanRules as Ce, hiringPlanSample as De, isoTime as Ne, landPlanNote as He, launchDayOn as Ke, launchIndex as Ge, launchPlanCaption as Ie, launchPlanRefusal as Ve, launchPlanRules as Ue, launchPlanSample as Je, launchTaskText as je, launchTooEarly as Ye, monthNames as Xe, n as Ze, nextMonday as qe, b as Qe, o as be, planDrags as ti, planEdit as ni, planFixed as ei, planLaunchPlanMove as ii, planPastRule as si, planProblem as ai, planProblems as ri, planStartBy as oi, planWords as li, presetRules as ci, readClock as hi, f as di, r as ui, runwayCap as fi, runwayHeader as gi, sampleLaunchPlan as pi, timeFamily as xi, timeProblems as mi, timeRuleKindIds as yi, timeSentence as wi, validateHiringPlan as ki, validateLaunchPlan as Mi, weekendAt as vi } from "./workshop-plans.mjs";
 import Q from "react";
-import { withBudgetTotal as dt, pipelineForecast as xt, budgetOver as mt, pipelineLimits as $n, pipelineRefusal as Tn, pipelineCaption as Rt, pipelineStageOver as lt, budgetLimits as On, budgetRefusal as zn, budgetCaption as An, budgetTotalBounds as En, shiftBudget as Lt, budgetCommitted as Pn } from "./workshop-rules.mjs";
-import { amountRules as _i, behaviourEditsBetween as Si, budgetRules as Ri, budgetShiftLimits as Li, budgetShiftRefusal as $i, budgetTotalFixed as Ti, pipelineRules as Oi, planBudgetMove as zi, planPipelineMove as Ai, planSamples as Ei, restoreWorkshop as Pi, sampleBudget as Fi, samplePipeline as Bi, validateBudget as Ci, validatePipeline as Di } from "./workshop-rules.mjs";
+import { withBudgetTotal as dt, pipelineForecast as xt, budgetOver as mt, pipelineLimits as Ln, pipelineRefusal as Tn, pipelineCaption as Rt, pipelineStageOver as lt, budgetLimits as On, budgetRefusal as zn, budgetCaption as An, budgetTotalBounds as En, shiftBudget as $t, budgetCommitted as Pn } from "./workshop-rules.mjs";
+import { amountRules as _i, behaviourEditsBetween as Si, budgetRules as Ri, budgetShiftLimits as $i, budgetShiftRefusal as Li, budgetTotalFixed as Ti, pipelineRules as Oi, planBudgetMove as zi, planPipelineMove as Ai, planSamples as Ei, restoreWorkshop as Pi, sampleBudget as Fi, samplePipeline as Bi, validateBudget as Ci, validatePipeline as Di } from "./workshop-rules.mjs";
 import { byOrder as Hi, checkNest as Ki, checkNestMove as Gi, extend as Ii, isOrderKey as Vi, nestAlias as Ui, nestAreas as Ji, nestCardText as ji, nestDepth as Yi, nestDrags as Xi, nestEmptyDrop as Zi, nestFamily as qi, nestKids as Qi, nestLegal as bi, nestMeasure as ts, nestMeasureWords as ns, nestPlace as es, nestRoots as is, nestRules as ss, nestSentence as as, nestSubtree as rs, orderBetween as os, orderKeys as ls, registerNestPlus as cs, roleOf as hs, tidyKeys as ds, validateNest as us } from "./workshop-nest.mjs";
 import { isOrgChart as gs, nestAxes as ps, nestQuadrants as xs, nestScores as ms, quadrantOf as ys, scoreBoard as ws, scoresIn as ks } from "./workshop-nest-plus.mjs";
 function j(t, e = []) {
@@ -143,7 +143,7 @@ function yt(t, e, n, s) {
 }
 function qt(t, e) {
   const n = e.slice(7), s = et(e), a = s !== null && t.cards.find((i) => i.id === s);
-  if (a) return `${a.label} start, ${L(t, A(t).get(a.id).from)}. Left and Right move it; the end stays.`;
+  if (a) return `${a.label} start, ${$(t, A(t).get(a.id).from)}. Left and Right move it; the end stays.`;
   if (t.budget && (n === "_first" || n === "_last")) {
     const i = n === "_first" ? t.lanes[0] : t.lanes.at(-1);
     return `Budget ${n === "_first" ? "start" : "end"}, total ${Kt(t.budget.total, t.budget.currency)}. ${n === "_first" ? "Left" : "Right"} grows it, ${n === "_first" ? "Right" : "Left"} shrinks it, by ${T(t.budget.step, t.budget.currency)}; ${i.label} gains or gives first.`;
@@ -151,7 +151,7 @@ function qt(t, e) {
   if (n === "_first" && t.clock) return `First day, ${ot(t.clock.origin, 0)}. Left and Right move it; every task keeps its dates.`;
   if (n === "_last" && t.hiring && t.clock) return `Last week, to ${ot(t.clock.origin, t.hiring.weeks * 7 - 1)} (${t.hiring.weeks} weeks). Left and Right move it a week.`;
   if (n === "funding" && t.hiring?.funding && t.clock) return `Funding round, ${ot(t.clock.origin, t.hiring.funding.day)}. Left and Right move it a week.`;
-  if (n === "launch") return t.clock ? `${U(t).charAt(0).toUpperCase() + U(t).slice(1)}, ${L(t, t.launch.day)}. Left and Right move it.` : `Launch day, day ${t.launch?.day}. Left and Right move it.`;
+  if (n === "launch") return t.clock ? `${U(t).charAt(0).toUpperCase() + U(t).slice(1)}, ${$(t, t.launch.day)}. Left and Right move it.` : `Launch day, day ${t.launch?.day}. Left and Right move it.`;
   const c = t.cards.find((i) => i.id === n);
   if (c) return `${c.label} length, ${c.duration} days. Left and Right change it.`;
   const o = t.lanes.findIndex((i) => i.id === n);
@@ -218,7 +218,7 @@ function Vn(t, e) {
     const f = n.x0 + h * n.dayW, g = o ? St(o.origin, h) === 1 : h % 7 === 0;
     if (!g && n.dayW < 6) continue;
     i.push({ t: "line", x1: f, y1: n.gridTop, x2: f, y2: n.height - 8, color: n.narrow ? g ? w.canvasWeek : w.canvasFaint : g ? w.week : w.faint, width: g ? 1 : 0.5 });
-    const d = s && o && D(o.origin, h).slice(8) <= "07" && g, p = o ? s ? d ? B(D(o.origin, h)).replace(/^\d+ /, "") : "" : B(D(o.origin, h)) : (n.narrow ? "W" : "Week ") + (h / 7 + 1);
+    const d = s && o && D(o.origin, h).slice(8) <= "07" && g, p = o ? s ? d ? B(D(o.origin, h)).replace(/ \d+$/, "") : "" : B(D(o.origin, h)) : (n.narrow ? "W" : "Week ") + (h / 7 + 1);
     g && p && (!o || s || n.dayW * 7 > 44) && i.push({ t: "text", x: f + 3, y: n.axisY, text: p, color: w.canvasInk, size: 12 });
   }
   const r = new Set(Sn(t).map((h) => h.from + ">" + h.to));
@@ -269,8 +269,8 @@ function Vn(t, e) {
   }
   if (o && !(s && n.narrow) && i.push({ t: "rect", x: n.x0 - 3, y: n.gridTop - 22, w: 6, h: 22, rx: 3, color: w.ink, opacity: 0.7, role: "edge-first" }), s && !n.narrow && i.push({ t: "rect", x: n.x0 + c * n.dayW - 3, y: n.gridTop - 22, w: 6, h: 22, rx: 3, color: w.ink, opacity: 0.7, role: "edge-last" }), e.boardFocused && o) {
     const h = n.height + 2;
-    i.push({ t: "text", x: n.x0, y: h, text: "Starts " + L(t, 0), color: w.accept, size: 11, bold: !0, anchor: "start", role: "span-start" });
-    const f = s ? "Ends " + L(t, t.hiring.weeks * 7 - 1) : U(t).charAt(0).toUpperCase() + U(t).slice(1) + " " + L(t, t.launch.day), g = n.x0 + (s ? c : t.launch.day) * n.dayW;
+    i.push({ t: "text", x: n.x0, y: h, text: "Starts " + $(t, 0), color: w.accept, size: 11, bold: !0, anchor: "start", role: "span-start" });
+    const f = s ? "Ends " + $(t, t.hiring.weeks * 7 - 1) : U(t).charAt(0).toUpperCase() + U(t).slice(1) + " " + $(t, t.launch.day), g = n.x0 + (s ? c : t.launch.day) * n.dayW;
     i.push({ t: "text", x: g, y: h, text: f, color: s ? w.ink : w.launch, size: 11, bold: !0, anchor: "end", role: "span-end" });
   }
   if (!(s && n.narrow)) for (const h of t.cards) {
@@ -287,7 +287,7 @@ function Vn(t, e) {
       t: "text",
       x: n.narrow ? 8 : n.x0,
       y: n.narrow ? 18 : 20,
-      text: "Runway with these hires: " + Ln(h),
+      text: "Runway with these hires: " + $n(h),
       color: g || e.refused ? w.refuse : w.canvasInk,
       size: 14,
       bold: !0,
@@ -311,7 +311,7 @@ function Vn(t, e) {
     t: "text",
     x: n.narrow ? 8 : n.x0,
     y: n.narrow ? 18 : 20,
-    text: o ? "Done " + L(t, Math.ceil(m) - 1) + " · " + U(t) + " " + L(t, t.launch.day) : `Done day ${u} · launch day ${t.launch.day}`,
+    text: o ? "Done " + $(t, Math.ceil(m) - 1) + " · " + U(t) + " " + $(t, t.launch.day) : `Done day ${u} · launch day ${t.launch.day}`,
     color: e.refused ? w.refuse : w.canvasInk,
     size: 14,
     bold: !0,
@@ -322,7 +322,7 @@ function Vn(t, e) {
   }
   return i;
 }
-const b = 13, $t = 16, bt = (t, e) => t * (e ? 0.64 : 0.6), Un = (t, e) => t.x + t.w <= e.x || e.x + e.w <= t.x || t.y + t.h <= e.y || e.y + e.h <= t.y;
+const b = 13, Lt = 16, bt = (t, e) => t * (e ? 0.64 : 0.6), Un = (t, e) => t.x + t.w <= e.x || e.x + e.w <= t.x || t.y + t.h <= e.y || e.y + e.h <= t.y;
 function Jn(t) {
   const e = t.size ?? 13, n = t.text.length * bt(e, t.bold);
   return { x: t.anchor === "end" ? t.x - n : t.anchor === "middle" ? t.x - n / 2 : t.x, y: t.y - e, w: n, h: e * 1.3 };
@@ -352,7 +352,7 @@ function Tt(t, e, n, s, a) {
   }
   let d = null;
   for (const x of g.values()) {
-    const y = Math.max(...x.map((W) => W.length)) * h, _ = x.length * $t + 2;
+    const y = Math.max(...x.map((W) => W.length)) * h, _ = x.length * Lt + 2;
     if (!(y > i - o))
       for (let W = r; W + _ <= l; W += 3)
         for (let k = o; k + y <= i; k += 6) {
@@ -360,7 +360,7 @@ function Tt(t, e, n, s, a) {
           d && S >= d.score || c.every((G) => Un(M, G)) && (d = { box: M, lines: x, score: S });
         }
   }
-  const p = d ? [{ t: "text", x: d.box.x, y: d.box.y + b - 1, text: n, lines: d.lines, lineHeight: $t, color: w.refuse, size: b, bold: !0, role: "clamp" }] : [{
+  const p = d ? [{ t: "text", x: d.box.x, y: d.box.y + b - 1, text: n, lines: d.lines, lineHeight: Lt, color: w.refuse, size: b, bold: !0, role: "clamp" }] : [{
     t: "text",
     x: Math.min(s.x + 40, t.width - 4),
     y: s.y + 14,
@@ -483,7 +483,7 @@ function zt(t, e, n, s, a, c) {
       refusal: r.refusal,
       override: {
         edit: { kind: "set_task", card: { id: e }, lag: l, duration: r.values.duration },
-        to: n === "start" || t.kind === "hiring-plan" ? ft(t, { kind: "set_task", card: { id: e }, lag: l, duration: r.values.duration }) : "to end " + L(t, u)
+        to: n === "start" || t.kind === "hiring-plan" ? ft(t, { kind: "set_task", card: { id: e }, lag: l, duration: r.values.duration }) : "to end " + $(t, u)
       }
     };
   } : null;
@@ -495,7 +495,7 @@ function ft(t, e) {
   let a = t;
   e.lag !== void 0 && (a = K(a, { cardId: s.id, field: "lag" }, e.lag)), e.duration !== void 0 && (a = K(a, { cardId: s.id, field: "duration" }, e.duration));
   const c = A(a).get(s.id);
-  return t.kind === "hiring-plan" && t.clock ? "to start work " + L(a, Ut(a, s.id)) + " (recruiting from " + L(a, c.from) + ")" : (e.lag === void 0 || e.lag === (s.lag ?? 0)) && e.duration !== void 0 && e.duration !== s.duration ? "to end " + L(a, c.to - 1) : "to start " + L(a, c.from);
+  return t.kind === "hiring-plan" && t.clock ? "to start work " + $(a, Ut(a, s.id)) + " (recruiting from " + $(a, c.from) + ")" : (e.lag === void 0 || e.lag === (s.lag ?? 0)) && e.duration !== void 0 && e.duration !== s.duration ? "to end " + $(a, c.to - 1) : "to start " + $(a, c.from);
 }
 function Zn(t, e, n) {
   return A(K(t, { cardId: e, field: "lag" }, n)).get(e).from;
@@ -675,7 +675,7 @@ const le = {
    */
   handleDrag(t, e, n, s) {
     if (e !== "handle-target") return null;
-    const a = P(t, s), c = a.parts.find((m) => m.name === "handle-target"), o = Z(t, s), i = gt(o), r = o / (a.width - 8), l = { ...s, gaugeScale: o }, u = $n(t, { field: "target" });
+    const a = P(t, s), c = a.parts.find((m) => m.name === "handle-target"), o = Z(t, s), i = gt(o), r = o / (a.width - 8), l = { ...s, gaugeScale: o }, u = Ln(t, { field: "target" });
     return (m) => {
       const h = t.forecast.target + Math.round((m.x - n.x - c.x) * r / i) * i, f = Math.min(u.max, Math.max(i, h));
       return { next: { ...t, forecast: { ...t.forecast, target: f } }, layout: l, ...f !== h && { clampedReason: f < h ? u.reasons.max : "A target is at least " + T(i, t.forecast.currency) + "." } };
@@ -683,13 +683,13 @@ const le = {
   },
   keyEdit: re,
   label: (t, e) => e === "handle-target" ? "Target, " + T(t.forecast.target, t.forecast.currency) + ". Left and Right change it by " + T(gt(Z(t)), t.forecast.currency) + "." : null
-}, $ = 48, N = 960, nt = 900, ce = { phone: 14, desktop: 32 }, tn = 18, J = (t, e = !1) => t.lanes.some((n) => mt(t, n.id) > 0) ? ce[e ? "phone" : "desktop"] : 0, Et = (t, e) => t.cards.reduce((n, s) => n + (s.laneId === e ? 64 + (s.override ? tn : 0) : 0), 0);
+}, L = 48, N = 960, nt = 900, ce = { phone: 14, desktop: 32 }, tn = 18, J = (t, e = !1) => t.lanes.some((n) => mt(t, n.id) > 0) ? ce[e ? "phone" : "desktop"] : 0, Et = (t, e) => t.cards.reduce((n, s) => n + (s.laneId === e ? 64 + (s.override ? tn : 0) : 0), 0);
 function O(t, e = {}) {
   const n = !!e.narrow, s = t.budget.total, a = e.gaugeScale ?? s, c = e.gaugeAnchor === "start" ? a - s : 0, o = [], i = [];
   let r, l;
   if (n) {
     r = Math.max(300, e.width ?? 390);
-    let h = $ + c / a * nt;
+    let h = L + c / a * nt;
     t.lanes.forEach((f, g) => {
       const d = Math.max(100 + J(t, !0) + Et(t, f.id) + 64, f.allocation / a * nt);
       i.push({ laneId: f.id, start: h, size: d }), h += d;
@@ -698,10 +698,10 @@ function O(t, e = {}) {
     let h = c / a * N;
     for (const f of t.lanes)
       i.push({ laneId: f.id, start: h, size: f.allocation / a * N }), h += f.allocation / a * N;
-    r = Math.max(N, h), l = $ + 100 + J(t, !1) + Math.max(...t.lanes.map((f) => Et(t, f.id))) + 64;
+    r = Math.max(N, h), l = L + 100 + J(t, !1) + Math.max(...t.lanes.map((f) => Et(t, f.id))) + 64;
   }
   t.lanes.forEach((h, f) => {
-    const { start: g, size: d } = i[f], p = H[f % H.length], x = n ? { x: 2, y: g + 1, width: r - 4, height: d - 2 } : { x: g + 1, y: $, width: Math.max(4, d - 2), height: l - $ }, y = { x: x.x + 5, y: x.y, width: Math.max(10, x.width - 10) }, _ = mt(t, h.id) > 0;
+    const { start: g, size: d } = i[f], p = H[f % H.length], x = n ? { x: 2, y: g + 1, width: r - 4, height: d - 2 } : { x: g + 1, y: L, width: Math.max(4, d - 2), height: l - L }, y = { x: x.x + 5, y: x.y, width: Math.max(10, x.width - 10) }, _ = mt(t, h.id) > 0;
     o.push({ name: "column-" + h.id, ...x, ..._ ? { fill: E.fill, line: E.line, lineWidth: 2 } : { fill: z(p, 0.6), line: z(p, 0.1) } });
     const W = n ? y.width * 0.36 : y.width;
     o.push({ name: "lane-" + h.id, x: y.x, y: y.y + 6, width: W, height: 32, text: h.label, fill: p, fontSize: 15 });
@@ -736,12 +736,12 @@ over budget`);
     }
     if (f < t.lanes.length - 1) {
       const v = g + d;
-      o.push(n ? { name: "handle-" + h.id, x: r - 96, y: v - 22, width: 88, height: 44 } : { name: "handle-" + h.id, x: v - 22, y: $ - 6, width: 44, height: 48 });
+      o.push(n ? { name: "handle-" + h.id, x: r - 96, y: v - 22, width: 88, height: 44 } : { name: "handle-" + h.id, x: v - 22, y: L - 6, width: 44, height: 48 });
     }
   });
   const u = i[0], m = i.at(-1);
   for (const [h, f] of [[nn, u.start], [en, m.start + m.size]])
-    o.push(n ? { name: h, x: r - 96, y: f - 22, width: 88, height: 44 } : { name: h, x: f - 22, y: $ - 6, width: 44, height: 48 });
+    o.push(n ? { name: h, x: r - 96, y: f - 22, width: 88, height: 44 } : { name: h, x: f - 22, y: L - 6, width: 44, height: 48 });
   return { parts: o, width: r, height: l, segments: i, narrow: n, k: (n ? nt : N) / a };
 }
 const nn = "handle-_first", en = "handle-_last", Pt = (t) => t === nn ? "start" : t === en ? "end" : null;
@@ -755,24 +755,24 @@ function he(t, e) {
       const l = o.start + 50 + J(t, !0), u = 8, m = n.width - 16;
       s.push({ t: "rect", x: u, y: l, w: m, h: 10, rx: 5, color: w.track }), s.push({ t: "rect", x: u, y: l, w: Math.min(m, m * r / i || 0), h: 10, rx: 5, color: r > i ? w.refuse : w.bar }), a.floor !== void 0 && s.push({ t: "line", x1: u + m * a.floor / i, y1: l - 4, x2: u + m * a.floor / i, y2: l + 14, color: w.ink, width: 2 });
     } else {
-      const l = n.k, u = $ + 86 + J(t, !1);
+      const l = n.k, u = L + 86 + J(t, !1);
       s.push({ t: "rect", x: o.start + 6, y: u, w: o.size - 12, h: 10, rx: 5, color: w.track }), s.push({ t: "rect", x: o.start + 6, y: u, w: Math.max(0, Math.min(o.size - 12, (o.size - 12) * r / i || 0)), h: 10, rx: 5, color: r > i ? w.refuse : w.bar }), a.floor !== void 0 && s.push({ t: "line", x1: o.start + a.floor * l, y1: u - 6, x2: o.start + a.floor * l, y2: u + 16, color: w.ink, width: 2 }), a.cap !== void 0 && o.start + a.cap * l <= n.width && s.push({ t: "line", x1: o.start + a.cap * l, y1: u - 6, x2: o.start + a.cap * l, y2: u + 16, color: w.refuse, width: 2, dash: "3 2" });
     }
     if (c < t.lanes.length - 1) {
       const l = o.start + o.size;
-      s.push(n.narrow ? { t: "line", x1: 2, y1: l, x2: n.width - 2, y2: l, color: w.ink, width: 2 } : { t: "line", x1: l, y1: $, x2: l, y2: n.height, color: w.ink, width: 2 }), s.push(n.narrow ? { t: "rect", x: n.width - 68, y: l - 4, w: 32, h: 8, rx: 4, color: w.ink } : { t: "rect", x: l - 4, y: $ + 2, w: 8, h: 30, rx: 4, color: w.ink });
+      s.push(n.narrow ? { t: "line", x1: 2, y1: l, x2: n.width - 2, y2: l, color: w.ink, width: 2 } : { t: "line", x1: l, y1: L, x2: l, y2: n.height, color: w.ink, width: 2 }), s.push(n.narrow ? { t: "rect", x: n.width - 68, y: l - 4, w: 32, h: 8, rx: 4, color: w.ink } : { t: "rect", x: l - 4, y: L + 2, w: 8, h: 30, rx: 4, color: w.ink });
     }
   });
   for (const a of [n.segments[0], n.segments.at(-1)]) {
     const c = a === n.segments[0] ? a.start : a.start + a.size;
-    s.push(n.narrow ? { t: "rect", x: n.width - 68, y: c - 4, w: 32, h: 8, rx: 4, color: w.ink, opacity: 0.7, role: "edge-" + (a === n.segments[0] ? "first" : "last") } : { t: "rect", x: c - 4, y: $ + 2, w: 8, h: 30, rx: 4, color: w.ink, opacity: 0.7, role: "edge-" + (a === n.segments[0] ? "first" : "last") });
+    s.push(n.narrow ? { t: "rect", x: n.width - 68, y: c - 4, w: 32, h: 8, rx: 4, color: w.ink, opacity: 0.7, role: "edge-" + (a === n.segments[0] ? "first" : "last") } : { t: "rect", x: c - 4, y: L + 2, w: 8, h: 30, rx: 4, color: w.ink, opacity: 0.7, role: "edge-" + (a === n.segments[0] ? "first" : "last") });
   }
   if (e.clamp) {
     const a = n.parts.find((c) => c.name === e.clamp.name);
     a && s.push({
       t: "text",
       x: n.narrow ? 8 : Math.min(Math.max(a.x + 22, 120), n.width - 120),
-      y: n.narrow ? a.y + 8 : $ - 12,
+      y: n.narrow ? a.y + 8 : L - 12,
       text: e.clamp.text,
       color: w.refuse,
       size: 13,
@@ -813,8 +813,8 @@ const sn = (t, e) => Math.round(t / e) * e, de = {
     if (o < 0 || !i) return null;
     const r = On(t, { laneId: c }), l = t.budget.step, u = (d) => {
       const p = Math.min(r.max, Math.max(r.min, sn(d, l)));
-      return Lt(t, i.id, c, p);
-    }, m = O(t, s), h = m.narrow ? nt / t.budget.total : N / t.budget.total, f = m.parts.find((d) => d.name === e), g = Y(t, e, n, (d) => j(O(d, s).parts), (d) => d.varyFunc([0], ([p]) => Lt(t, i.id, c, p), { constraint: (p) => [
+      return $t(t, i.id, c, p);
+    }, m = O(t, s), h = m.narrow ? nt / t.budget.total : N / t.budget.total, f = m.parts.find((d) => d.name === e), g = Y(t, e, n, (d) => j(O(d, s).parts), (d) => d.varyFunc([0], ([p]) => $t(t, i.id, c, p), { constraint: (p) => [
       ...cn([r.min, p.lanes[o].allocation - t.lanes[o].allocation, r.max])
     ] }));
     return (d) => {
@@ -863,7 +863,7 @@ export {
   Se as amountLimits,
   Re as amountOf,
   _i as amountRules,
-  Le as bandOf,
+  $e as bandOf,
   Si as behaviourEditsBetween,
   ke as boardLayoutFor,
   Sn as brokenWaits,
@@ -876,8 +876,8 @@ export {
   mt as budgetOver,
   zn as budgetRefusal,
   Ri as budgetRules,
-  Li as budgetShiftLimits,
-  $i as budgetShiftRefusal,
+  $i as budgetShiftLimits,
+  Li as budgetShiftRefusal,
   En as budgetTotalBounds,
   Ti as budgetTotalFixed,
   Hi as byOrder,
@@ -887,11 +887,11 @@ export {
   Wn as checkTime,
   It as clockOf,
   pt as createBoardLayer,
-  $e as currencyOf,
+  Le as currencyOf,
   ot as dateName,
   Te as dayFromWords,
   fn as dayMap,
-  L as dayWords,
+  $ as dayWords,
   Oe as days,
   ze as downstreamTasks,
   mn as dragTaskEdge,
@@ -973,7 +973,7 @@ export {
   Fn as pipelineGauge,
   le as pipelineKit,
   P as pipelineLayout,
-  $n as pipelineLimits,
+  Ln as pipelineLimits,
   Tn as pipelineRefusal,
   Oi as pipelineRules,
   lt as pipelineStageOver,
@@ -1003,14 +1003,14 @@ export {
   fi as runwayCap,
   gi as runwayHeader,
   Rn as runwayMonths,
-  Ln as runwayWords,
+  $n as runwayWords,
   Fi as sampleBudget,
   pi as sampleLaunchPlan,
   Bi as samplePipeline,
   A as scheduleLaunch,
   ws as scoreBoard,
   ks as scoresIn,
-  Lt as shiftBudget,
+  $t as shiftBudget,
   B as shortDate,
   q as snapStep,
   vn as startHandle,
