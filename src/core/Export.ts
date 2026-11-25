@@ -45,6 +45,7 @@ function paintBackground(svgNode: Element, cs: Record<string, any> | undefined):
   rect.setAttribute("width", String(box[2]));
   rect.setAttribute("height", String(box[3]));
   rect.setAttribute("fill", color);
+  let gradientDefs: Element | null = null;
   const stops: string[] = Array.isArray(cs?.backgroundGradientColors) ? cs!.backgroundGradientColors.filter((c: unknown) => SAFE_COLOR.test(String(c))) : [];
   if (cs?.backgroundColorAsGradient && stops.length > 1) {
     const radial = cs.backgroundGradientType === "radial";
@@ -61,13 +62,14 @@ function paintBackground(svgNode: Element, cs: Record<string, any> | undefined):
       stop.setAttribute("stop-color", stopColor);
       grad.appendChild(stop);
     });
-    const defs = doc.createElementNS(SVG_NS, "defs");
-    defs.appendChild(grad);
-    svgNode.insertBefore(defs, svgNode.firstChild);
+    gradientDefs = doc.createElementNS(SVG_NS, "defs");
+    gradientDefs.appendChild(grad);
+    svgNode.insertBefore(gradientDefs, svgNode.firstChild);
     rect.setAttribute("fill", "url(#sb-export-background)");
   }
-  const after = svgNode.querySelector(":scope > defs");
-  svgNode.insertBefore(rect, after ? after.nextSibling : svgNode.firstChild);
+  // The first thing painted: right after its own gradient, else before everything. Any other <defs>
+  // (the lines' arrow markers) can come after the notes, and a rect placed after those paints over them.
+  svgNode.insertBefore(rect, gradientDefs ? gradientDefs.nextSibling : svgNode.firstChild);
 }
 
 const OMIT = "data-export-omit";

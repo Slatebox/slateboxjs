@@ -672,6 +672,23 @@ describe("exportSVG draws the slate's own background", () => {
     expect(doc.documentElement.firstElementChild).toBe(rects[0]);
   });
 
+  it("stays behind the notes when the lines' markers <defs> comes after them", () => {
+    // The canvas writes the arrow markers' <defs> after the notes and lines it has drawn. A rect placed
+    // after that <defs> painted over every note (the site player's plain story showed a blank panel).
+    const slate = createMockSlate({ options: { containerStyle: { backgroundColor: "#f3f1e4" } } });
+    const svgRoot: SVGSVGElement = slate.canvas.node;
+    const markers = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+    markers.appendChild(document.createElementNS("http://www.w3.org/2000/svg", "marker"));
+    svgRoot.appendChild(markers);
+    const doc = new DOMParser().parseFromString(exportSVG(slate).replace(/^<\?xml[^>]*>\n/, ""), "image/svg+xml");
+    const rect = doc.querySelector("rect[data-background]");
+    expect(rect?.getAttribute("fill")).toBe("#f3f1e4");
+    expect(doc.documentElement.firstElementChild).toBe(rect);
+    const children = [...doc.documentElement.children];
+    const firstNote = children.findIndex((el) => el.hasAttribute("data-node-id"));
+    expect(firstNote).toBeGreaterThan(children.indexOf(rect as Element));
+  });
+
   it("a gradient background is drawn with a gradient", () => {
     const slate = createMockSlate({
       options: { containerStyle: { backgroundColor: "#111111", backgroundColorAsGradient: true, backgroundGradientType: "linear", backgroundGradientColors: ["#111111", "#333333"], backgroundGradientStrategy: "vertical" } },
