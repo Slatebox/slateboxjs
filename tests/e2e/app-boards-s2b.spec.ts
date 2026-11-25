@@ -236,7 +236,7 @@ test.describe('notes on a full step and on a release plan, 1440 by 900', () => {
 
 /** A guest's new slate with a customer go-live, added the way the library adds it, put in focus by the gear's starter. */
 async function goLiveInFocus(page: Page) {
-  await page.goto(new URL('/new', origin).href)
+  await page.goto(new URL('/new?empty=1', origin).href)
   await page.waitForURL(/\/canvas\/[a-f0-9]{10}$/)
   await dismissWelcome(page)
   await expect.poll(() => userId(page)).toBeTruthy()

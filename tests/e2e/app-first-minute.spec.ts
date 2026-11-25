@@ -18,7 +18,7 @@ async function fresh(browser: Browser, width = 1440) {
 }
 
 async function newSlate(page: Page) {
-  await page.goto(at('/new'))
+  await page.goto(at('/new?empty=1'))
   await page.waitForURL(/\/canvas\/[a-zA-Z0-9]+$/)
   await expect.poll(() => userId(page)).toBeTruthy()
   const ok = page.getByRole('dialog', { name: /welcome/i }).getByRole('button', { name: 'OK', exact: true })
@@ -140,7 +140,7 @@ test('on a phone, a tap on Ask Slatebox before the conversation arrives opens it
   try {
     // The conversation's code (and every other lazy chunk) arrives 2.5 s late.
     await context.route('**/__meteor__/dynamic-import/**', async (route) => { await new Promise(r => setTimeout(r, 2500)); await route.continue() })
-    await page.goto(at('/new'))
+    await page.goto(at('/new?empty=1'))
     await page.waitForURL(/\/canvas\/[a-zA-Z0-9]+$/)
     const toggle = page.getByRole('button', { name: 'Ask Slatebox', exact: true }).first()
     await expect(toggle).toBeVisible({ timeout: 60000 })

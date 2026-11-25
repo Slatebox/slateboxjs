@@ -18,7 +18,7 @@ async function fresh(browser: Browser, scheme: 'light' | 'dark', width = 1440) {
 }
 
 async function newSlate(page: Page) {
-  await page.goto(at('/new'))
+  await page.goto(at('/new?empty=1'))
   await page.waitForURL(/\/canvas\/[a-zA-Z0-9]+$/)
   await expect.poll(() => userId(page)).toBeTruthy()
   const ok = page.getByRole('dialog', { name: /welcome/i }).getByRole('button', { name: 'OK', exact: true })

@@ -28,7 +28,7 @@ test('create a private interactive map from Start, author a branch and share the
   const reader = await browser.newPage({ viewport: { width: 390, height: 844 }, hasTouch: true })
   let ownerId: string | null = null
   try {
-    await owner.goto(new URL('/start', origin).href)
+    await owner.goto(new URL('/start?empty=1', origin).href)
     if (process.env.SLATEBOX_EXPECTED_APP_BUNDLE) {
       const hash = process.env.SLATEBOX_EXPECTED_APP_BUNDLE
       expect(hash).toMatch(/^[a-f0-9]{40}$/)

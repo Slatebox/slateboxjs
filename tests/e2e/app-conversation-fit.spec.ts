@@ -36,7 +36,7 @@ async function welcome(page: Page, cookies: 'answer' | 'leave') {
   await expect(page.locator('.sb-cookie')).toBeVisible()
 }
 async function newDrawing(page: Page, cookies: 'answer' | 'leave') {
-  await page.goto(new URL('/new', origin).href)
+  await page.goto(new URL('/new?empty=1', origin).href)
   await page.waitForURL(/\/canvas\/[a-zA-Z0-9]+$/)
   await welcome(page, cookies)
   const panel = conversation(page)

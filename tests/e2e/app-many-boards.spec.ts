@@ -94,7 +94,7 @@ test.describe('many boards, 1440 by 900', () => {
     page.on('pageerror', error => errors.push('A: ' + error.message))
     let second: Awaited<ReturnType<typeof browser.newContext>> | null = null
     try {
-      const key = await register(owner, '/new')
+      const key = await register(owner, '/new?empty=1')
       await page.goto(new URL('/canvas/' + key, origin).href)
       await page.waitForURL(/\/canvas\/[a-zA-Z0-9]{10}$/)
       const cookies = page.getByRole('button', { name: 'Accept cookies' })
@@ -293,7 +293,7 @@ test.describe('many boards on a phone, 390 by 844', () => {
     const errors: string[] = []
     page.on('pageerror', error => errors.push(error.message))
     try {
-      const key = await register(owner, '/new')
+      const key = await register(owner, '/new?empty=1')
       await page.goto(new URL('/canvas/' + key, origin).href)
       await page.waitForURL(/\/canvas\/[a-zA-Z0-9]{10}$/)
       const cookies = page.getByRole('button', { name: 'Accept cookies' })

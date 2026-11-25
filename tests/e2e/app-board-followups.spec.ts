@@ -26,7 +26,7 @@ async function drag(page: Page, from: { x: number; y: number }, to: { x: number;
 
 /** A new slate with a board kept from Ask Slatebox. */
 async function keepFromChat(page: Page, message: string) {
-  await page.goto(new URL('/new', origin).href)
+  await page.goto(new URL('/new?empty=1', origin).href)
   await page.waitForURL(/\/canvas\/[a-f0-9]{10}$/)
   await expect.poll(() => userId(page)).toBeTruthy()
   await dismissWelcome(page)

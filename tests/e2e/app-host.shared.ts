@@ -13,7 +13,7 @@ export async function bootstrapGuestSlate(page: Page, appUrl: string) {
  * saved and shared. `firstNote: null` leaves the slate empty.
  */
 export async function openGuestCanvas(page: Page, appUrl: string, { firstNote = "Welcome!" as string | null } = {}) {
-  await page.goto(appUrl + "/start");
+  await page.goto(appUrl + "/start?empty=1");
   await page.waitForURL(/\/canvas\//);
   await canvasReady(page);
   const welcome = page.getByRole("dialog", { name: /welcome/i });

@@ -28,7 +28,7 @@ test("independent copies of private and published slates start private for a fre
 
   let sourceId: string | undefined;
   try {
-    await page.goto(origin + "/new");
+    await page.goto(origin + "/new?empty=1");
     await page.waitForURL(/\/canvas\//);
     const key = new URL(page.url()).pathname.split("/").pop()!;
     // A new slate starts empty: its first note, as the welcome's "Add a note" makes it.

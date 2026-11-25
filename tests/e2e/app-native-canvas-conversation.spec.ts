@@ -11,7 +11,7 @@ for(const width of [1360,390]) test('a '+width+'px native drawing gains a route 
   const page=await context.newPage()
   let uid='',key=''
   try {
-    await page.goto(origin+'/new')
+    await page.goto(origin + '/new?empty=1')
     await page.waitForURL(/\/canvas\/[a-zA-Z0-9]+$/)
     key=page.url().split('/').pop()!
     const read=()=>page.evaluate(async id=>(await (window as any).Meteor.callAsync('slates.get',{shareId:id})).slateBase,key)
@@ -91,7 +91,7 @@ test('a drawing converted to a workshop shows both on one canvas and leaves its 
     })).toBe(true)
   }
   try {
-    await owner.goto(origin+'/new')
+    await owner.goto(origin + '/new?empty=1')
     await owner.waitForURL(/\/canvas\/[a-zA-Z0-9]+$/)
     await expect.poll(()=>userId(owner)).toBeTruthy()
     ownerId=await userId(owner)

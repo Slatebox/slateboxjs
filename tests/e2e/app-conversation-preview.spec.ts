@@ -53,7 +53,7 @@ async function enabledAndFocused(page: Page) {
 }
 
 async function newDrawing(page: Page) {
-  await page.goto(origin + '/new')
+  await page.goto(origin + '/new?empty=1')
   await page.waitForURL(/\/canvas\/[a-zA-Z0-9]+$/)
   await expect.poll(() => userId(page)).toBeTruthy()
   await dismissWelcome(page)

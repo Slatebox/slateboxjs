@@ -61,7 +61,7 @@ for (const width of [1440, 390]) test(`${width}px: a guest opens Mermaid from th
   const { context, page } = await fresh(browser, width, width < 600 ? 844 : 900)
   let id: string | null = null
   try {
-    await page.goto(at('/new'))
+    await page.goto(at('/new?empty=1'))
     await page.waitForURL(/\/canvas\/[a-zA-Z0-9]+$/)
     await expect.poll(() => userId(page)).toBeTruthy()
     id = await userId(page)

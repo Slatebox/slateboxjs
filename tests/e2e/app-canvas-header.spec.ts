@@ -353,12 +353,12 @@ test('a signed-in person has the bell and an account menu with Profile, Dark mod
   await page.evaluate(async credentials => {
     await new Promise<void>((resolve, reject) => (window as any).Accounts.createUser(credentials, (error: Error) => error ? reject(error) : resolve()))
   }, { email, password: randomBytes(20).toString('hex') })
-  await page.goto(origin + '/new')
+  await page.goto(origin + '/new?empty=1')
   await page.waitForURL(/\/canvas\//)
   await seedFirstNote(page)
   // A notification about this slate, read from another slate.
   const first = await getSlate(page, key(page))
-  await page.goto(origin + '/new')
+  await page.goto(origin + '/new?empty=1')
   await page.waitForURL(u => !u.pathname.endsWith(first.shareId) && /\/canvas\//.test(u.pathname))
   await seedFirstNote(page)
   await page.evaluate(async ({ slateId, userId }) => {

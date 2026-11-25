@@ -31,7 +31,7 @@ test('packaged tools create private maps and source diagrams through the same op
   const mine = () => owner.evaluate(async () =>
     (await (window as any).Meteor.callAsync('slates.get', { type: 'mine', skip: 0, limit: 20 })).slates.map((s: { shareId: string }) => s.shareId).sort())
   try {
-    const entry = new URL('/new', origin)
+    const entry = new URL('/new?empty=1', origin)
     entry.hash = new URLSearchParams({ brief: 'Agent tools verification ' + fixtureId }).toString()
     await owner.goto(entry.href)
     await owner.waitForURL(/\/canvas\/[a-zA-Z0-9]{10}$/)

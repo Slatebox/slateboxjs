@@ -26,7 +26,7 @@ async function person(browser: Browser, width: number): Promise<Actor & { key: s
   await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin })
   const page = await context.newPage()
   const actor: Actor = { page, email: `mermaid-${randomBytes(5).toString('hex')}@example.test`, id: null }
-  const key = await register(actor, '/start')
+  const key = await register(actor, '/start?empty=1')
   await page.goto(new URL('/canvas/' + key, origin).href)
   // A new slate starts empty: its first note, as the welcome's "Add a note" makes it.
   await seedFirstNote(page)

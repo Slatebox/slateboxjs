@@ -19,7 +19,7 @@ const lanes: Workshop = {
 }
 // The hiring plan is made as the owner made theirs: "Add a hiring plan" in Ask Slatebox on a new slate.
 const boards: Array<{ kind: string; path: string; chat?: string; name: string; typed: string }> = [
-  { kind: 'hiring plan', path: '/new', chat: 'Add a hiring plan', name: 'New hire', typed: 'Ops lead' },
+  { kind: 'hiring plan', path: '/new?empty=1', chat: 'Add a hiring plan', name: 'New hire', typed: 'Ops lead' },
   { kind: 'launch plan', path: '/new/launch-plan', name: 'New task', typed: 'Write docs' },
   { kind: 'lane board', path: '/new/workshop' + encodeWorkshopFragment(lanes), name: 'New card', typed: 'Call Jo' },
 ]

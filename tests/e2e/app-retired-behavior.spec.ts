@@ -85,7 +85,7 @@ test('chat and exec set what the dialog kept: a category and hidden controls rea
   owner.setDefaultTimeout(15_000)
   peer.setDefaultTimeout(15_000)
 
-  const entry = new URL('/new', origin)
+  const entry = new URL('/new?empty=1', origin)
   entry.hash = new URLSearchParams({ brief: 'Retired behaviour ' + randomUUID() }).toString()
   await owner.goto(entry.href)
   await owner.waitForURL(/\/canvas\/[a-zA-Z0-9]{10}$/)

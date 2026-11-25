@@ -55,11 +55,14 @@ async function verifyInvitation(browser: Browser, recipient: "existing" | "signe
       expect(href.pathname).toBe("/new");
       expect([new URL(app).origin,"https://app.slatebox.com"]).toContain(href.origin);
       if (href.origin !== new URL(app).origin) {
-        await owner.route(href.href, route=>route.fulfill({status:302,headers:{location:new URL("/new",app).href}}),{times:1});
+        await owner.route(href.href, route=>route.fulfill({status:302,headers:{location:new URL("/new?empty=1",app).href}}),{times:1});
       }
       await cta.click();
+      // A first visit is asked what its first slate should do; this proof starts from an empty slate.
+      const empty = owner.getByRole("button",{name:"Start with an empty slate"});
+      if (await empty.waitFor({timeout:8000}).then(()=>true,()=>false)) await empty.click();
     } else {
-      await owner.goto(app+"/new",{waitUntil:"domcontentloaded"});
+      await owner.goto(app + "/new?empty=1",{waitUntil:"domcontentloaded"});
     }
     await ready(owner);
     const original = owner.url();
@@ -67,7 +70,7 @@ async function verifyInvitation(browser: Browser, recipient: "existing" | "signe
     ownerId = await userId(owner);
     expect(ownerId).toBeTruthy();
     if (recipient === "existing") {
-      await peer.goto(app+"/new",{waitUntil:"domcontentloaded"});
+      await peer.goto(app + "/new?empty=1",{waitUntil:"domcontentloaded"});
       await ready(peer);
       peerId = await userId(peer);
       expect(peerId).toBeTruthy();
@@ -215,7 +218,7 @@ test('a registered native editor finds their saved note in Recently joined until
       page.setDefaultTimeout(15_000)
       const consent = page.getByRole('button',{name:'Accept cookies'})
       await page.addLocatorHandler(consent,()=>consent.click())
-      await page.goto(app+'/new')
+      await page.goto(app + '/new?empty=1')
       await expect.poll(()=>userId(page)).toBeTruthy()
       ids.set(page, (await userId(page))!)
       await ready(page)
@@ -335,7 +338,7 @@ test('a signed-out whiteboard contributor can choose to keep the original invita
       const consent = page.getByRole('button', {name:'Accept cookies'})
       await page.addLocatorHandler(consent, () => consent.click())
     }
-    await owner.goto(app + '/new')
+    await owner.goto(app + '/new?empty=1')
     await ready(owner)
     ownerId = await userId(owner)
     expect(ownerId).toBeTruthy()

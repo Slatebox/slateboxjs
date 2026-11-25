@@ -65,7 +65,7 @@ async function board(page: Page, key: string) {
 
 /** A slate like the reported one: "Welcome!" drawn into a two-step route beside the slate's notes. */
 async function workshopSlate(page: Page) {
-  await page.goto(app + '/new')
+  await page.goto(app + '/new?empty=1')
   await page.waitForURL(/\/canvas\/[a-zA-Z0-9]+$/)
   const chat = page.getByRole('complementary', { name: 'Ask Slatebox' })
   const ask = page.getByRole('button', { name: 'Ask Slatebox', exact: true })

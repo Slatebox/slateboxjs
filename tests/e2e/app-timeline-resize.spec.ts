@@ -27,7 +27,7 @@ const words = (page: Page, id: string) => note(page, 'card-' + id).evaluate(elem
 
 /** A guest's new slate with a customer go-live on it, added the way the library adds it. */
 async function goLive(page: Page) {
-  await page.goto(new URL('/new', origin).href)
+  await page.goto(new URL('/new?empty=1', origin).href)
   await page.waitForURL(/\/canvas\/[a-f0-9]{10}$/)
   await dismissWelcome(page)
   await expect.poll(() => userId(page)).toBeTruthy()

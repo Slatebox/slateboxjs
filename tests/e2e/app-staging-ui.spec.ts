@@ -386,10 +386,10 @@ test('Export or Embed left open does not follow to another slate', async ({ brow
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
   const actor: Actor = { page, email: `staging-ui-out-${Date.now()}@example.com`, id: null }
   try {
-    const first = await register(actor, '/new')
+    const first = await register(actor, '/new?empty=1')
     await page.goto(new URL('/canvas/' + first, origin).href)
     await dismissWelcome(page)
-    await page.goto(new URL('/new', origin).href)
+    await page.goto(new URL('/new?empty=1', origin).href)
     await page.waitForURL(/\/canvas\/[a-zA-Z0-9]+$/)
     await dismissWelcome(page)
     await slateMenu(page).click()
@@ -409,7 +409,7 @@ test('Export and Embed open from the slate menu only; the slate settings hold ne
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
   const actor: Actor = { page, email: `staging-ui-${Date.now()}@example.com`, id: null }
   try {
-    const key = await register(actor, '/new')
+    const key = await register(actor, '/new?empty=1')
     await page.goto(new URL('/canvas/' + key, origin).href)
     await dismissWelcome(page)
     await header(page).waitFor()

@@ -115,7 +115,7 @@ test.describe('beside an open conversation on a wide screen', () => {
   test('a slate with a drawing and a workshop opens showing both', async ({ page }) => {
     let id: string | null = null
     try {
-      id = await open(page, '/new')
+      id = await open(page, '/new?empty=1')
       const chat = conversation(page)
       await expect(chat).toBeVisible({ timeout: 20000 })
       await dismissWelcome(page)

@@ -35,7 +35,7 @@ test.describe('a budget’s total at its envelope’s edges', () => {
     test.setTimeout(240_000)
     let guest: string | null = null
     try {
-      await page.goto(new URL('/new', origin).href)
+      await page.goto(new URL('/new?empty=1', origin).href)
       await page.waitForURL(/\/canvas\/[a-f0-9]{10}$/)
       await dismissWelcome(page)
       await expect.poll(() => userId(page)).toBeTruthy()

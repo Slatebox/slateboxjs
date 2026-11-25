@@ -49,7 +49,10 @@ test("map entry, library and dashboard New open their respective editors", async
     await expect(page.getByRole("button", { name: "New", exact: true })).toBeVisible();
     // From another page of the app (the library), the navigation's Create slate opens a new slate.
     await page.goto(appUrl + "/library");
+    // A guest who has not answered the first run is asked what the slate should do; an empty slate is one click away.
     await page.getByRole("link", { name: "Create slate", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "What should your first slate do?", level: 1 })).toBeVisible();
+    await page.getByRole("button", { name: "Start with an empty slate" }).click();
     await expect(page).toHaveURL(/\/canvas\/[a-f0-9]{10}$/);
     await expect(node).toBeVisible();
     // The first slate still holds its note.

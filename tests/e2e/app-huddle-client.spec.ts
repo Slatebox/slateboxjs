@@ -27,7 +27,7 @@ test('turning a Free voice huddle on joins the slate’s room through a supporte
   await context.route(/daily\.co/, route => { daily.push(route.request().url()); return route.abort() })
   let guest: string | null = null
   try {
-    await page.goto(origin + '/new')
+    await page.goto(origin + '/new?empty=1')
     await page.waitForURL(/\/canvas\/[a-zA-Z0-9]+$/)
     await expect.poll(() => userId(page)).toBeTruthy()
     guest = await userId(page)

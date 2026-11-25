@@ -29,7 +29,7 @@ test('two people and a token save through one core: revisions, scoped conflict, 
   owner.setDefaultTimeout(20_000)
   peer.setDefaultTimeout(20_000)
 
-  const entry = new URL('/new', origin)
+  const entry = new URL('/new?empty=1', origin)
   entry.hash = new URLSearchParams({ brief: 'Save path ' + randomUUID() }).toString()
   await owner.goto(entry.href)
   await owner.waitForURL(/\/canvas\/[a-zA-Z0-9]{10}$/)
@@ -127,7 +127,7 @@ test('two people and a token save through one core: revisions, scoped conflict, 
 async function ownerWithSlate(browser: Browser, request: APIRequestContext, brief = 'Draft -> Review -> Ship') {
   const owner = await browser.newPage()
   owner.setDefaultTimeout(20_000)
-  const entry = new URL('/new', origin)
+  const entry = new URL('/new?empty=1', origin)
   entry.hash = new URLSearchParams({ brief: 'Save path ' + randomUUID() }).toString()
   await owner.goto(entry.href)
   await owner.waitForURL(/\/canvas\/[a-zA-Z0-9]{10}$/)

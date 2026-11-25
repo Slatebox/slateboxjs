@@ -197,7 +197,7 @@ async function make(page: Page, board: Board, how: 'chat' | 'starter') {
     await workshopReady(page)
     return asked
   }
-  await page.goto(new URL('/new', origin).href)
+  await page.goto(new URL('/new?empty=1', origin).href)
   await page.waitForURL(/\/canvas\/[a-f0-9]{10}$/)
   await dismissWelcome(page)
   await expect.poll(() => userId(page)).toBeTruthy()
