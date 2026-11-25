@@ -7173,7 +7173,7 @@ class fh {
       }
   }
 }
-const $ = {}, ph = () => $.lineTool ?? null, mh = async () => $.lineTool ?? ($.lineTool = await import("./canvas-LineTool-CaqDPI4G.mjs")), gh = () => $.birdsEye ?? null, yh = async () => $.birdsEye ?? ($.birdsEye = await import("./canvas-BirdsEye-CxH0U9ts.mjs")), bh = () => $.undoRedo ?? null, vh = async () => $.undoRedo ?? ($.undoRedo = await import("./canvas-UndoRedo-BPp4wNDm.mjs")), wh = () => $.mediaInput ?? null, xh = async () => $.mediaInput ?? ($.mediaInput = await import("./canvas-MediaInput-CQeBfVJj.mjs")), _h = () => $.contextMenu ?? null, Ch = async () => $.contextMenu ?? ($.contextMenu = await import("./canvas-ContextMenu-VNv09cCf.mjs")), Eh = () => $.keyboard ?? null, Sh = async () => $.keyboard ?? ($.keyboard = await import("./canvas-Keyboard-BDN89P0E.mjs")), Ah = () => $.presentation ?? null, Mh = async () => $.presentation ?? ($.presentation = await import("./canvas-Presentation-ydUBNUZh.mjs")), Th = () => $.mediaNote ?? null, Rh = async () => $.mediaNote ?? ($.mediaNote = await import("./canvas-MediaNote-afRCQoQe.mjs")), qe = /* @__PURE__ */ new Set(), Qt = /* @__PURE__ */ new Map(), kh = /* @__PURE__ */ new Set([
+const $ = {}, ph = () => $.lineTool ?? null, mh = async () => $.lineTool ?? ($.lineTool = await import("./canvas-LineTool-Da4rq9LY.mjs")), gh = () => $.birdsEye ?? null, yh = async () => $.birdsEye ?? ($.birdsEye = await import("./canvas-BirdsEye-CExEeSPL.mjs")), bh = () => $.undoRedo ?? null, vh = async () => $.undoRedo ?? ($.undoRedo = await import("./canvas-UndoRedo-EAZUKF4l.mjs")), wh = () => $.mediaInput ?? null, xh = async () => $.mediaInput ?? ($.mediaInput = await import("./canvas-MediaInput-BGDt1Qfi.mjs")), _h = () => $.contextMenu ?? null, Ch = async () => $.contextMenu ?? ($.contextMenu = await import("./canvas-ContextMenu-9y1Rua77.mjs")), Eh = () => $.keyboard ?? null, Sh = async () => $.keyboard ?? ($.keyboard = await import("./canvas-Keyboard-D3xNFevP.mjs")), Ah = () => $.presentation ?? null, Mh = async () => $.presentation ?? ($.presentation = await import("./canvas-Presentation-ydUBNUZh.mjs")), Th = () => $.mediaNote ?? null, Rh = async () => $.mediaNote ?? ($.mediaNote = await import("./canvas-MediaNote-afRCQoQe.mjs")), qe = /* @__PURE__ */ new Set(), Qt = /* @__PURE__ */ new Map(), kh = /* @__PURE__ */ new Set([
   "arial",
   "arial, sans-serif",
   "helvetica",
@@ -12497,22 +12497,20 @@ function Jd(n, t) {
   n.querySelector("rect[data-background]")?.remove();
   const s = n.ownerDocument, o = s.createElementNS(Ve, "rect");
   o.setAttribute("data-background", ""), o.setAttribute("x", String(i[0])), o.setAttribute("y", String(i[1])), o.setAttribute("width", String(i[2])), o.setAttribute("height", String(i[3])), o.setAttribute("fill", e);
-  const r = Array.isArray(t?.backgroundGradientColors) ? t.backgroundGradientColors.filter((l) => Es.test(String(l))) : [];
-  if (t?.backgroundColorAsGradient && r.length > 1) {
+  let r = null;
+  const a = Array.isArray(t?.backgroundGradientColors) ? t.backgroundGradientColors.filter((l) => Es.test(String(l))) : [];
+  if (t?.backgroundColorAsGradient && a.length > 1) {
     const l = t.backgroundGradientType === "radial", c = s.createElementNS(Ve, l ? "radialGradient" : "linearGradient");
     if (c.setAttribute("id", "sb-export-background"), !l) {
-      const d = t.backgroundGradientStrategy;
-      c.setAttribute("x2", d === "vertical" ? "0" : "1"), c.setAttribute("y2", d === "horizontal" ? "0" : "1");
+      const h = t.backgroundGradientStrategy;
+      c.setAttribute("x2", h === "vertical" ? "0" : "1"), c.setAttribute("y2", h === "horizontal" ? "0" : "1");
     }
-    r.forEach((d, f) => {
-      const u = s.createElementNS(Ve, "stop");
-      u.setAttribute("offset", String(f / (r.length - 1))), u.setAttribute("stop-color", d), c.appendChild(u);
-    });
-    const h = s.createElementNS(Ve, "defs");
-    h.appendChild(c), n.insertBefore(h, n.firstChild), o.setAttribute("fill", "url(#sb-export-background)");
+    a.forEach((h, d) => {
+      const f = s.createElementNS(Ve, "stop");
+      f.setAttribute("offset", String(d / (a.length - 1))), f.setAttribute("stop-color", h), c.appendChild(f);
+    }), r = s.createElementNS(Ve, "defs"), r.appendChild(c), n.insertBefore(r, n.firstChild), o.setAttribute("fill", "url(#sb-export-background)");
   }
-  const a = n.querySelector(":scope > defs");
-  n.insertBefore(o, a ? a.nextSibling : n.firstChild);
+  n.insertBefore(o, r ? r.nextSibling : n.firstChild);
 }
 const Ln = "data-export-omit", tu = "data-export-never";
 function eu(n) {

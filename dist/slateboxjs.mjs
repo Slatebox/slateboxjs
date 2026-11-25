@@ -14887,22 +14887,20 @@ function dm(n, t) {
   n.querySelector("rect[data-background]")?.remove();
   const i = n.ownerDocument, o = i.createElementNS(Bn, "rect");
   o.setAttribute("data-background", ""), o.setAttribute("x", String(s[0])), o.setAttribute("y", String(s[1])), o.setAttribute("width", String(s[2])), o.setAttribute("height", String(s[3])), o.setAttribute("fill", e);
-  const r = Array.isArray(t?.backgroundGradientColors) ? t.backgroundGradientColors.filter((c) => sr.test(String(c))) : [];
-  if (t?.backgroundColorAsGradient && r.length > 1) {
+  let r = null;
+  const a = Array.isArray(t?.backgroundGradientColors) ? t.backgroundGradientColors.filter((c) => sr.test(String(c))) : [];
+  if (t?.backgroundColorAsGradient && a.length > 1) {
     const c = t.backgroundGradientType === "radial", l = i.createElementNS(Bn, c ? "radialGradient" : "linearGradient");
     if (l.setAttribute("id", "sb-export-background"), !c) {
-      const d = t.backgroundGradientStrategy;
-      l.setAttribute("x2", d === "vertical" ? "0" : "1"), l.setAttribute("y2", d === "horizontal" ? "0" : "1");
+      const h = t.backgroundGradientStrategy;
+      l.setAttribute("x2", h === "vertical" ? "0" : "1"), l.setAttribute("y2", h === "horizontal" ? "0" : "1");
     }
-    r.forEach((d, f) => {
-      const u = i.createElementNS(Bn, "stop");
-      u.setAttribute("offset", String(f / (r.length - 1))), u.setAttribute("stop-color", d), l.appendChild(u);
-    });
-    const h = i.createElementNS(Bn, "defs");
-    h.appendChild(l), n.insertBefore(h, n.firstChild), o.setAttribute("fill", "url(#sb-export-background)");
+    a.forEach((h, d) => {
+      const f = i.createElementNS(Bn, "stop");
+      f.setAttribute("offset", String(d / (a.length - 1))), f.setAttribute("stop-color", h), l.appendChild(f);
+    }), r = i.createElementNS(Bn, "defs"), r.appendChild(l), n.insertBefore(r, n.firstChild), o.setAttribute("fill", "url(#sb-export-background)");
   }
-  const a = n.querySelector(":scope > defs");
-  n.insertBefore(o, a ? a.nextSibling : n.firstChild);
+  n.insertBefore(o, r ? r.nextSibling : n.firstChild);
 }
 const Hs = "data-export-omit", um = "data-export-never";
 function fm(n) {
