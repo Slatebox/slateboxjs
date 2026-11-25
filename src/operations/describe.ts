@@ -21,6 +21,7 @@ import { backgroundSchema, SLATE_KEYS, styleSchema } from "./keys/slate";
 import { selectorSchema } from "./keys/selector";
 import { namesOnlyShape, schemaFor } from "./keys/values";
 import { MEDIA_LIMITS } from "./media";
+import { groupPlanErrors, planErrorHints } from "./errors";
 
 export function describeOperations(options: ContractOptions = {}) {
   const lists = contractLists(options);
@@ -79,7 +80,7 @@ export function slateOperationPlanSchema(options: ContractOptions = {}, form: { 
   const connectorProperties = (names: string[]) => Object.fromEntries(names.map((key) => [key, schemaFor(CONNECTOR_KEYS[key].spec)]));
   const selector = selectorSchema();
   const ids = { type: "array", items: { type: "string" } };
-  const fieldsByKind = SLATE_OPERATION_KINDS.map((kind) => `${kind}: ${OPERATION_FIELDS[kind].filter((field) => field !== "kind").join(", ")}`).join("; ");
+  const fieldsByKind = operationFieldsByKind();
   // One flat item schema (not anyOf per kind): every model provider accepts it.
   // validatePlan enforces which fields each kind takes.
   return {
@@ -95,14 +96,22 @@ export function slateOperationPlanSchema(options: ContractOptions = {}, form: { 
         type: "array",
         minItems: 1,
         maxItems: limits.operationsPerPlan,
+        // On the array as well as its items: a renderer that reads property descriptions only
+        // (the exec declarations) still shows which fields each kind takes, and that add_nodes needs count.
+        description: operationsDescription(limits.notesPerAdd),
         items: {
           type: "object",
           additionalProperties: false,
           required: ["kind"],
-          description: `Fields by kind. ${fieldsByKind}.`,
+          description: `Fields by kind (any other field is refused). ${fieldsByKind}. add_nodes requires count.`,
           properties: {
-            kind: { type: "string", enum: [...SLATE_OPERATION_KINDS] },
-            count: { type: "integer", minimum: 1, maximum: limits.notesPerAdd },
+            kind: { type: "string", enum: [...SLATE_OPERATION_KINDS], description: "Which operation this is; it decides the fields the operation may carry." },
+            count: {
+              type: "integer",
+              minimum: 1,
+              maximum: limits.notesPerAdd,
+              description: `add_nodes only, and required there: how many notes it adds, 1 to ${limits.notesPerAdd}. With ids, count is normally ids.length (never fewer). Other kinds take no count.`,
+            },
             ...nodeProperties(["shape", "text", "x", "y", "width", "height"]),
             preset: {
               type: "string",
@@ -110,7 +119,10 @@ export function slateOperationPlanSchema(options: ContractOptions = {}, form: { 
               description: "add_nodes: text (no fill or border) or sticky (a sticky note), as the note toolbar makes them. Gives the shape when none is given.",
             },
             ids: { ...ids, description: "add_nodes and duplicate_nodes: new note ids (1 to 64 letters, digits, _ or -), which later operations in the plan may name. connect_nodes: ids for the new connectors, one per pair. An id already in use is refused." },
-            connectionIds: ids,
+            connectionIds: {
+              ...ids,
+              description: "disconnect_nodes and update_connections only: ids of connectors already on the slate. connect_nodes names its new connectors with ids, never connectionIds.",
+            },
             gap: { type: "number", minimum: 0, maximum: 2000 },
             offset: { ...schemaFor({ type: "point" }), description: "duplicate_nodes: how far the copies sit from the notes copied; 20, 20 when left out." },
             placement: {
@@ -183,6 +195,25 @@ export function slateOperationPlanSchema(options: ContractOptions = {}, form: { 
   };
 }
 
+/** "add_nodes: count, shape, …; connect_nodes: from, to, ids, style; …": the fields each kind takes. */
+export function operationFieldsByKind(): string {
+  return SLATE_OPERATION_KINDS.map((kind) => `${kind}: ${OPERATION_FIELDS[kind].filter((field) => field !== "kind").join(", ")}`).join("; ");
+}
+
+/**
+ * What the operations list says: each kind's fields, what is required, and one example of each
+ * common kind, so a model writing a plan from the schema (or from declarations rendered from it)
+ * never has to guess that add_nodes needs count or that connect_nodes names new connectors with ids.
+ */
+export function operationsDescription(notesPerAdd: number = 20): string {
+  return [
+    `The operations, applied in order. Each operation's kind decides which fields it may carry; any other field is refused. Fields by kind: ${operationFieldsByKind()}.`,
+    `add_nodes requires count (1 to ${notesPerAdd}): one add_nodes may add several notes (count 3, ids ["a","b","c"]) or one (count 1, ids ["a"]).`,
+    "connect_nodes names its new connectors with ids (one per pair); connectionIds is only for disconnect_nodes and update_connections.",
+    'Examples: {"kind":"add_nodes","count":1,"ids":["title"],"shape":"rectangle","text":"Title","x":0,"y":0,"width":240,"height":80}; {"kind":"add_nodes","count":2,"ids":["a","b"],"shape":"rectangle","text":"Step","placement":{"relativeTo":"title","direction":"below","arrangement":"row"}}; {"kind":"connect_nodes","from":{"ids":["title"]},"to":{"ids":["a"]},"ids":["title-a"]}; {"kind":"update_nodes","target":{"ids":["a"]},"changes":{"text":"First step"}}.',
+  ].join(" ");
+}
+
 export const SLATE_OPERATION_TOOL = Object.freeze({
   name: "applySlateOperations",
   description:
@@ -191,7 +222,9 @@ export const SLATE_OPERATION_TOOL = Object.freeze({
 });
 
 export function operationPlanRetryPrompt(errors: string[]): string {
-  return `Call applySlateOperations again with a safe, valid plan. ${errors.join(" ")}`;
+  // Grouped (one line per problem, not one per operation), with what the contract wants instead.
+  const lines = [...groupPlanErrors(errors).map((group) => group.message), ...planErrorHints(errors)];
+  return `Call applySlateOperations again with a safe, valid plan. ${lines.join(" ")}`;
 }
 
 export function naturalOperationFallback(plan: Partial<SlateOperationPlan> | undefined): string {

@@ -41,6 +41,8 @@ export {
   SLATE_OPERATION_TOOL,
   operationPlanRetryPrompt,
   naturalOperationFallback,
+  operationFieldsByKind,
+  operationsDescription,
 } from "./describe";
 export { NODE_KEYS, NODE_INTENT_KEYS, NODE_STYLE_KEYS, BORDER_STYLES, EFFECTS } from "./keys/node";
 export { alignPositions, distributePositions, rotatedBounds, tidyPositions, treePositions } from "./layout";
@@ -64,3 +66,7 @@ export {
   mediaLabel,
 } from "./media";
 export type { MediaValue, MediaProvider } from "./media";
+export { normalizePlan } from "./normalize";
+export type { NormalizedPlan } from "./normalize";
+export { groupPlanErrors, planErrorHints, planErrorsOf, operationRanges } from "./errors";
+export type { PlanErrorGroup } from "./errors";
