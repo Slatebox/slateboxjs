@@ -1,8 +1,8 @@
 // App spec (P10): the P10 vocabulary written by an agent (an MCP exec script's
 // slatebox.slates.applyOperations -> POST /api/v1/slates/{id}/operations) reaches an open
 // canvas through the run listener and equals what is stored, and a reload
-// agrees. Optimize Layout (the facade call the Settings button makes) saves a
-// tidy layout.
+// agrees. The engine's tidy layout (the facade call agents' arrange "tidy" shares; the
+// old Settings button for it is retired) saves a tidy layout.
 // Restated (exec): the MCP tools create_slate and apply_slate_operations became the exec tool
 // running the same calls; each edit reads the slate's revision first and names it, as every
 // edit must. Same plans, same assertions.

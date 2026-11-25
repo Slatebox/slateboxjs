@@ -131,6 +131,8 @@ async function deserializeInner(
     // The style record belongs to the whole document: a slate loaded (or undone to) without
     // one wears none, even when the slate it replaces did.
     if (!preserve && !("style" in data.options)) delete slate.options.style;
+    // So is the original it keeps from before its first style: a document without one keeps none.
+    if (!preserve && !("styleOriginal" in data.options)) delete (slate.options as any).styleOriginal;
 
     // Apply shareId
     if (data.shareId) {
@@ -406,6 +408,8 @@ function serializeSlateOptions(options: SlateOptions): Record<string, any> {
     "isPublic", "isUnlisted", "isPrivate", "isTemplate",
     "basedOnTemplate", "allowCollaboration",
     "defaultLineColor", "style",
+    // The slate as it was before it first wore a style (the host's "Revert to original").
+    "styleOriginal",
     "layoutType", "disableAutoLayoutOfManuallyPositionedNodes",
     "nodeOrder",
     "huddleType", "huddleEnabled",

@@ -145,6 +145,17 @@ describe("Serialization", () => {
       mockSlate.options.collabBaseline = { id: "slate-1", t: 1700000000000, c: 42, k: "onSlateReplaced_1_abc" };
       expect(serialize(mockSlate).options.collabBaseline).toEqual(mockSlate.options.collabBaseline);
     });
+
+    // The slate as it was before it first wore a style is part of the document: it is saved, undone
+    // and sent to the room with the slate, so "Revert to original" survives reloads and copies.
+    it("stores the original a slate keeps from before its first style", () => {
+      const original = { v: 1, nodes: [{ options: { id: "n1", text: "Node 1" }, relationships: { associations: [] } }], options: { containerStyle: { backgroundColor: "#fff" } } };
+      mockSlate.options.style = { id: "neon", v: 4 };
+      mockSlate.options.styleOriginal = original;
+      const json = serialize(mockSlate);
+      expect(json.options.styleOriginal).toEqual(original);
+      expect(json.options.style).toEqual({ id: "neon", v: 4 });
+    });
   });
 
   describe("serializeNode", () => {
@@ -203,6 +214,21 @@ describe("Serialization", () => {
 
       expect(mockSlate.nodes.clear).toHaveBeenCalled();
       expect(mockSlate.addNode).toHaveBeenCalledTimes(1);
+    });
+
+    it("loads the style and its original with the document, and a document without them keeps neither", async () => {
+      const original = { v: 1, nodes: [], options: {} };
+      await deserialize({ options: { style: { id: "neon", v: 4 }, styleOriginal: original }, nodes: [], shareId: "" }, mockSlate);
+      expect(mockSlate.options.style).toEqual({ id: "neon", v: 4 });
+      expect(mockSlate.options.styleOriginal).toEqual(original);
+      // Undone (or loaded) to the slate before it wore a style: no style, no original.
+      await deserialize({ options: { name: "Before" }, nodes: [], shareId: "" }, mockSlate);
+      expect(mockSlate.options.style).toBeUndefined();
+      expect(mockSlate.options.styleOriginal).toBeUndefined();
+      // Merged in (preserve), the slate keeps what it has.
+      mockSlate.options.styleOriginal = original;
+      await deserialize({ options: { name: "Merged" }, nodes: [], shareId: "" }, mockSlate, true);
+      expect(mockSlate.options.styleOriginal).toEqual(original);
     });
 
     it("should accept JSON string input", () => {

@@ -160,7 +160,7 @@ test('the slate menu on the title renames in place, opens settings, copies and d
     const shareId = key(page)
     await slateMenuButton(page).click()
     const menu = page.getByRole('menu', { name: 'Slate' })
-    for (const name of ['Rename', 'Slate settings', 'Theme and colors', 'Version history', 'Copy link', 'Export', 'Embed', 'Make a copy', 'Delete slate…'])
+    for (const name of ['Rename', 'Slate settings', 'Slate style', 'Version history', 'Copy link', 'Export', 'Embed', 'Make a copy', 'Delete slate…'])
       await expect(menu.getByRole('menuitem', { name, exact: true })).toBeVisible()
 
     // Rename edits the name where it is. Escape keeps the old name; Enter saves.

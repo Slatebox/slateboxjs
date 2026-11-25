@@ -190,7 +190,7 @@ test('Slate settings renames the workshop; a name it cannot take is said and the
     // canvas, and the saved name comes back in the field and in the toolbar.
     // Beside the field: the settings' own alert. (The canvas's notice says the same whole sentence since the
     // decision-path release, so the two are told apart by where they are.)
-    const beside = page.getByRole('region', { name: 'General Settings' }).getByRole('alert').filter({ hasText: 'The name was not changed.' })
+    const beside = page.getByRole('region', { name: 'General', exact: true }).getByRole('alert').filter({ hasText: 'The name was not changed.' })
     const onCanvas = page.locator('[role="group"][aria-label="Workshop"] [role="alert"]')
     await name.fill('<b>Sprint</b>')
     await expect(beside).toContainText('without < or >')
