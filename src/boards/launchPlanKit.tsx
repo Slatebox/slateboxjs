@@ -171,7 +171,7 @@ function paint(board: Workshop, state: BoardLayerState): LayerShape[] {
     if (!week && g.dayW < 6) continue
     shapes.push({ t: 'line', x1: x, y1: g.gridTop, x2: x, y2: g.height - 8, color: g.narrow ? (week ? layerInk.canvasWeek : layerInk.canvasFaint) : week ? layerInk.week : layerInk.faint, width: week ? 1 : 0.5 })
     const month = hiring && clock && isoAt(clock.origin, d).slice(8) <= '07' && week
-    const label = !clock ? (g.narrow ? 'W' : 'Week ') + (d / 7 + 1) : hiring ? (month ? shortDate(isoAt(clock.origin, d)).replace(/^\d+ /, '') : '') : shortDate(isoAt(clock.origin, d))
+    const label = !clock ? (g.narrow ? 'W' : 'Week ') + (d / 7 + 1) : hiring ? (month ? shortDate(isoAt(clock.origin, d)).replace(/ \d+$/, '') : '') : shortDate(isoAt(clock.origin, d))
     if (week && label && (!clock || hiring || g.dayW * 7 > 44)) shapes.push({ t: 'text', x: x + 3, y: g.axisY, text: label, color: layerInk.canvasInk, size: 12 })
   }
   // What waits on what: elbows into each task, the critical ones in the critical colour. Click one to remove it. A wait

@@ -93,9 +93,10 @@ test('(e) their own words with arrows draw a native diagram of three notes', asy
     await page.getByLabel('Or say it in your own words').fill('Request comes in → Triage → Close')
     await page.getByRole('button', { name: 'Make it', exact: true }).click()
     id = await onCanvas(page)
-    await expect.poll(async () => ((await getSlate(page, slateKey(page)))?.nodes ?? []).map((node: any) => node.options.text))
-      .toEqual(['Request comes in', 'Triage', 'Close'])
-    await expect(page.locator('#slateCanvas g[data-node-id]')).toHaveCount(3)
+    // The steps, to the right of the "How this board works" note every first slate has.
+    await expect.poll(async () => ((await getSlate(page, slateKey(page)))?.nodes ?? []).map((node: any) => node.options.text.split('\n')[0]))
+      .toEqual(['How this board works', 'Request comes in', 'Triage', 'Close'])
+    await expect(page.locator('#slateCanvas g[data-node-id]')).toHaveCount(4)
   } finally { await removeTestGuest(page, id); await context.close() }
 })
 
@@ -148,16 +149,83 @@ test('Make it yours: starter 1 on an untouched launch plan rebuilds it in place 
     await workshopReady(page)
     await starters(page).getByRole('button', { name: /^Plan a launch for day 18/ }).click()
     await conversation(page).getByRole('textbox').press('Enter')
-    // Kept, the page opens the rebuilt board again (a reload), with the turn kept in the conversation.
-    await Promise.all([page.waitForEvent('load'), conversation(page).getByRole('button', { name: 'Keep changes' }).click()])
-    await workshopReady(page)
+    // The preview says what Keep does: this board, rebuilt (not an interactive route).
+    await expect(conversation(page).getByText('Preview · This board, rebuilt from your words')).toBeVisible()
+    // Kept, the page takes the rebuilt board live, with no reload, and the turn stays in the conversation.
+    let loads = 0
+    page.on('load', () => { loads++ })
+    await conversation(page).getByRole('button', { name: 'Keep changes' }).click()
     await expect(conversation(page).getByText(/^Rebuilt the board from your words/)).toBeVisible()
     await expect.poll(async () => (await storedWorkshop(page, slateKey(page))).cards.map((card: any) => card.label), { timeout: 15000 }).toEqual(['Design', 'Build', 'QA'])
+    await expect(page.locator('#slateCanvas').getByText('QA · 2d', { exact: true }).first()).toBeVisible()
+    // Its note names the new board's tasks, on the canvas and as stored.
+    // (The note wraps its lines, so its words are read without the spaces at the breaks.)
+    await expect.poll(async () => ((await page.locator('#slateCanvas [data-node-id="first-run-how"]').textContent()) ?? '').replace(/\s+/g, '')).toContain('DragDesignlaterandBuildandQAmovewithit.')
+    expect(loads).toBe(0)
     const stored = await getSlate(page, slateKey(page))
     expect(stored.creative.model.workshop.title).toBe('Launch plan')
+    expect(stored.nodes.find((node: any) => node.options.id === 'first-run-how').options.text).toContain('Drag Design later and Build and QA move with it.')
     expect(Object.keys(stored.boards ?? {})).toEqual([])
     expect(sent.filter(frame => AGENT_METHODS.test(frame))).toEqual([])
     expect(await page.evaluate(() => (window as any).Meteor.user()?.profile?.start?.via)).toBe('deeplink')
+  } finally { await removeTestGuest(page, id); await context.close() }
+})
+
+test('Back from a board made through a second answer leaves /new: no second, empty slate', async ({ browser }) => {
+  const { context, page } = await virgin(browser)
+  let id: string | null = null
+  try {
+    await page.goto('about:blank')
+    await page.goto(at('/new'))
+    await page.getByRole('button', { name: /^Run our week/ }).click()
+    await page.getByRole('button', { name: 'My team', exact: true }).click()
+    id = await onCanvas(page)
+    const board = page.url()
+    const made = await page.evaluate(() => (window as any).Meteor.user()?._id)
+    await page.goBack()
+    await page.waitForTimeout(1500)
+    expect(page.url()).not.toMatch(/\/canvas\/|\/new/)
+    await page.goForward()
+    await page.waitForURL(board)
+    // The same guest, on the same board: the Back made no other slate.
+    await expect.poll(() => page.evaluate(() => (window as any).Meteor.user()?._id)).toBe(made)
+  } finally { await removeTestGuest(page, id); await context.close() }
+})
+
+test('a typed list is their own cards, even with job words in it', async ({ browser }) => {
+  const { context, page } = await virgin(browser)
+  let id: string | null = null
+  try {
+    await page.getByLabel('Or say it in your own words').fill('Hire a designer, Fix billing, Write docs')
+    await page.getByRole('button', { name: 'Make it', exact: true }).click()
+    id = await onCanvas(page)
+    await workshopReady(page)
+    expect((await storedWorkshop(page, slateKey(page))).cards.map((card: any) => card.label)).toEqual(['Hire a designer', 'Fix billing', 'Write docs'])
+    expect(await page.evaluate(() => (window as any).Meteor.user()?.profile?.start)).toMatchObject({ job: null, via: 'text', resolved: 'text.list' })
+  } finally { await removeTestGuest(page, id); await context.close() }
+})
+
+test('on a phone the one-time Share label stays short, and the title keeps its room', async ({ browser }) => {
+  const { context, page } = await virgin(browser, { width: 390, height: 844 })
+  let id: string | null = null
+  try {
+    await page.goto(at('/new?job=lookback&with=broke'))
+    id = await onCanvas(page)
+    await expect(page.getByRole('button', { name: 'Invite', exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Invite your team' })).toHaveCount(0)
+  } finally { await removeTestGuest(page, id); await context.close() }
+})
+
+test('Browse all boards opens the library once: a reload of the slate does not open it again', async ({ browser }) => {
+  const { context, page } = await virgin(browser)
+  let id: string | null = null
+  try {
+    await page.getByRole('button', { name: 'Browse all boards' }).click()
+    id = await onCanvas(page)
+    await expect.poll(() => page.evaluate(() => window.history.state?.usr?.openLibrary ?? null)).toBeNull()
+    await page.reload()
+    await page.waitForTimeout(2500)
+    expect(await page.evaluate(() => window.history.state?.usr?.openLibrary ?? null)).toBeNull()
   } finally { await removeTestGuest(page, id); await context.close() }
 })
 

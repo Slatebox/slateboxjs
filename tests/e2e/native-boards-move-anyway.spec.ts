@@ -50,7 +50,7 @@ test.describe('desktop, 1440 by 900', () => {
     // The sentence the person agreed to goes with it, so the server asks again if its board would break something else.
     expect((await changes(page)).at(-1)).toEqual({ cardId: 'northwind', laneId: 'proposal', override: true, reason: 'Deals move one stage at a time. Northwind is in Lead, so Qualified comes first. Proposal already holds 3 of 3 deals.', edits: [{ kind: 'move_card', card: { id: 'northwind' }, lane: { id: 'proposal' }, override: true }] })
     await expect.poll(() => text(page, 'caption-proposal')).toMatch(/^4 deals · .* · 60%\nover its limit of 3$/)
-    await expect.poll(() => text(page, 'card-northwind')).toMatch(/^Northwind\n\$40k\nMoved anyway by Sam · \d+ [A-Z][a-z]{2}$/)
+    await expect.poll(() => text(page, 'card-northwind')).toMatch(/^Northwind\n\$40k\nMoved anyway by Sam · [A-Z][a-z]{2} \d+$/)
     // An ordinary move back is a legal one, and takes the mark with it.
     const lead = await box(page, 'column-lead')
     await drag(page, await center(page, 'card-northwind'), { x: lead.x + lead.width / 2, y: lead.y + lead.height - 30 })

@@ -23,15 +23,15 @@ export const offsetOf = (origin: string, iso: string) => Math.round((isoTime(iso
 export const weekdayAt = (origin: string, offset: number) => new Date(isoTime(origin) + Math.floor(offset) * DAY).getUTCDay()
 export const weekendAt = (origin: string, offset: number) => { const day = weekdayAt(origin, offset); return day === 0 || day === 6 }
 
-/** "Thu 17 Dec". */
+/** "Thu, Dec 17" (American order). */
 export function dateName(origin: string, offset: number): string {
   const at = new Date(isoTime(origin) + Math.floor(offset) * DAY)
-  return weekdays[at.getUTCDay()] + ' ' + at.getUTCDate() + ' ' + monthNames[at.getUTCMonth()]
+  return weekdays[at.getUTCDay()] + ', ' + monthNames[at.getUTCMonth()] + ' ' + at.getUTCDate()
 }
-/** "17 Dec" for a date given as ISO. */
+/** "Dec 17" for a date given as ISO. */
 export function shortDate(iso: string): string {
   const at = new Date(isoTime(iso))
-  return at.getUTCDate() + ' ' + monthNames[at.getUTCMonth()]
+  return monthNames[at.getUTCMonth()] + ' ' + at.getUTCDate()
 }
 
 /** The first Monday on or after `today` (YYYY-MM-DD; left out, today): where a new plan starts. */

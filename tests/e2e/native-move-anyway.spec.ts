@@ -54,7 +54,7 @@ test('a map: the token dropped on a step with no path asks, and Move anyway move
   expect(override).toMatchObject({ by: 'Sam', sentence: "Issue refund can't be reached from Refund request.", from: 'request' })
   expect((await changes(page)).at(-1)).toEqual({ cardId: 'token', laneId: 'refund', override: true, reason: "Issue refund can't be reached from Refund request." })
   // Visible on the card: who moved it anyway.
-  await expect.poll(() => page.evaluate(() => (window as any).native.at('card-token')?.text)).toMatch(/^Team\nMoved anyway by Sam · \d+ [A-Z][a-z]{2}$/)
+  await expect.poll(() => page.evaluate(() => (window as any).native.at('card-token')?.text)).toMatch(/^Team\nMoved anyway by Sam · [A-Z][a-z]{2} \d+$/)
   await expect(page.locator('#slate [aria-live]')).toContainText('Team moved to Issue refund anyway.')
 })
 

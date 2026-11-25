@@ -34,17 +34,17 @@ describe('real dates and working days', () => {
     const calendar = validateWorkshop({ ...base, behaviour: { version: 1, rev: 0, rules: [] } })
     const working = rule(calendar, { kind: 'workdays' })
     const last = (board: Workshop) => scheduleLaunch(board).get('x')!.to - 1
-    expect(last(calendar)).toBe(2) // Sat 28 Nov
-    expect(last(working)).toBe(4) // Mon 30 Nov
+    expect(last(calendar)).toBe(2) // Sat, Nov 28
+    expect(last(working)).toBe(4) // Mon, Nov 30
     expect(ruleSentence(working.behaviour!.rules[0], working)).toBe('Days are working days: weekends don’t count.')
   })
 
   it('reads the dates people say', () => {
     const origin = '2026-11-23'
     expect(dayFromWords(origin, 'Dec 20')).toBe(27)
-    expect(dayFromWords(origin, '20 Dec')).toBe(27)
+    expect(dayFromWords(origin, 'Dec 20')).toBe(27)
     expect(dayFromWords(origin, 'Jan 3')).toBe(41)
-    expect(dayFromWords(origin, 'Thu 14 Jan')).toBe(52)
+    expect(dayFromWords(origin, 'Thu, Jan 14')).toBe(52)
     expect(dayFromWords(origin, 'May')).toBe(159)
     expect(dayFromWords(origin, '2026-12-07')).toBe(14)
     expect(dayFromWords(origin, 'soon')).toBeNull()
@@ -54,9 +54,9 @@ describe('real dates and working days', () => {
     const plan = launch()
     expect(plan.clock).toEqual({ origin: '2026-11-23' })
     expect(plan.lanes.map(lane => lane.label)).toEqual(['Product', 'Engineering', 'Marketing'])
-    expect(behaviourLines(plan)).toEqual(['Days are working days: weekends don’t count.', 'Launch is a hard line: every task ends by Fri 11 Dec.', 'A slip pushes the tasks that wait on it.'])
-    // QA's last day is Tue 8 Dec (working day 11); launch is Fri 11 Dec.
-    expect(refused(plan, [{ kind: 'set_task', card: 'Design', lag: 3 }])).toBe('QA would run until Fri 11 Dec; launch is Fri 11 Dec.')
+    expect(behaviourLines(plan)).toEqual(['Days are working days: weekends don’t count.', 'Launch is a hard line: every task ends by Fri, Dec 11.', 'A slip pushes the tasks that wait on it.'])
+    // QA's last day is Tue, Dec 8 (working day 11); launch is Fri, Dec 11.
+    expect(refused(plan, [{ kind: 'set_task', card: 'Design', lag: 3 }])).toBe('QA would run until Fri, Dec 11; launch is Fri, Dec 11.')
     expect(ok(plan, [{ kind: 'set_task', card: 'Design', lag: 2 }]).cards.find(card => card.id === 'build')!.lag).toBeUndefined()
   })
 
@@ -77,18 +77,18 @@ describe('the seven time rules', () => {
     const slipped = ok(soft, [{ kind: 'set_task', card: 'Design', lag: 5 }])
     expect([...pastTheLine(slipped)]).toEqual(['build', 'qa'])
     const verdict = checkTime(soft, slipped)
-    expect(verdict).toEqual({ ok: true, warnings: ['That would run until Fri 11 Dec; launch is Fri 11 Dec.'.replace('That would run until Fri 11 Dec', 'QA would run until Tue 15 Dec')] })
+    expect(verdict).toEqual({ ok: true, warnings: ['That would run until Fri, Dec 11; launch is Fri, Dec 11.'.replace('That would run until Fri, Dec 11', 'QA would run until Tue, Dec 15')] })
     // Back to a hard line while QA is past it: the plan can't be read that way, so the edit is refused.
-    expect(refused(slipped, [{ kind: 'set_rule', rule: ruleId(plan, 'deadline'), severity: 'refuse' }])).toBe('QA would run until Tue 15 Dec; launch is Fri 11 Dec.')
+    expect(refused(slipped, [{ kind: 'set_rule', rule: ruleId(plan, 'deadline'), severity: 'refuse' }])).toBe('QA would run until Tue, Dec 15; launch is Fri, Dec 11.')
     // A slip said far past the hard line (chat, exec) is refused in the line's words, as the drag is.
-    expect(refused(plan, [{ kind: 'set_task', card: 'QA', lag: 30 }])).toMatch(/^QA would run until \w{3} \d+ \w{3}; launch is Fri 11 Dec\.$/)
+    expect(refused(plan, [{ kind: 'set_task', card: 'QA', lag: 30 }])).toMatch(/^QA would run until \w{3}, \w{3} \d+; launch is Fri, Dec 11\.$/)
   })
 
   it('stop instead of push: a slip stops at the tasks waiting on it, and holds them where they are', () => {
     const plan = launch()
     const stop = ok(plan, [{ kind: 'set_rule', rule: ruleId(plan, 'cascade'), onConflict: 'stop' }])
     expect(behaviourLines(stop)).toContain('A slip stops at the tasks that wait on it.')
-    expect(refused(stop, [{ kind: 'set_task', card: 'Design', lag: 1 }])).toBe('Design would end after Build starts on Fri 27 Nov. Build waits on it, and a slip stops at the tasks that wait on it.')
+    expect(refused(stop, [{ kind: 'set_task', card: 'Design', lag: 1 }])).toBe('Design would end after Build starts on Fri, Nov 27. Build waits on it, and a slip stops at the tasks that wait on it.')
     // Copy has three days before the launch post: it can slip two, and the post stays on its day.
     const post = scheduleLaunch(stop).get('post')!.from
     const slipped = ok(stop, [{ kind: 'set_task', card: 'Copy', lag: 2 }])
@@ -100,9 +100,9 @@ describe('the seven time rules', () => {
   it('a freeze refuses a task that would run into it; one already in it stays', () => {
     const plan = launch()
     const frozen = rule(plan, { kind: 'blackout', start: '2026-11-26', end: '2026-11-27', label: 'code freeze' })
-    expect(behaviourLines(frozen)).toContain('Nothing ships in code freeze, 26 Nov – 27 Nov.')
-    // Design (23 – 26 Nov) already runs into the freeze and stays; Copy moving into it is refused.
-    expect(refused(frozen, [{ kind: 'set_task', card: 'Copy', lag: 3 }])).toBe('Copy would run into code freeze (26 Nov – 27 Nov).')
+    expect(behaviourLines(frozen)).toContain('Nothing ships in code freeze, Nov 26 – Nov 27.')
+    // Design (Nov 23 – Nov 26) already runs into the freeze and stays; Copy moving into it is refused.
+    expect(refused(frozen, [{ kind: 'set_task', card: 'Copy', lag: 3 }])).toBe('Copy would run into code freeze (Nov 26 – Nov 27).')
     expect(ok(frozen, [{ kind: 'set_task', card: 'Copy', lag: 5 }]).cards.find(card => card.id === 'copy')!.lag).toBe(5)
     // The legal starts of Copy are two runs, either side of the freeze (and the launch post's line): the drag hops it.
     expect(legalRuns(frozen, 'copy', 'lag')).toEqual([[0, 1], [5, 7]])
@@ -122,7 +122,7 @@ describe('the seven time rules', () => {
     expect(legalRuns(weeks, 'copy', 'lag').flat().every(value => value % 5 === 0)).toBe(true)
     const locked = rule(plan, { kind: 'locked', cards: ['QA'] })
     expect(behaviourLines(locked)).toContain('QA is locked.')
-    expect(refused(locked, [{ kind: 'set_task', card: 'Design', lag: 1 }])).toBe('QA is locked: it stays on Mon 7 Dec.')
+    expect(refused(locked, [{ kind: 'set_task', card: 'Design', lag: 1 }])).toBe('QA is locked: it stays on Mon, Dec 7.')
     expect(refused(locked, [{ kind: 'remove_card', card: 'QA' }])).toBe('A locked task stays on the plan. Unlock it first.')
   })
 
@@ -170,7 +170,7 @@ describe('the seven time rules', () => {
   it('a whole-board save keeps the rules: a slip past the hard line is refused, a rule change comes back as edits', () => {
     const plan = launch()
     const slipped = { ...plan, cards: plan.cards.map(card => card.id === 'design' ? { ...card, lag: 3 } : card) }
-    expect(checkWorkshopReplacement(plan, slipped)).toBe('QA would run until Fri 11 Dec; launch is Fri 11 Dec.')
+    expect(checkWorkshopReplacement(plan, slipped)).toBe('QA would run until Fri, Dec 11; launch is Fri, Dec 11.')
     const stop = ok(plan, [{ kind: 'set_rule', rule: ruleId(plan, 'cascade'), onConflict: 'stop' }, { kind: 'add_rule', rule: { kind: 'locked', cards: ['QA'] } }])
     expect(behaviourEditsBetween(plan, stop)).toEqual([{ kind: 'add_rule', rule: { kind: 'locked', cards: [{ id: 'qa' }] } }, { kind: 'set_rule', rule: 'rule-3', onConflict: 'stop' }])
   })
@@ -226,8 +226,8 @@ describe('a phrase changes the next drag (headless Dragology replay)', () => {
     const bar = g.bars.get('design')!
     const far = { x: bar.x + grab.x + g.dayW * 6, y: bar.y + grab.y }
     // It lands where the rules let it; the drop the rules refuse is the one set_task a "Move anyway" would make.
-    expect(launchPlanKit.refusalAt(plan, 'design', grab, far, { width: 1200 })).toEqual({ laneId: 'product', reason: 'QA would run until Tue 15 Dec; launch is Fri 11 Dec.', lands: true,
-      override: { edit: { kind: 'set_task', card: { id: 'design' }, lag: 5 }, to: expect.stringMatching(/^to start \w{3} \d+ \w{3}$/) } })
+    expect(launchPlanKit.refusalAt(plan, 'design', grab, far, { width: 1200 })).toEqual({ laneId: 'product', reason: 'QA would run until Tue, Dec 15; launch is Fri, Dec 11.', lands: true,
+      override: { edit: { kind: 'set_task', card: { id: 'design' }, lag: 5 }, to: expect.stringMatching(/^to start \w{3}, \w{3} \d+$/) } })
     expect(launchPlanKit.refusalAt(plan, 'design', grab, { x: bar.x + grab.x + g.dayW, y: bar.y + grab.y }, { width: 1200 })).toBeNull()
     const plain = validateWorkshop(sampleLaunchPlan())
     const p = launchLayout(plain, { width: 1200 }), pb = p.bars.get('design')!
@@ -248,8 +248,8 @@ describe('the go-live sample', () => {
   it('two tracks, Us and Customer, toward a go-live date', () => {
     const plan = validateWorkshop(goLiveSample(today))
     expect(plan.lanes.map(lane => lane.label)).toEqual(['Us', 'Customer'])
-    expect(behaviourLines(plan)).toContain('Go-live is a hard line: every task ends by Fri 18 Dec.')
-    expect(refused(plan, [{ kind: 'set_task', card: 'Configure', duration: 14 }])).toBe('Sign-off would run until Mon 21 Dec; go-live is Fri 18 Dec.')
+    expect(behaviourLines(plan)).toContain('Go-live is a hard line: every task ends by Fri, Dec 18.')
+    expect(refused(plan, [{ kind: 'set_task', card: 'Configure', duration: 14 }])).toBe('Sign-off would run until Mon, Dec 21; go-live is Fri, Dec 18.')
   })
 })
 
@@ -305,7 +305,7 @@ describe('the hiring plan with runway', () => {
     const june = dayFromWords(plan.clock!.origin, 'June')!
     const result = applyWorkshopEdits(plan, [{ kind: 'set_funding', day: june }], tim)
     // An earlier round changes nothing while cash lasts; a round that slips past it cuts runway to the cash alone.
-    expect('workshop' in result && result.report.edits[0].said).toBe('The round now closes Tue 1 Jun. Runway with these hires: 15.1 months.')
+    expect('workshop' in result && result.report.edits[0].said).toBe('The round now closes Tue, Jun 1. Runway with these hires: 15.1 months.')
     const slips = ok(plan, [{ kind: 'set_funding', day: dayFromWords(plan.clock!.origin, 'November')! }])
     expect(runwayMonths(slips)).toBeLessThan(10)
     expect(refused(rule(plan, { kind: 'deadline', at: 'runway', floor: 15 }), [{ kind: 'set_funding', day: dayFromWords(plan.clock!.origin, 'November')! }]))
@@ -358,11 +358,11 @@ describe('a note let go on a plan starts on the day under it', () => {
   })
 
   it('an empty note on a launch plan starts on the dropped day; a weekend is the Monday after; no day is the start, as before', () => {
-    const plan = launch() // starts Mon 23 Nov, working days, hard line on day 18
+    const plan = launch() // starts Mon, Nov 23, working days, hard line on day 18
     expect(landed(plan, 'product').from).toBe(0)
-    expect(landed(plan, 'product', 3.4).from).toBe(3) // Thu 26 Nov
-    expect(landed(plan, 'product', 9.9).from).toBe(9) // Wed 2 Dec
-    expect(landed(plan, 'product', 13).from).toBe(14) // Sun 6 Dec → Mon 7 Dec
+    expect(landed(plan, 'product', 3.4).from).toBe(3) // Thu, Nov 26
+    expect(landed(plan, 'product', 9.9).from).toBe(9) // Wed, Dec 2
+    expect(landed(plan, 'product', 13).from).toBe(14) // Sun, Dec 6 → Mon, Dec 7
   })
 
   it('past a hard line it lands on the last day the line lets it', () => {

@@ -44,8 +44,8 @@ describe('moving a card anyway', () => {
     expect(token.laneId).toBe('question')
     expect(token.override).toEqual({ by: 'Sam', at: sam.at, sentence, from: 'decide' })
     // Visible on the card: who and when, under its name.
-    expect(workshopOverrideLine(token)).toBe('Moved anyway by Sam · 23 Nov')
-    expect(workshopCardText(moved, token)).toBe('asdf\nMoved anyway by Sam · 23 Nov')
+    expect(workshopOverrideLine(token)).toBe('Moved anyway by Sam · Nov 23')
+    expect(workshopCardText(moved, token)).toBe('asdf\nMoved anyway by Sam · Nov 23')
     // A stored board keeps the mark.
     expect(validateWorkshop(JSON.parse(JSON.stringify(moved))).cards[0].override).toEqual(token.override)
   })

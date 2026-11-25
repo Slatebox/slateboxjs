@@ -47,7 +47,7 @@ describe('moving a card anyway on a sales pipeline', () => {
     // The stage is now past its limit of 3, and says so (drawn in red).
     expect(pipelineStageOver(moved, 'proposal')).toBe(true)
     expect(pipelineCaption(moved, 'proposal')).toMatch(/4 deals · .* · 60% · over its limit of 3$/)
-    expect(workshopCardText(moved, card(moved, 'northwind'))).toBe('Northwind\n$40k\nMoved anyway by Sam · 23 Nov')
+    expect(workshopCardText(moved, card(moved, 'northwind'))).toBe('Northwind\n$40k\nMoved anyway by Sam · Nov 23')
     // Undo: back to Lead is an ordinary move, and it takes the mark with it.
     const back = workshopCandidate(moved, 'northwind', 'lead')!
     expect(card(back, 'northwind').override).toBeUndefined()
@@ -201,7 +201,7 @@ describe('moving a card anyway on a nested board', () => {
     const moved = ok(made)
     expect(card(moved, 'csv-import')).toMatchObject({ parentId: 'outcome', override: { by: 'Tim', sentence: 'Solutions sit under an opportunity.', from: 'tree', was: { parentId: 'slow-onboarding' } } })
     expect('refused' in made ? '' : made.report.edits[0].said).toBe('Moved “CSV import” under “Activation to 40%” anyway. Solutions sit under an opportunity.')
-    expect(workshopCardText(moved, card(moved, 'csv-import'))).toMatch(/Moved anyway by Tim · 23 Nov$/)
+    expect(workshopCardText(moved, card(moved, 'csv-import'))).toMatch(/Moved anyway by Tim · Nov 23$/)
     // Undo: back under its opportunity, an ordinary move, without the mark.
     const back = ok(apply(moved, { kind: 'nest_card', card: 'CSV import', under: 'Onboarding is slow' }))
     expect(card(back, 'csv-import').override).toBeUndefined()

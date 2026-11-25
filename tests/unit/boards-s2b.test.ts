@@ -193,8 +193,8 @@ describe('a plan’s span, adjustable while the board is in focus', () => {
     expect(roles(root)).not.toContain('span-start')
     layer.draw(board, null, state(true))
     expect(roles(root)).toEqual(expect.arrayContaining(['span-start', 'span-end']))
-    expect(root.querySelector('[data-board-layer="span-start"]')!.textContent).toBe('Starts Mon 23 Nov')
-    expect(root.querySelector('[data-board-layer="span-end"]')!.textContent).toBe('Go-live Fri 18 Dec')
+    expect(root.querySelector('[data-board-layer="span-start"]')!.textContent).toBe('Starts Mon, Nov 23')
+    expect(root.querySelector('[data-board-layer="span-end"]')!.textContent).toBe('Go-live Fri, Dec 18')
     layer.destroy()
   })
 

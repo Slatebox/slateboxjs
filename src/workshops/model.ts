@@ -1007,12 +1007,12 @@ export function workshopStampOverrides(before: Workshop, after: Workshop, who: {
 }
 
 const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-/** What a card moved anyway says under its name: "Moved anyway by Sam · 23 Nov". */
+/** What a card moved anyway says under its name: "Moved anyway by Sam · Nov 23". */
 export function workshopOverrideLine(card: Pick<WorkshopCard, 'override'>): string | null {
   if (!card.override) return null
   // The day where it is read (the viewer's clock): a move made late in the evening is that evening's day, not UTC's.
   const when = new Date(card.override.at)
-  const day = Number.isNaN(when.getTime()) ? '' : ' · ' + when.getDate() + ' ' + months[when.getMonth()]
+  const day = Number.isNaN(when.getTime()) ? '' : ' · ' + months[when.getMonth()] + ' ' + when.getDate()
   return 'Moved anyway by ' + card.override.by + day
 }
 

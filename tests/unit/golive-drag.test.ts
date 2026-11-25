@@ -9,7 +9,7 @@ import { earliestLaunch, goLiveSample, hiringPlanSample, launchDayOn, launchPlan
 import { handleLabel, kitFor, launchLayout, launchPlanKit } from '../../src/boards'
 import '../../src/workshops/behaviour'
 
-const today = '2026-11-21' // plans start Monday 23 Nov: day 25 is Fri 18 Dec, 26 Sat 19, 28 Mon 21 Dec
+const today = '2026-11-21' // plans start Monday 23 Nov: day 25 is Fri, Dec 18, 26 Sat 19, 28 Mon, Dec 21
 const goLive = () => validateWorkshop(goLiveSample(today))
 const launch = () => validateWorkshop(launchPlanSample(today))
 const layout = { width: 1200 }
@@ -75,7 +75,7 @@ describe('dragging go-live later, past the chart’s end', () => {
   it('a launch plan in day numbers (no rules) and the library’s launch plan move the same way', () => {
     const plain = validateWorkshop(sampleLaunchPlan())
     expect(dragLine(plain, 3).result.next.launch!.day).toBe(17)
-    // Launch on Fri 11 Dec, a day right is the weekend: it lands on Monday 14 Dec.
+    // Launch on Fri, Dec 11, a day right is the weekend: it lands on Monday, Dec 14.
     expect(dragLine(launch(), 1).result.next.launch!.day).toBe(21)
   })
 
@@ -88,7 +88,7 @@ describe('dragging go-live later, past the chart’s end', () => {
 
   it('held at day 120, it says so', () => {
     const { result } = dragLine(goLive(), 200)
-    expect(result.next.launch!.day).toBe(120) // Tue 23 Mar
+    expect(result.next.launch!.day).toBe(120) // Tue, Mar 23
     expect(result.clampedReason).toBe('Launch day is at most day 120.')
     expect(result.refusal).toBeUndefined()
   })
@@ -97,12 +97,12 @@ describe('dragging go-live later, past the chart’s end', () => {
 describe('dragging go-live earlier: the hard line', () => {
   it('before the tasks end it is refused in the board’s sentence, with the earliest go-live that fits, shown there while held', () => {
     const plan = goLive()
-    expect(earliestLaunch(plan)).toBe(16) // Done Tue 8 Dec: go-live Wed 9 Dec at the earliest
-    const { result } = dragLine(plan, -11) // Mon 7 Dec
-    expect(result.refusal).toBe('Sign-off would run until Tue 8 Dec; go-live is Mon 7 Dec. The earliest go-live that fits is Wed 9 Dec.')
+    expect(earliestLaunch(plan)).toBe(16) // Done Tue, Dec 8: go-live Wed, Dec 9 at the earliest
+    const { result } = dragLine(plan, -11) // Mon, Dec 7
+    expect(result.refusal).toBe('Sign-off would run until Tue, Dec 8; go-live is Mon, Dec 7. The earliest go-live that fits is Wed, Dec 9.')
     expect(result.clampedReason).toBe(result.refusal)
     expect(result.next.launch!.day).toBe(16)
-    // Earlier but in time is fine: Fri 11 Dec.
+    // Earlier but in time is fine: Fri, Dec 11.
     expect(dragLine(plan, -7).result).toMatchObject({ next: { launch: { day: 18 } } })
     expect(dragLine(plan, -7).result.refusal).toBeUndefined()
   })
@@ -114,7 +114,7 @@ describe('dragging go-live earlier: the hard line', () => {
   })
 
   it('the chat and exec say the same: set_launch_day before the tasks end is refused with the earliest day', () => {
-    expect(refused(goLive(), [{ kind: 'set_launch_day', day: 14 }])).toBe('Sign-off would run until Tue 8 Dec; go-live is Mon 7 Dec. The earliest go-live that fits is Wed 9 Dec.')
+    expect(refused(goLive(), [{ kind: 'set_launch_day', day: 14 }])).toBe('Sign-off would run until Tue, Dec 8; go-live is Mon, Dec 7. The earliest go-live that fits is Wed, Dec 9.')
     expect(refused(validateWorkshop(sampleLaunchPlan()), [{ kind: 'set_launch_day', day: 11 }])).toBe('That pushes QA to day 12, after launch on day 11. The earliest launch that fits is day 12.')
   })
 })
@@ -135,27 +135,27 @@ describe('go-live lands on working days where weekends don’t count', () => {
     const right = launchPlanKit.keyEdit!(plan, 'handle-launch', { key: 'ArrowRight', shiftKey: false })!
     const later = applied(plan, right)
     expect(later.board.launch!.day).toBe(28)
-    expect(later.said).toBe('Go-live is now Mon 21 Dec: Sat 19 Dec is a weekend, and weekends don’t count on this plan.')
+    expect(later.said).toBe('Go-live is now Mon, Dec 21: Sat, Dec 19 is a weekend, and weekends don’t count on this plan.')
     const back = applied(later.board, launchPlanKit.keyEdit!(later.board, 'handle-launch', { key: 'ArrowLeft', shiftKey: false })!)
     expect(back.board.launch!.day).toBe(25)
-    expect(back.said).toBe('Go-live is now Fri 18 Dec: Sun 20 Dec is a weekend, and weekends don’t count on this plan.')
+    expect(back.said).toBe('Go-live is now Fri, Dec 18: Sun, Dec 20 is a weekend, and weekends don’t count on this plan.')
   })
 
   it('a drag that lets go on the weekend lands on a working day, toward where it was going', () => {
     const plan = goLive()
     expect(dragLine(plan, 1).result.next.launch!.day).toBe(28)
-    expect(dragLine(plan, -5).result.next.launch!.day).toBe(18) // Sun 13 Dec, coming earlier: Fri 11 Dec
+    expect(dragLine(plan, -5).result.next.launch!.day).toBe(18) // Sun, Dec 13, coming earlier: Fri, Dec 11
   })
 
   it('set_launch_day (the chat, exec) lands the same way; a working day is taken as said', () => {
     expect(applied(goLive(), [{ kind: 'set_launch_day', day: 26 }]).board.launch!.day).toBe(28)
-    expect(applied(goLive(), [{ kind: 'set_launch_day', day: 30 }]).said).toBe('Go-live is now Wed 23 Dec.')
+    expect(applied(goLive(), [{ kind: 'set_launch_day', day: 30 }]).said).toBe('Go-live is now Wed, Dec 23.')
     expect(applied(goLive(), [{ kind: 'set_launch_day', day: 32 }]).board.launch!.day).toBe(32)
     expect(moveLaunch(goLive(), 27)).toMatchObject({ day: 28, refusal: null })
   })
 
   it('the grip says the line’s name and date to a screen reader', () => {
-    expect(handleLabel(goLive(), 'handle-launch')).toBe('Go-live, Fri 18 Dec. Left and Right move it.')
+    expect(handleLabel(goLive(), 'handle-launch')).toBe('Go-live, Fri, Dec 18. Left and Right move it.')
     expect(handleLabel(validateWorkshop(sampleLaunchPlan()), 'handle-launch')).toBe('Launch day, day 14. Left and Right move it.')
   })
 })
@@ -219,7 +219,7 @@ describe('an attached go-live board, through its drag policy', () => {
       if (!at.narrow) expect(row().width).toBeGreaterThan(g.width)
       slate.policy.onEnd(node, { x: from.x + 3 * g.dayW, y: from.y }, {})
       expect(changes.map(change => change.edits)).toEqual([[{ kind: 'set_launch_day', day: 28 }]])
-      expect(said.at(-1)).toBe('Go-live is now Mon 21 Dec.')
+      expect(said.at(-1)).toBe('Go-live is now Mon, Dec 21.')
       await attached.whenDrawn()
       // Let go, the plan fits its width again.
       if (!at.narrow) expect(row().width).toBe(g.width)
@@ -229,7 +229,7 @@ describe('an attached go-live board, through its drag policy', () => {
       expect(slate.policy.onStart(node2, from2, {})).toBe(true)
       slate.policy.onMove(node2, back, {})
       slate.policy.onEnd(node2, back, {})
-      expect(refusals.at(-1)).toBe('Sign-off would run until Tue 8 Dec; go-live is Mon 7 Dec. The earliest go-live that fits is Wed 9 Dec.')
+      expect(refusals.at(-1)).toBe('Sign-off would run until Tue, Dec 8; go-live is Mon, Dec 7. The earliest go-live that fits is Wed, Dec 9.')
       expect(attached.value.launch!.day).toBe(28)
       expect(changes.length).toBe(1)
       await attached.whenDrawn()

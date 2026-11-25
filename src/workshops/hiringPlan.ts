@@ -150,7 +150,7 @@ export const hiringPlanRules: BusinessBoardRules = {
     const hires = board.cards.filter(card => card.laneId === laneId)
     return hires.length + (hires.length === 1 ? ' hire' : ' hires')
   },
-  cardText: (board, card) => card.label + ' · ' + dateName(board.clock!.origin, hireStarts(board, card.id)).replace(/^\w+ /, ''),
+  cardText: (board, card) => card.label + ' · ' + dateName(board.clock!.origin, hireStarts(board, card.id)).replace(/^\w+, /, ''),
   noteText: (_board, card) => card.label,
   fromNote(_board, text, unnamed) {
     const label = text.replace(/\s+/g, ' ').trim() || unnamed

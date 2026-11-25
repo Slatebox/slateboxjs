@@ -79,7 +79,7 @@ describe('a dragged edge, in the board’s own days', () => {
     const late = dragTaskEdge(plan, 'configure', 'end', 13)
     expect(late.values.duration).toBe(14)
     expect(late.next).toBeNull()
-    expect(late.refusal).toBe('Sign-off would run until Mon 21 Dec; go-live is Fri 18 Dec.')
+    expect(late.refusal).toBe('Sign-off would run until Mon, Dec 21; go-live is Fri, Dec 18.')
     const slip = dragTaskEdge(plan, 'configure', 'end', 1).next!
     expect(task(slip, 'configure').duration).toBe(6)
     expect(times(slip, 'train').start).toBe(times(plan, 'train').start + 1)
@@ -149,7 +149,7 @@ describe('the grips on the canvas', () => {
     const g = launchLayout(plan, layout)
     const end = launchPlanKit.handleDrag(plan, 'handle-configure', grab, layout)!
     const past = end(pointer(plan, 'handle-configure', 13 * g.dayW))
-    expect(past.refusal).toBe('Sign-off would run until Mon 21 Dec; go-live is Fri 18 Dec.')
+    expect(past.refusal).toBe('Sign-off would run until Mon, Dec 21; go-live is Fri, Dec 18.')
     // On show while held: the nearest length the rules take, Sign-off ending by go-live.
     expect(scheduleLaunch(past.next).get('signoff')!.to).toBeLessThanOrEqual(25)
   })
@@ -165,7 +165,7 @@ describe('the grips on the canvas', () => {
 
   it('keys and screen readers: the start grip has its name, and Left and Right move the start with the end kept', () => {
     const plan = goLive()
-    expect(handleLabel(plan, startHandle('configure'))).toBe('Configure start, Fri 27 Nov. Left and Right move it; the end stays.')
+    expect(handleLabel(plan, startHandle('configure'))).toBe('Configure start, Fri, Nov 27. Left and Right move it; the end stays.')
     expect(launchPlanKit.keyEdit!(plan, startHandle('configure'), { key: 'ArrowRight', shiftKey: false }))
       .toEqual([{ kind: 'set_task', card: { id: 'configure' }, duration: 4, lag: 1 }])
   })

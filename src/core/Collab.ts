@@ -332,6 +332,9 @@ export class Collab {
         ((await import(/* @vite-ignore */ "y-websocket" as any)) as any)
           .WebsocketProvider;
 
+      // The slate was destroyed while the modules loaded (the page navigated away): nothing to join.
+      if (!this.slate?.options) return;
+
       // Create Y.Doc
       this.doc = new Y.Doc();
       this.clientID = this.doc.clientID;
@@ -352,6 +355,12 @@ export class Collab {
             error
           );
         }
+      }
+      // Destroyed while the host was asked (a quick Back from a new slate): connect nothing.
+      if (!this.slate?.options) {
+        this.doc?.destroy?.();
+        this.doc = null as any;
+        return;
       }
       if (userBaseData) {
         this.userBaseData = userBaseData;

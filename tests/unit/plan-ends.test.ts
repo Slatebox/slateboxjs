@@ -10,7 +10,7 @@ import { handleLabel, launchLayout, launchPlanKit, pipelineKit, pipelineLayout }
 import { isoAt } from '../../src/workshops/calendar'
 import '../../src/workshops/behaviour'
 
-const today = '2026-11-21' // plans start Monday 23 Nov; go-live is Fri 18 Dec (day 25)
+const today = '2026-11-21' // plans start Monday 23 Nov; go-live is Fri, Dec 18 (day 25)
 const goLive = () => validateWorkshop(goLiveSample(today))
 const hiring = () => validateWorkshop(hiringPlanSample(today))
 const layout = { width: 1200 }
@@ -44,7 +44,7 @@ describe('a plan’s first day, moved both ways', () => {
     expect(dates(board)).toEqual(dates(plan))
     expect(lineDate(board)).toBe('2026-12-18')
     expect(board.launch!.day).toBe(32)
-    expect(said).toBe('The plan now starts Mon 16 Nov.')
+    expect(said).toBe('The plan now starts Mon, Nov 16.')
   })
 
   it('later: the tasks that started before the new first day start on it, what waits on them moves with them', () => {
@@ -57,8 +57,8 @@ describe('a plan’s first day, moved both ways', () => {
 
   it('refused when the tasks would no longer fit, with the latest first day that does; nothing changes', () => {
     expect(refused(goLive(), [{ kind: 'set_plan_start', start: '2026-12-03' }]))
-      .toBe('Sign-off would run until Fri 18 Dec; go-live is Fri 18 Dec. The latest first day that fits is Wed 2 Dec.')
-    expect(movePlanStart(goLive(), 21).refusal).toBe('A plan runs at least 5 days to go-live. The latest first day that fits is Wed 2 Dec.')
+      .toBe('Sign-off would run until Fri, Dec 18; go-live is Fri, Dec 18. The latest first day that fits is Wed, Dec 2.')
+    expect(movePlanStart(goLive(), 21).refusal).toBe('A plan runs at least 5 days to go-live. The latest first day that fits is Wed, Dec 2.')
   })
 
   it('a locked task is never slid by it', () => {
@@ -71,7 +71,7 @@ describe('a plan’s first day, moved both ways', () => {
 
   it('lands on a working day where weekends don’t count: later on the Monday, earlier on the Friday', () => {
     expect(movePlanStart(goLive(), 5).by).toBe(7)
-    expect(applied(goLive(), [{ kind: 'set_plan_start', start: '2026-11-22' }]).said).toBe('The plan now starts Fri 20 Nov (Sun 22 Nov is a weekend).')
+    expect(applied(goLive(), [{ kind: 'set_plan_start', start: '2026-11-22' }]).said).toBe('The plan now starts Fri, Nov 20 (Sun, Nov 22 is a weekend).')
   })
 
   it('a plan in day numbers has no first day to move', () => {
@@ -94,13 +94,13 @@ describe('a plan’s first day, moved both ways', () => {
     expect(checkWorkshopReplacement(plan, { ...plan, clock: { origin: '2026-11-16' } })).toBe('A plan keeps its first day. Move tasks, or launch, instead.')
     // Dragged too far right: refused in the board’s sentence, the plan as it was.
     const late = dragPart(plan, FIRST, 14).result
-    expect(late.refusal).toMatch(/^Sign-off would run until .*The latest first day that fits is Wed 2 Dec\.$/)
+    expect(late.refusal).toMatch(/^Sign-off would run until .*The latest first day that fits is Wed, Dec 2\.$/)
     expect(late.next).toBe(plan)
   })
 
   it('its keys and its name: Left is a working day earlier', () => {
     const plan = goLive()
-    expect(handleLabel(plan, FIRST)).toBe('First day, Mon 23 Nov. Left and Right move it; every task keeps its dates.')
+    expect(handleLabel(plan, FIRST)).toBe('First day, Mon, Nov 23. Left and Right move it; every task keeps its dates.')
     const left = launchPlanKit.keyEdit!(plan, FIRST, { key: 'ArrowLeft', shiftKey: false })!
     expect(applied(plan, left).board.clock!.origin).toBe('2026-11-20')
     const right = launchPlanKit.keyEdit!(plan, FIRST, { key: 'ArrowRight', shiftKey: false })!
@@ -131,10 +131,10 @@ describe('a hiring plan’s two ends, in weeks', () => {
     const longer = dragPart(plan, LAST, 4 * 7).result
     expect(longer.next.hiring!.weeks).toBe(56)
     expect(launchPlanKit.editsBetween(plan, longer.next)).toEqual([{ kind: 'set_plan_weeks', weeks: 56 }])
-    expect(applied(plan, [{ kind: 'set_plan_weeks', weeks: 56 }]).said).toBe('The plan now runs 56 weeks, to Sun 19 Dec.')
+    expect(applied(plan, [{ kind: 'set_plan_weeks', weeks: 56 }]).said).toBe('The plan now runs 56 weeks, to Sun, Dec 19.')
     const shorter = dragPart(plan, LAST, -30 * 7).result
-    expect(shorter.refusal).toBe('AE #2 starts Mon 10 May, after the plan’s last week.')
-    expect(refused(plan, [{ kind: 'set_plan_weeks', weeks: 20 }])).toBe('AE #2 starts Mon 10 May, after the plan’s last week.')
+    expect(shorter.refusal).toBe('AE #2 starts Mon, May 10, after the plan’s last week.')
+    expect(refused(plan, [{ kind: 'set_plan_weeks', weeks: 20 }])).toBe('AE #2 starts Mon, May 10, after the plan’s last week.')
     expect(launchPlanKit.keyEdit!(plan, LAST, { key: 'ArrowLeft', shiftKey: false })).toEqual([{ kind: 'set_plan_weeks', weeks: 51 }])
     // On a phone a hiring plan is read-only: neither end has a grip.
     expect(launchLayout(plan, { narrow: true, width: 358 }).parts.some(part => part.name === FIRST || part.name === LAST)).toBe(false)
