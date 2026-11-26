@@ -5772,7 +5772,7 @@ function Xc(n, t) {
       } catch {
       }
     };
-    return a(e.connector), a(e.hitArea), a(e.sourceHandle && e.sourceHandle.element), a(e.sourceHandle && e.sourceHandle.glyph), a(e.targetHandle && e.targetHandle.element), a(e.targetHandle && e.targetHandle.glyph), a(e.markerSource), a(e.markerTarget), a(e._sourcePhantomRect), a(e._targetPhantomRect), a(e.label), a(e.labelBg), e;
+    return a(e.connector), a(e.hitArea), a(e.sourceHandle && e.sourceHandle.element), a(e.sourceHandle && e.sourceHandle.glyph), a(e.targetHandle && e.targetHandle.element), a(e.targetHandle && e.targetHandle.glyph), a(e.markerSource && e.markerSource.element), a(e.markerTarget && e.markerTarget.element), e.markerSource = null, e.markerTarget = null, a(e._sourcePhantomRect), a(e._targetPhantomRect), a(e.label), a(e.labelBg), e;
   }, e.getCurrentAnchor = function(a) {
     const l = a === "source" ? e.source : e.target, c = a === "source" ? e.target : e.source;
     if (!l || !l.bbox || !c) return { x: 0.5, y: 0.5 };
@@ -7173,7 +7173,7 @@ class fh {
       }
   }
 }
-const $ = {}, ph = () => $.lineTool ?? null, mh = async () => $.lineTool ?? ($.lineTool = await import("./canvas-LineTool-DeQE8Uam.mjs")), gh = () => $.birdsEye ?? null, yh = async () => $.birdsEye ?? ($.birdsEye = await import("./canvas-BirdsEye-DYz1-EM8.mjs")), bh = () => $.undoRedo ?? null, vh = async () => $.undoRedo ?? ($.undoRedo = await import("./canvas-UndoRedo-z9XLULI5.mjs")), wh = () => $.mediaInput ?? null, xh = async () => $.mediaInput ?? ($.mediaInput = await import("./canvas-MediaInput-CsJEkeUM.mjs")), _h = () => $.contextMenu ?? null, Ch = async () => $.contextMenu ?? ($.contextMenu = await import("./canvas-ContextMenu-5pGOnaev.mjs")), Eh = () => $.keyboard ?? null, Sh = async () => $.keyboard ?? ($.keyboard = await import("./canvas-Keyboard-Ch5JQB_2.mjs")), Ah = () => $.presentation ?? null, Mh = async () => $.presentation ?? ($.presentation = await import("./canvas-Presentation-ydUBNUZh.mjs")), Th = () => $.mediaNote ?? null, Rh = async () => $.mediaNote ?? ($.mediaNote = await import("./canvas-MediaNote-afRCQoQe.mjs")), qe = /* @__PURE__ */ new Set(), Qt = /* @__PURE__ */ new Map(), kh = /* @__PURE__ */ new Set([
+const $ = {}, ph = () => $.lineTool ?? null, mh = async () => $.lineTool ?? ($.lineTool = await import("./canvas-LineTool-BLf6GjMD.mjs")), gh = () => $.birdsEye ?? null, yh = async () => $.birdsEye ?? ($.birdsEye = await import("./canvas-BirdsEye-B0ndoLHS.mjs")), bh = () => $.undoRedo ?? null, vh = async () => $.undoRedo ?? ($.undoRedo = await import("./canvas-UndoRedo-CjRXf780.mjs")), wh = () => $.mediaInput ?? null, xh = async () => $.mediaInput ?? ($.mediaInput = await import("./canvas-MediaInput-C42yBlg8.mjs")), _h = () => $.contextMenu ?? null, Ch = async () => $.contextMenu ?? ($.contextMenu = await import("./canvas-ContextMenu-DILuXh5v.mjs")), Eh = () => $.keyboard ?? null, Sh = async () => $.keyboard ?? ($.keyboard = await import("./canvas-Keyboard-vO105Wsk.mjs")), Ah = () => $.presentation ?? null, Mh = async () => $.presentation ?? ($.presentation = await import("./canvas-Presentation-ydUBNUZh.mjs")), Th = () => $.mediaNote ?? null, Rh = async () => $.mediaNote ?? ($.mediaNote = await import("./canvas-MediaNote-afRCQoQe.mjs")), qe = /* @__PURE__ */ new Set(), Qt = /* @__PURE__ */ new Map(), kh = /* @__PURE__ */ new Set([
   "arial",
   "arial, sans-serif",
   "helvetica",

@@ -1,8 +1,8 @@
 {
   "name": "slateboxjs",
   "version": "3.1.3",
-  "commit": "8a07db56b8871461c526d2b8d6f815193b195a6e",
+  "commit": "8107c525d454cc605fea55a39781873fc7d147f2",
   "branch": "fix/revert-stale-handles",
   "dirty": false,
-  "builtAt": "2026-11-26T02:34:16.750Z"
+  "builtAt": "2026-11-26T04:35:48.729Z"
 }

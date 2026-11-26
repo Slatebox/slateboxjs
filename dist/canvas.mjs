@@ -1,4 +1,4 @@
-import { A as s, e as t, h as i, f as A, i as T } from "./canvas-canvas-e7qaju8s.mjs";
+import { A as s, e as t, h as i, f as A, i as T } from "./canvas-canvas-CxBRl2gR.mjs";
 export {
   s as AGENT_PALETTE,
   t as Slate,
