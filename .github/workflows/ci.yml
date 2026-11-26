@@ -11,8 +11,11 @@ jobs:
     runs-on: ubuntu-latest
 
     strategy:
+      # Each Node version reports on its own: one red job never cancels the others.
+      fail-fast: false
       matrix:
-        node-version: [18, 20, 22]
+        # Node 18 and 20 are end-of-life; package.json engines is >=22.
+        node-version: [22, 24]
 
     steps:
       - uses: actions/checkout@v4
@@ -32,11 +35,20 @@ jobs:
       - name: Unit tests
         run: npm test
 
+      - name: Node tests
+        run: npm run test:node
+
       - name: Build
         run: npm run build
 
       - name: Verify packed consumer install and types
         run: npm run verify:package
+
+      # Bundle ceilings (scripts/check-bundle-budget.mjs). Reported on every run; it becomes a
+      # blocking step once the ceilings are re-baselined or the bundles trimmed back under them.
+      - name: Bundle budget (informational)
+        run: npm run check:budget
+        continue-on-error: true
 
       - name: Install Playwright browsers
         run: npx playwright install chromium --with-deps
