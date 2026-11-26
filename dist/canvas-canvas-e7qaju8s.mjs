@@ -7173,7 +7173,7 @@ class fh {
       }
   }
 }
-const $ = {}, ph = () => $.lineTool ?? null, mh = async () => $.lineTool ?? ($.lineTool = await import("./canvas-LineTool-D0oeO-nA.mjs")), gh = () => $.birdsEye ?? null, yh = async () => $.birdsEye ?? ($.birdsEye = await import("./canvas-BirdsEye-DTo8GCtg.mjs")), bh = () => $.undoRedo ?? null, vh = async () => $.undoRedo ?? ($.undoRedo = await import("./canvas-UndoRedo-DNUYs26b.mjs")), wh = () => $.mediaInput ?? null, xh = async () => $.mediaInput ?? ($.mediaInput = await import("./canvas-MediaInput-QPovdYUr.mjs")), _h = () => $.contextMenu ?? null, Ch = async () => $.contextMenu ?? ($.contextMenu = await import("./canvas-ContextMenu-Bb2TqsXa.mjs")), Eh = () => $.keyboard ?? null, Sh = async () => $.keyboard ?? ($.keyboard = await import("./canvas-Keyboard-MaQSoaY6.mjs")), Ah = () => $.presentation ?? null, Mh = async () => $.presentation ?? ($.presentation = await import("./canvas-Presentation-ydUBNUZh.mjs")), Th = () => $.mediaNote ?? null, Rh = async () => $.mediaNote ?? ($.mediaNote = await import("./canvas-MediaNote-afRCQoQe.mjs")), qe = /* @__PURE__ */ new Set(), Qt = /* @__PURE__ */ new Map(), kh = /* @__PURE__ */ new Set([
+const $ = {}, ph = () => $.lineTool ?? null, mh = async () => $.lineTool ?? ($.lineTool = await import("./canvas-LineTool-DeQE8Uam.mjs")), gh = () => $.birdsEye ?? null, yh = async () => $.birdsEye ?? ($.birdsEye = await import("./canvas-BirdsEye-DYz1-EM8.mjs")), bh = () => $.undoRedo ?? null, vh = async () => $.undoRedo ?? ($.undoRedo = await import("./canvas-UndoRedo-z9XLULI5.mjs")), wh = () => $.mediaInput ?? null, xh = async () => $.mediaInput ?? ($.mediaInput = await import("./canvas-MediaInput-CsJEkeUM.mjs")), _h = () => $.contextMenu ?? null, Ch = async () => $.contextMenu ?? ($.contextMenu = await import("./canvas-ContextMenu-5pGOnaev.mjs")), Eh = () => $.keyboard ?? null, Sh = async () => $.keyboard ?? ($.keyboard = await import("./canvas-Keyboard-Ch5JQB_2.mjs")), Ah = () => $.presentation ?? null, Mh = async () => $.presentation ?? ($.presentation = await import("./canvas-Presentation-ydUBNUZh.mjs")), Th = () => $.mediaNote ?? null, Rh = async () => $.mediaNote ?? ($.mediaNote = await import("./canvas-MediaNote-afRCQoQe.mjs")), qe = /* @__PURE__ */ new Set(), Qt = /* @__PURE__ */ new Map(), kh = /* @__PURE__ */ new Set([
   "arial",
   "arial, sans-serif",
   "helvetica",
@@ -11222,8 +11222,28 @@ class Od {
     const r = e.map((a) => s.has(a) ? i[o++] : a);
     this.nodes = new Map(r.map((a) => [a, this.nodes.get(a)])), this.nodes.forEach((a) => a.svgGroup?.front?.());
   }
+  /**
+   * Take every note off the slate (a whole-slate replace: load, undo/redo, a style worn,
+   * switched, removed or reverted, a replace from the room; or the slate going away). Each note
+   * leaves as remove() lets one go, less the per-line bookkeeping (every note is going): its lines
+   * are taken down with everything they drew outside the note, the end handles and arrowheads in
+   * the slate's shared markers layer too (removing the note's group alone left those behind, one
+   * more set of orphan end dots per replace), and it leaves the selection, so no outline, plug or
+   * cog stays round empty canvas. Nothing is broadcast or recorded: the replace is the change.
+   */
   clear() {
-    this.allNodes.forEach((t) => t.remove()), this.nodes.clear();
+    const t = this.slate, e = this.allNodes;
+    e.length && t?.clearLineCog?.(), e.forEach((i) => {
+      try {
+        t?.getSelectedNodes?.()?.includes?.(i) && t.deselectNode?.(i);
+      } catch {
+      }
+      try {
+        i.connector?.disconnectAll?.();
+      } catch {
+      }
+      i.remove();
+    }), this.nodes.clear();
   }
   /** Destroy the nodes manager, clearing all nodes */
   destroy() {

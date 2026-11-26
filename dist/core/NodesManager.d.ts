@@ -27,6 +27,15 @@ export declare class NodesManager {
      * the list, the last note on top.
      */
     applyOrder(order: string[]): void;
+    /**
+     * Take every note off the slate (a whole-slate replace: load, undo/redo, a style worn,
+     * switched, removed or reverted, a replace from the room; or the slate going away). Each note
+     * leaves as remove() lets one go, less the per-line bookkeeping (every note is going): its lines
+     * are taken down with everything they drew outside the note, the end handles and arrowheads in
+     * the slate's shared markers layer too (removing the note's group alone left those behind, one
+     * more set of orphan end dots per replace), and it leaves the selection, so no outline, plug or
+     * cog stays round empty canvas. Nothing is broadcast or recorded: the replace is the change.
+     */
     clear(): void;
     /** Destroy the nodes manager, clearing all nodes */
     destroy(): void;
