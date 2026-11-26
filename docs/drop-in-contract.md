@@ -2,7 +2,7 @@
 
 This is the compatibility contract slateboxjs-v2 must satisfy to replace `slateboxjs@^2.4.0`
 (the Raphael-era library at `~/Projects/node/slateboxjs`, npm name `slateboxjs`) inside the
-Canonical Meteor 3.5 app at `~/Projects/node/app.slatebox.com` (based on https://github.com/Slatebox/slatebox-app). The older `~/Projects/node/slatebox` checkout is reference-only; current convergence is tracked in `docs/productionization-ledger.md`.
+Canonical Meteor 3.5 app at `~/Projects/node/app.slatebox.com` (based on https://github.com/Slatebox/slatebox-app). The older `~/Projects/node/slatebox` checkout is reference-only; current convergence is tracked in `docs/archive/productionization-ledger.md`.
 
 It was derived by auditing all 13 files in the Meteor app that `import { Slatebox } from 'slateboxjs'`:
 `imports/api/client/createSlate.js`, `imports/api/common/ai.js`, `imports/ui/pages/Canvas.jsx`,
@@ -239,7 +239,7 @@ the way — most critically: collab could never load yjs in a browser
 `getTextWidth`/`createMultiLineText` had wrong signatures that would have
 broken the AI flows.
 
-**Current follow-through:** the local Meteor swap and real collab-server check were executed in iteration 15. The library and canonical Meteor 3.5 app are now remotely recoverable as draft PRs [Slatebox/slateboxjs-v2#2](https://github.com/Slatebox/slateboxjs-v2/pull/2) and [Slatebox/slatebox-app#33](https://github.com/Slatebox/slatebox-app/pull/33). Remaining release coordination is review, replacement of the local tarball with an immutable package, production-like smoke/rollback proof, and the user-reserved `npm publish` of `slateboxjs@3.0.0`. Product-level convergence is tracked in `docs/productionization-ledger.md`.
+**Current follow-through:** the local Meteor swap and real collab-server check were executed in iteration 15. The library and canonical Meteor 3.5 app are now remotely recoverable as draft PRs [Slatebox/slateboxjs-v2#2](https://github.com/Slatebox/slateboxjs-v2/pull/2) and [Slatebox/slatebox-app#33](https://github.com/Slatebox/slatebox-app/pull/33). Remaining release coordination is review, replacement of the local tarball with an immutable package, production-like smoke/rollback proof, and the user-reserved `npm publish` of `slateboxjs@3.0.0`. Product-level convergence is tracked in `docs/archive/productionization-ledger.md`.
 
 | Date | Iteration notes |
 |------|-----------------|

@@ -183,7 +183,7 @@ test.describe("rotate overlay + plug-dots follow the rotated node", () => {
       const r1 = Math.hypot(v1.x, v1.y);
       // The rotate KNOB's resting placement is svg.select.js legacy geometry:
       // it is positioned above the bbox top edge, it does NOT orbit rigidly,
-      // and its resting radius varies with the shape (ROTATION_HANDLE_FIX.md:
+      // and its resting radius varies with the shape (docs/archive/ROTATION_HANDLE_FIX.md:
       // "current resize/rotate interaction is intentionally retained"). So the
       // knob only gets loose bounds: it moved with the rotation and stayed in
       // the neighborhood. (A detached overlay at the end of a rotate loses the

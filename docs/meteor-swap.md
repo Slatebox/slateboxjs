@@ -109,7 +109,7 @@ following on one persisted slate:
 4. readiness and liveness endpoints; and
 5. image and presentation paths used by the canonical app.
 
-Use `docs/production-candidate-runbook.md` for the test-first deployment,
+Use `docs/archive/production-candidate-runbook.md` for the test-first deployment,
 evidence record, and Kubernetes rollback procedure. Do not publish, merge,
 push an image, or mutate the cluster without the corresponding release
 authorization.
