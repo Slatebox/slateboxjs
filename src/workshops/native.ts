@@ -376,6 +376,12 @@ export interface AttachedWorkshop {
    * out by the frame while the board is in focus or a draft. What a host fits to, so the title is never cut off.
    */
   readonly frame: { x: number; y: number; width: number; height: number }
+  /**
+   * The frame as the chrome is drawn at a zoom: zoomed out, the title row and legend grow (chromeScaleAt), so they reach
+   * further above the board than `frame` (taken at 100%) says. A host fitting the view at a zoom under 75% fits to this,
+   * so the title is not cut off under whatever sits over the canvas's top edge.
+   */
+  frameAt(zoom: number): { x: number; y: number; width: number; height: number }
   /** Resolves once the artwork for the current model is on the slate. */
   whenDrawn(): Promise<void>
   /**
@@ -2798,6 +2804,14 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       // grows once the view is zoomed out, so the box never depends on the view it is about to set. A frame's tags are
       // taken at their size at 100% (on a phone, a finger's).
       const box = boardChromeBox(value, { width, height }, { ...chromeOptions(), scale: 1, tagScale: chromeTagScaleAt(1, narrowNow() && !draft) })
+      return { x: origin.x + box.x, y: origin.y + box.y, width: box.width, height: box.height }
+    },
+    frameAt(zoom: number) {
+      const { width, height } = geometry(value)
+      if (!chrome) return { x: origin.x, y: origin.y, width, height }
+      // A still picture's chrome keeps its size (chromeScalesNow).
+      const k = still ? 1 : chromeScaleAt(zoom)
+      const box = boardChromeBox(value, { width, height }, { ...chromeOptions(), scale: k, tagScale: still ? 1 : Math.round(chromeTagScaleAt(zoom, narrowNow() && !draft, k) * 20) / 20 })
       return { x: origin.x + box.x, y: origin.y + box.y, width: box.width, height: box.height }
     },
     get focused() { return focused },

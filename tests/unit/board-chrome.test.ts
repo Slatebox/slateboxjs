@@ -246,6 +246,13 @@ describe('the chrome on a live board', () => {
     // The frame grows upward by the title row; the bounds stay the board's.
     expect(board.bounds.y).toBe(200)
     expect(board.frame.y).toBeLessThan(200 - 40)
+    // Zoomed out the title row and legend are drawn larger (chromeScaleAt): the frame at that zoom reaches further
+    // up, so a host fitting a tall board at 40% keeps the title on screen. At 75% or more it is the frame at 100%.
+    expect(board.frameAt(1)).toEqual(board.frame)
+    expect(board.frameAt(0.75)).toEqual(board.frame)
+    const far = board.frameAt(0.4)
+    expect(far.y).toBeLessThan(board.frame.y - 20)
+    expect(far.y + far.height).toBe(board.frame.y + board.frame.height)
     board.setFocused(true)
     expect(under.hasAttribute('data-workshop-focused')).toBe(true)
     expect(under.querySelector('[data-board-layer="focus-frame"]')).toBeTruthy()

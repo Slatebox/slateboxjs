@@ -366,20 +366,20 @@ export function gridCaption(board: Board, laneId: string): string {
     ...(needs.length ? ['Needs ' + listed(needs)] : [])].join(' · ')
 }
 
-/** What a tile says on the page: a question's words under its name, a word bank's words, a picture its words when it has none. */
+/**
+ * What a tile says on the page: its own words and nothing else. A tile's name (its label) is what the sheet calls it
+ * ("B column number square"); it is printed only when the tile has no words of its own. A word bank its words, a
+ * picture its words when it has no picture.
+ */
 export function gridCardText(_board: Board, card: WorkshopCard): string {
   const tile = card.tile
   if (!tile) return card.label
-  // A name its words already say ("What fraction is shaded?" over "What fraction is shaded? The circle …") is said once.
-  const plain = (text: string) => text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim()
-  const named = (body: string | undefined) => body ? (plain(body).startsWith(plain(card.label)) ? body : card.label + '\n' + body) : card.label
+  const own = (body: string | undefined) => body?.trim() ? body : card.label
   switch (tile.type) {
-    case 'question': case 'speech': return named(tile.body)
-    case 'text': return tile.body ?? card.label
-    case 'word-bank': return plain(card.label) === plain((tile.words ?? []).join(' ')) ? (tile.words ?? []).join(' · ') : card.label + '\n' + (tile.words ?? []).join(' · ')
+    case 'word-bank': return (tile.words ?? []).length ? (tile.words ?? []).join(' · ') : card.label
     case 'image': case 'diagram': return tile.image?.src ? '' : tile.image?.alt ?? card.label
     case 'answer-lines': return card.label
-    default: return named(tile.body)
+    default: return own(tile.body)
   }
 }
 
@@ -422,7 +422,7 @@ export function gridPrintProblems(board: Board, pageIds?: string[]): string[] {
     const needs = gridNeeds(board, page.id)
     if (needs.length) out.push(page.label + ' needs ' + listed(needs) + '.')
     for (const card of readingOrder(board).filter(item => item.laneId === page.id)) {
-      if ((card.tile?.type === 'image' || card.tile?.type === 'sticker') && !card.tile.image?.src) out.push(said(card.label) + ' on ' + page.label + ' has no picture yet: it prints as an empty frame.')
+      if ((card.tile?.type === 'image' || card.tile?.type === 'diagram') && !card.tile.image?.src) out.push(said(card.label) + ' on ' + page.label + ' has no picture yet: it prints as an empty frame.')
       if (card.tile?.type === 'qr' && !card.tile.link) out.push(said(card.label) + ' on ' + page.label + ' has no web address, so it prints no code.')
     }
   }
@@ -451,8 +451,8 @@ function extend(more: { kinds: WorkshopEditKind[]; boards: Partial<Record<Worksh
   Object.assign(workshopRuleSchema.keys, more.rules.keys)
 }
 const tileFields = {
-  label: text(80, 'What the tile is called (a heading’s words, a question’s name). Left out, its kind: “Heading”.'),
-  body: text(600, 'Its words: a text block’s text, a question’s question, how many answer lines. Line breaks are kept.'),
+  label: text(80, 'What the tile is called in the tray and in chat (“Adding fractions”). It prints only on a tile with no words of its own. Left out, its kind: “Heading”.'),
+  body: text(600, 'Its words, which are all a page prints of it: a heading’s title, a text block’s text, a question’s question, a term and its meaning on two lines, how many answer lines. Line breaks are kept.'),
   words: { type: 'words' as const, min: 3, max: 24, each: 40, optional: true, about: 'A word bank’s words, 3 to 24.' },
   image: { type: 'image' as const, optional: true, about: 'A picture it shows (src and alt). Left out, an image tile is an empty frame that prints its words.' },
   alt: text(120, 'What the picture shows, for an empty frame.'),
@@ -785,10 +785,10 @@ const letter = (rows: number, cols: number, gutter = 0.125): GridFields => ({ pa
 /** A worksheet: a heading, questions with answer lines and a word bank, on a Letter page of 6 by 2 cells. */
 export function worksheetSample(): Board {
   return gridSheet('Fractions practice', letter(6, 2), [
-    ['Heading', { type: 'heading', body: 'Name: ______  Date: ______' }], ['Question', { type: 'question', body: 'What is 1/2 + 1/4?' }],
+    ['Heading', { type: 'heading', body: 'Worksheet\nName: ______  Date: ______' }], ['Question', { type: 'question', body: 'What is 1/2 + 1/4?' }],
     ['Answer lines', { type: 'answer-lines', body: '3' }], ['Word bank', { type: 'word-bank', words: ['numerator', 'denominator', 'equivalent'] }],
   ], [
-    ['Fractions practice', { type: 'heading', body: 'Name: ______  Date: ______' }, { row: 0, col: 0, cols: 2 }],
+    ['Fractions practice', { type: 'heading', body: 'Fractions practice\nName: ______  Date: ______' }, { row: 0, col: 0, cols: 2 }],
     ['Adding fractions', { type: 'question', body: 'What is 1/2 + 1/4?' }, { row: 1, col: 0 }], ['Show your work', { type: 'answer-lines', body: '3' }, { row: 1, col: 1 }],
     ['Shade the bar', { type: 'question', body: 'Shade 3/8 of a bar split into 8 equal parts.' }, { row: 2, col: 0 }], ['Your answer', { type: 'answer-lines', body: '2' }, { row: 2, col: 1 }],
     ['Compare', { type: 'question', body: 'Which is larger, 2/3 or 3/5? Explain how you know.' }, { row: 3, col: 0 }],
@@ -814,8 +814,8 @@ export function bingoSample(): Board {
 export function flashcardSample(): Board {
   const cards: [string, string][] = [['Photosynthesis', 'How plants make food from light'], ['Mitosis', 'A cell splitting into two'], ['Evaporation', 'Liquid turning into gas'],
     ['Gravity', 'The pull between masses'], ['Habitat', 'Where a living thing lives'], ['Predator', 'An animal that hunts others'], ['Erosion', 'Land worn away by wind or water'], ['Fossil', 'Remains kept in rock']]
-  return gridSheet('Science flashcards', letter(4, 2, 0.25), [['Term', { type: 'term', body: 'What it means' }], ['Picture', { type: 'image', image: { alt: 'A picture of the term' } }]],
-    cards.map(([label, body], i) => [label, { type: 'term', body }, { row: Math.floor(i / 2), col: i % 2 }]),
+  return gridSheet('Science flashcards', letter(4, 2, 0.25), [['Term', { type: 'term', body: 'A term\nWhat it means' }], ['Picture', { type: 'image', image: { alt: 'A picture of the term' } }]],
+    cards.map(([label, body], i) => [label, { type: 'term', body: label + '\n' + body }, { row: Math.floor(i / 2), col: i % 2 }]),
     [{ kind: 'tileTypes', types: ['term', 'image'] }])
 }
 

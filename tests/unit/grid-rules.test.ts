@@ -155,6 +155,10 @@ describe('placing tiles, and the rules', () => {
     expect(gridCaption(empty, 'page-2')).toBe('Letter · 6 × 2 · 0 of 12 cells · Needs a heading')
     expect(gridCaption(empty, 'page-1')).toBe('Letter · 6 × 2 · 9 of 12 cells')
     expect(gridPrintProblems(empty)).toEqual(['Page 2 needs a heading.'])
+    // A picture or a diagram with no picture prints as an empty frame; a sticker with none prints its words on its badge.
+    const framed = ok(board, [{ kind: 'add_tile', type: 'diagram', label: 'Water cycle', alt: 'Arrows round a cloud', page: 'Page 1', row: 4, col: 2 },
+      { kind: 'add_tile', type: 'sticker', label: 'Star', body: 'Great job!', page: 'Page 1', row: 5, col: 2 }]).workshop
+    expect(gridPrintProblems(framed)).toEqual(['“Water cycle” on Page 1 has no picture yet: it prints as an empty frame.'])
     // A question dropped on the page that needs a heading lands.
     expect(() => ok(empty, [{ kind: 'place_tile', card: 'Question', page: 'Page 2', row: 2, col: 1 }])).not.toThrow()
   })
@@ -188,13 +192,35 @@ describe('placing tiles, and the rules', () => {
 })
 
 describe('what a tile says', () => {
-  it('says a name once when its words already say it', async () => {
+  it('prints a tile’s own words, never its name, and its name only when it has no words', async () => {
     const { gridCardText } = await import('../../src/workshops/rules')
     const board = validateWorkshop(worksheetSample())
     const tile = (label: string, t: Record<string, unknown>) => ({ id: 'x', label, laneId: 'tray', tile: t }) as never
-    expect(gridCardText(board, tile('What fraction is shaded?', { type: 'question', body: 'What fraction is shaded? The circle is split in two.' }))).toBe('What fraction is shaded? The circle is split in two.')
-    expect(gridCardText(board, tile('Shade the bar', { type: 'question', body: 'Shade 3/8 of the bar.' }))).toBe('Shade the bar\nShade 3/8 of the bar.')
-    expect(gridCardText(board, tile('half, third, whole', { type: 'word-bank', words: ['half', 'third', 'whole'] }))).toBe('half · third · whole')
-    expect(gridCardText(board, tile('Words to use', { type: 'word-bank', words: ['half', 'third', 'whole'] }))).toBe('Words to use\nhalf · third · whole')
+    // The cases a live draft printed with the name on top (bingo squares, a title, a reminder).
+    expect(gridCardText(board, tile('B Column Number Square', { type: 'term', body: '7' }))).toBe('7')
+    expect(gridCardText(board, tile('Bingo Night Title', { type: 'heading', body: 'BINGO Night!' }))).toBe('BINGO Night!')
+    expect(gridCardText(board, tile('Remember the cycle repeats', { type: 'speech', body: 'Remember: The water cycle repeats.' }))).toBe('Remember: The water cycle repeats.')
+    expect(gridCardText(board, tile('Fractions on a Number Line', { type: 'panel', body: 'Parts of a Whole' }))).toBe('Parts of a Whole')
+    expect(gridCardText(board, tile('Gold star', { type: 'sticker', body: 'Great job!' }))).toBe('Great job!')
+    expect(gridCardText(board, tile('Shade the bar', { type: 'question', body: 'Shade 3/8 of the bar.' }))).toBe('Shade 3/8 of the bar.')
+    // No words of its own: its name is what it says.
+    expect(gridCardText(board, tile('Lion', { type: 'term' }))).toBe('Lion')
+    expect(gridCardText(board, tile('Lion', { type: 'term', body: '  ' }))).toBe('Lion')
+    expect(gridCardText(board, tile('Show your work', { type: 'answer-lines', body: '3' }))).toBe('Show your work')
+    expect(gridCardText(board, tile('Words to use', { type: 'word-bank', words: ['half', 'third', 'whole'] }))).toBe('half · third · whole')
+    expect(gridCardText(board, tile('A fern', { type: 'image', image: { alt: 'A fern in a pot' } }))).toBe('A fern in a pot')
+  })
+
+  it('a sample page prints no tile’s name over its words', async () => {
+    const { gridCardText } = await import('../../src/workshops/rules')
+    for (const sample of [worksheetSample(), bingoSample(), flashcardSample()]) {
+      const board = validateWorkshop(sample)
+      for (const card of board.cards.filter(item => item.tile?.body?.trim() && item.tile.type !== 'answer-lines')) {
+        expect(gridCardText(board, card)).toBe(card.tile!.body)
+      }
+    }
+    const cards = validateWorkshop(flashcardSample()).cards.filter(card => card.laneId === 'page-1')
+    expect(gridCardText(validateWorkshop(flashcardSample()), cards[0])).toBe('Photosynthesis\nHow plants make food from light')
   })
 })
+
