@@ -802,9 +802,12 @@ export declare class Slate {
      * A note's outline, handles, plugs and cog live outside the note, in an overlay
      * the selection pass reaches only through the notes still on the slate. A note
      * leaving the selection (deselected, removed, or replaced by an undo) puts them
-     * away itself, or they stay round empty canvas.
+     * away itself, or they stay round empty canvas. NodesManager.clear() calls it for a
+     * selected note a whole-slate replace takes away (the selection itself is dropped by
+     * notifyNotesReplaced, once hosts have read it).
+     * @internal
      */
-    private putAwaySelectionUi;
+    putAwaySelectionUi(node: Node): void;
     /** Deselect all currently selected nodes. */
     /** Remove the active line cog + endpoint handles (M1/L1), if any. */
     clearLineCog(): void;

@@ -25,8 +25,25 @@ export interface HeaderBox {
     width: number;
     height: number;
 }
-/** A board of columns' header, in a column at (x, y): its name, its counter, and its strip. */
-export declare function laneHeaderBoxes(x: number, y: number, counterWidth: number, noteWidth?: number, counterHeight?: number): {
+/**
+ * Whether a board drawn as columns of native notes (model.ts) shows header controls at all: a board of columns does;
+ * a budget, a release plan, a decision board or a map takes no rules (ruleControls.ts ruleControlsFamily), so its
+ * header reserves no room for them.
+ */
+export declare const laneHeaderHasControls: (board: {
+    kind?: unknown;
+    experience?: unknown;
+    lanes: {
+        station?: unknown;
+    }[];
+}) => boolean;
+/**
+ * A board of columns' header, in a column at (x, y): its name, its counter, and its strip. A header with no controls
+ * (`controls` false) keeps no slot or stepper: its name takes the column's width and the height down to its counter,
+ * and its counter (a budget's "$200 · 4 customer calls", a release plan's "3 / 8 points") the column's width, centred
+ * just above the first card, so neither shrinks or wraps for room nothing uses.
+ */
+export declare function laneHeaderBoxes(x: number, y: number, counterWidth: number, noteWidth?: number, counterHeight?: number, controls?: boolean): {
     label: HeaderBox;
     counter: HeaderBox;
     strip: {

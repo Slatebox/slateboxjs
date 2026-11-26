@@ -13750,14 +13750,15 @@ class Zp {
    * leaves as remove() lets one go, less the per-line bookkeeping (every note is going): its lines
    * are taken down with everything they drew outside the note, the end handles and arrowheads in
    * the slate's shared markers layer too (removing the note's group alone left those behind, one
-   * more set of orphan end dots per replace), and it leaves the selection, so no outline, plug or
-   * cog stays round empty canvas. Nothing is broadcast or recorded: the replace is the change.
+   * more set of orphan end dots per replace), and a selected note puts its outline, plug and cog
+   * away, so none stays round empty canvas (it leaves the selection itself when the replace is
+   * told, notifyNotesReplaced). Nothing is broadcast or recorded: the replace is the change.
    */
   clear() {
     const t = this.slate, e = this.allNodes;
     e.length && t?.clearLineCog?.(), e.forEach((s) => {
       try {
-        t?.getSelectedNodes?.()?.includes?.(s) && t.deselectNode?.(s);
+        t?.getSelectedNodes?.()?.includes?.(s) && t.putAwaySelectionUi?.(s);
       } catch {
       }
       try {
@@ -17947,7 +17948,10 @@ const cs = class cs {
    * A note's outline, handles, plugs and cog live outside the note, in an overlay
    * the selection pass reaches only through the notes still on the slate. A note
    * leaving the selection (deselected, removed, or replaced by an undo) puts them
-   * away itself, or they stay round empty canvas.
+   * away itself, or they stay round empty canvas. NodesManager.clear() calls it for a
+   * selected note a whole-slate replace takes away (the selection itself is dropped by
+   * notifyNotesReplaced, once hosts have read it).
+   * @internal
    */
   putAwaySelectionUi(t) {
     try {

@@ -7173,7 +7173,7 @@ class fh {
       }
   }
 }
-const $ = {}, ph = () => $.lineTool ?? null, mh = async () => $.lineTool ?? ($.lineTool = await import("./canvas-LineTool-B5tmu0si.mjs")), gh = () => $.birdsEye ?? null, yh = async () => $.birdsEye ?? ($.birdsEye = await import("./canvas-BirdsEye-C6mtsQEx.mjs")), bh = () => $.undoRedo ?? null, vh = async () => $.undoRedo ?? ($.undoRedo = await import("./canvas-UndoRedo-CpmL12H-.mjs")), wh = () => $.mediaInput ?? null, xh = async () => $.mediaInput ?? ($.mediaInput = await import("./canvas-MediaInput-D3ua4z0G.mjs")), _h = () => $.contextMenu ?? null, Ch = async () => $.contextMenu ?? ($.contextMenu = await import("./canvas-ContextMenu-WHly3TFI.mjs")), Eh = () => $.keyboard ?? null, Sh = async () => $.keyboard ?? ($.keyboard = await import("./canvas-Keyboard-COdnQRsZ.mjs")), Ah = () => $.presentation ?? null, Mh = async () => $.presentation ?? ($.presentation = await import("./canvas-Presentation-ydUBNUZh.mjs")), Th = () => $.mediaNote ?? null, Rh = async () => $.mediaNote ?? ($.mediaNote = await import("./canvas-MediaNote-afRCQoQe.mjs")), qe = /* @__PURE__ */ new Set(), Qt = /* @__PURE__ */ new Map(), kh = /* @__PURE__ */ new Set([
+const $ = {}, ph = () => $.lineTool ?? null, mh = async () => $.lineTool ?? ($.lineTool = await import("./canvas-LineTool-CzyTv1UP.mjs")), gh = () => $.birdsEye ?? null, yh = async () => $.birdsEye ?? ($.birdsEye = await import("./canvas-BirdsEye-tw7Hef79.mjs")), bh = () => $.undoRedo ?? null, vh = async () => $.undoRedo ?? ($.undoRedo = await import("./canvas-UndoRedo-CmbpClTi.mjs")), wh = () => $.mediaInput ?? null, xh = async () => $.mediaInput ?? ($.mediaInput = await import("./canvas-MediaInput-CCV2ltsM.mjs")), _h = () => $.contextMenu ?? null, Ch = async () => $.contextMenu ?? ($.contextMenu = await import("./canvas-ContextMenu-B026AVbf.mjs")), Eh = () => $.keyboard ?? null, Sh = async () => $.keyboard ?? ($.keyboard = await import("./canvas-Keyboard-BrSgjS88.mjs")), Ah = () => $.presentation ?? null, Mh = async () => $.presentation ?? ($.presentation = await import("./canvas-Presentation-ydUBNUZh.mjs")), Th = () => $.mediaNote ?? null, Rh = async () => $.mediaNote ?? ($.mediaNote = await import("./canvas-MediaNote-afRCQoQe.mjs")), qe = /* @__PURE__ */ new Set(), Qt = /* @__PURE__ */ new Map(), kh = /* @__PURE__ */ new Set([
   "arial",
   "arial, sans-serif",
   "helvetica",
@@ -11228,14 +11228,15 @@ class Od {
    * leaves as remove() lets one go, less the per-line bookkeeping (every note is going): its lines
    * are taken down with everything they drew outside the note, the end handles and arrowheads in
    * the slate's shared markers layer too (removing the note's group alone left those behind, one
-   * more set of orphan end dots per replace), and it leaves the selection, so no outline, plug or
-   * cog stays round empty canvas. Nothing is broadcast or recorded: the replace is the change.
+   * more set of orphan end dots per replace), and a selected note puts its outline, plug and cog
+   * away, so none stays round empty canvas (it leaves the selection itself when the replace is
+   * told, notifyNotesReplaced). Nothing is broadcast or recorded: the replace is the change.
    */
   clear() {
     const t = this.slate, e = this.allNodes;
     e.length && t?.clearLineCog?.(), e.forEach((i) => {
       try {
-        t?.getSelectedNodes?.()?.includes?.(i) && t.deselectNode?.(i);
+        t?.getSelectedNodes?.()?.includes?.(i) && t.putAwaySelectionUi?.(i);
       } catch {
       }
       try {
@@ -15498,7 +15499,10 @@ const pn = class pn {
    * A note's outline, handles, plugs and cog live outside the note, in an overlay
    * the selection pass reaches only through the notes still on the slate. A note
    * leaving the selection (deselected, removed, or replaced by an undo) puts them
-   * away itself, or they stay round empty canvas.
+   * away itself, or they stay round empty canvas. NodesManager.clear() calls it for a
+   * selected note a whole-slate replace takes away (the selection itself is dropped by
+   * notifyNotesReplaced, once hosts have read it).
+   * @internal
    */
   putAwaySelectionUi(t) {
     try {

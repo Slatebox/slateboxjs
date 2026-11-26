@@ -33,8 +33,9 @@ export declare class NodesManager {
      * leaves as remove() lets one go, less the per-line bookkeeping (every note is going): its lines
      * are taken down with everything they drew outside the note, the end handles and arrowheads in
      * the slate's shared markers layer too (removing the note's group alone left those behind, one
-     * more set of orphan end dots per replace), and it leaves the selection, so no outline, plug or
-     * cog stays round empty canvas. Nothing is broadcast or recorded: the replace is the change.
+     * more set of orphan end dots per replace), and a selected note puts its outline, plug and cog
+     * away, so none stays round empty canvas (it leaves the selection itself when the replace is
+     * told, notifyNotesReplaced). Nothing is broadcast or recorded: the replace is the change.
      */
     clear(): void;
     /** Destroy the nodes manager, clearing all nodes */

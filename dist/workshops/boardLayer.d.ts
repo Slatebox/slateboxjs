@@ -38,10 +38,15 @@ export type LayerShape = {
     role?: string;
     /** How strong the line is (stroke-opacity; a fill keeps its own). */
     strokeOpacity?: number;
+    /** The arrowhead; `note` is where the words a tapped link says end, if not just before the head. */
     arrow?: {
         x: number;
         y: number;
         angle: number;
+        note?: {
+            x: number;
+            y: number;
+        };
     };
     unlink?: {
         cardId: string;
