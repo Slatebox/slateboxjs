@@ -18,6 +18,8 @@ export interface RuleControlsLayer {
     }): void;
     remove(): void;
 }
+/** How long a pointer rests on a control before its hint shows (ms). */
+export declare const HINT_DELAY = 400;
 /** The controls' colours: the chrome's tokens (light and dark), with these defaults behind them. */
 export declare const controlInk: {
     on: string;
@@ -32,7 +34,9 @@ export declare const controlInk: {
     ghost: string;
     chip: string;
 };
-/** A control's hint: the first sentence of its label ("Make To do a bin that archives cards"), short enough to sit above it. */
+/** A control's hint: its own (an action: "Change color (now: own)"), or the first sentence of its label ("Make To do a bin that archives cards"), short enough to sit by it. */
 export declare function hintOf(control: RuleControl): string;
+/** A hint's words in lines of at most `most` glyphs, two at most (the second cut with an ellipsis); a line keeps its trailing space. */
+export declare function hintLines(words: string, most: number): string[];
 /** Draw a board's rule controls on `slate`, in board coordinates at `options.origin`. */
 export declare function drawRuleControls(slate: unknown, boardId: string, controls: RuleControl[], options?: RuleControlsLayerOptions): RuleControlsLayer;

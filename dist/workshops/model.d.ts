@@ -8,6 +8,7 @@ export type { Behaviour, BehaviourRule, BehaviourVerdict, RuleAudit, RuleBody, R
 export { registerRulebook, rulebook, rulebookLoaded, registerWorkshopRules, workshopRulesLoaded, workshopRules, workshopNewCardName, type RulebookHooks, type BusinessBoardRules, type BusinessEditStep, type BusinessEditTools, type WorkshopFieldReader, type WorkshopLimits } from './kinds';
 import type { NodeJSON, SlateJSON } from '../core/Serialization';
 import { DEFAULT_NOTE_STYLE } from '../core/NoteDefaults';
+import { type HeaderBox } from './laneHeader';
 /** How the engine draws an ordinary note when nothing says otherwise: what a card looks like with no style. */
 export { DEFAULT_NOTE_STYLE };
 export interface StationImage {
@@ -658,6 +659,18 @@ export declare function workshopLanePlaces(input: Workshop, options?: Pick<Works
     places: WorkshopLanePlace[];
     width: number;
     height: number;
+};
+/**
+ * A board of columns' header in a column at `place` (board coordinates): its name's box and its counter's (the limit's
+ * value, between − and +). The rule controls stand around these (ruleControls.ts), the notes are drawn in them.
+ */
+export declare function workshopLaneHeader(board: Workshop, place: {
+    laneId: string;
+    x: number;
+    y: number;
+}, style?: Pick<WorkshopNoteStyle, 'fontSize' | 'captionFontSize'>): {
+    label: HeaderBox;
+    value: HeaderBox;
 };
 /**
  * The "How this board behaves" note of a board with a rulebook (behaviour.ts draws it); null without one. No board

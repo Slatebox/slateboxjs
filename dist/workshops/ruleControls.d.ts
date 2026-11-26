@@ -1,5 +1,7 @@
 import { type Workshop } from './model';
 import type { WorkshopEdit } from './edits';
+import { type HeaderBox } from './laneHeader';
+export { ruleControlsLayoutOf } from './laneHeader';
 export type RuleControlPrimitive = 'capacity' | 'path' | 'bin' | 'gate' | 'deadline' | 'blackout' | 'snap' | 'locked' | 'cascade' | 'depth' | 'children' | 'nests' | 'emptyDrop' | 'rank' | 'quadrant' | 'addLane' | 'look';
 /** A box in board (chrome) coordinates; at least 44 by 44 at a finger's chrome scale. */
 export interface RuleControlBox {
@@ -15,15 +17,17 @@ export interface RuleControlBox {
  * - badge: a round button with a glyph;
  * - step: a small round − or + button;
  * - ghost: a dashed column with a + (a column not there yet);
- * - ladder: rungs from y down, `rungs` of them, `on` of them lit, with a grip on the top lit rung.
+ * - ladder: rungs from y down, `rungs` of them, `on` of them lit, with a grip on the top lit rung;
+ * - value: words in a pill (`label`), no button: the limit's value a header shows between − and + where no note of the
+ *   board shows it (a pipeline's stage).
  */
 export interface RuleControlLook {
-    shape: 'line' | 'chip' | 'badge' | 'step' | 'ghost' | 'ladder';
+    shape: 'line' | 'chip' | 'badge' | 'step' | 'ghost' | 'ladder' | 'value';
     on?: boolean;
     /** A badge filled with this color (a column's color from the palette). */
     swatch?: string;
     label?: string;
-    icon?: 'bin' | 'gate' | 'oneway' | 'twoway' | 'step' | 'minus' | 'plus' | 'flag' | 'push' | 'snap' | 'drop' | 'rank' | 'depth' | 'holds';
+    icon?: 'bin' | 'gate' | 'oneway' | 'twoway' | 'step' | 'minus' | 'plus' | 'flag' | 'push' | 'snap' | 'drop' | 'rank' | 'depth' | 'holds' | 'color';
     warn?: boolean;
     x1?: number;
     x2?: number;
@@ -50,6 +54,25 @@ export interface RuleControl {
     };
     /** What a screen reader calls it, and what its keys do. */
     label: string;
+    /** What its hint says on hover and focus (else the label's first sentence), and where (else just above it). */
+    hint?: string;
+    hintAt?: {
+        x: number;
+        y: number;
+    };
+    /** The left and right edges a hint keeps inside (a header control's column), so it never runs into the next column. */
+    hintBounds?: {
+        left: number;
+        right: number;
+    };
+    /** A button that cannot act now (a limit at what its lane holds; a rule built into the board): it says why, and a tap does nothing. */
+    disabled?: boolean;
+    /** A pointer's second way to a rule another control already gives the keyboard and a screen reader (a limit line, beside its − and +): not in Tab order. */
+    pointerOnly?: boolean;
+    /** An on-or-off toggle's state (a screen reader hears it as pressed or not); absent on a button that is no toggle. */
+    pressed?: boolean;
+    /** The lane whose header it stands in: a screen reader hears a lane's controls as one group ("Lead controls"). */
+    group?: string;
     look: RuleControlLook;
     gestures: {
         tap?: WorkshopEdit[];
@@ -72,7 +95,11 @@ export interface RuleControl {
         remove?: WorkshopEdit[];
     };
 }
-/** Where the board's columns are drawn (workshopLanePlaces, or a kit's column parts), and its drawn size. */
+/**
+ * Where the board's columns are drawn (workshopLanePlaces, or a kit's column parts), and its drawn size. A column may say
+ * where its words are: its name (`label`), the limit's value its header shows (`value`, between − and +), and a caption
+ * with a row of its own (`caption`). The controls stand around them, never on them.
+ */
 export interface RuleControlsLayout {
     places?: {
         laneId: string;
@@ -81,6 +108,9 @@ export interface RuleControlsLayout {
         width: number;
         height: number;
         row?: number;
+        label?: HeaderBox;
+        value?: HeaderBox;
+        caption?: HeaderBox;
     }[];
     width: number;
     height: number;
@@ -100,4 +130,3 @@ export declare function ruleControlsFamily(board: Pick<Workshop, 'kind' | 'lanes
 export declare function ruleControls(board: Workshop, layout: RuleControlsLayout | null | undefined, options?: RuleControlsOptions): RuleControl[];
 /** The edit kinds a rule control makes: what a canvas change of rules may hold (and never a move with them). */
 export declare const RULE_CONTROL_EDITS: readonly string[];
-export {};
