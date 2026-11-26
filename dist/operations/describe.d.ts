@@ -54,6 +54,14 @@ export declare function describeOperations(options?: ContractOptions): {
 export declare function slateOperationPlanSchema(options?: ContractOptions, form?: {
     modelTool?: boolean;
 }): Record<string, any>;
+/** "add_nodes: count, shape, …; connect_nodes: from, to, ids, style; …": the fields each kind takes. */
+export declare function operationFieldsByKind(): string;
+/**
+ * What the operations list says: each kind's fields, what is required, and one example of each
+ * common kind, so a model writing a plan from the schema (or from declarations rendered from it)
+ * never has to guess that add_nodes needs count or that connect_nodes names new connectors with ids.
+ */
+export declare function operationsDescription(notesPerAdd?: number): string;
 export declare const SLATE_OPERATION_TOOL: Readonly<{
     name: "applySlateOperations";
     description: "Edit the existing slate without starting a new slate, replacing its content, or changing its theme unless the user explicitly asked for that. Always include a natural completion message.";
