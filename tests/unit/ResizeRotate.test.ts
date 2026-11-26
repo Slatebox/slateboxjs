@@ -546,10 +546,11 @@ describe("ResizeRotate", () => {
   // 8. selection UI styling / handle hit-area widening
   // -----------------------------------------------------------------------
   describe("styleSelectionUi", () => {
-    it("makes svg.select.js selection overlays transparent after a rAF", () => {
+    it("makes svg.select.js selection overlays transparent and outlines the selection shape", () => {
+      const classListOf = (cls: string) => ({ contains: (c: string) => c === cls });
       const selectionEls = [
-        { setAttribute: vi.fn(), style: {} },
-        { setAttribute: vi.fn(), style: {} },
+        { setAttribute: vi.fn(), style: {}, classList: classListOf("svg_select_shape") },
+        { setAttribute: vi.fn(), style: {}, classList: classListOf("svg_select_shape_pointSelect") },
       ] as any;
 
       const ownerSVG = {
@@ -581,6 +582,9 @@ describe("ResizeRotate", () => {
         expect(el.style.fillOpacity).toBe("0");
         expect(el.style.pointerEvents).toBe("none");
       }
+      // Only the selection polygon gets the painted dashed outline.
+      expect(selectionEls[0].setAttribute).toHaveBeenCalledWith("stroke", "#4A90E2");
+      expect(selectionEls[1].setAttribute).not.toHaveBeenCalledWith("stroke", "#4A90E2");
     });
 
     it("widens .svg_select_handle elements after a rAF", () => {

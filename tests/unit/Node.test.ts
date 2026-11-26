@@ -1225,12 +1225,10 @@ describe("Destroy - timer guards", () => {
     (node as any)._svgViewboxTimeoutId = 123;
     (node as any)._dragEndTimeoutId = 456;
     (node as any)._previewViewboxTimeoutId = 789;
-    (node as any)._connectTimeoutId = 101;
     node.destroy();
     expect((node as any)._svgViewboxTimeoutId).toBeNull();
     expect((node as any)._dragEndTimeoutId).toBeNull();
     expect((node as any)._previewViewboxTimeoutId).toBeNull();
-    expect((node as any)._connectTimeoutId).toBeNull();
   });
 });
 
