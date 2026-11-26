@@ -70,7 +70,7 @@ test('a joined editor returns from My Slates across devices as the live title an
     await expect(join).toBeVisible()
     await expect(editor.getByRole('dialog', { name: /welcome/i })).toHaveCount(0)
     expect(await userId(editor)).toBeNull()
-    const cookies = editor.getByRole('button', { name: 'Accept cookies' })
+    const cookies = editor.locator('[data-cookie-notice] button')
     if (await cookies.isVisible()) await cookies.click()
     await join.click()
     await expect.poll(() => userId(editor)).toBeTruthy()

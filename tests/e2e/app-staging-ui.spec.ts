@@ -26,7 +26,7 @@ async function guestAt(browser: Browser, width = 1440, height = 900) {
   // A context of its own, so a second tab of the same guest can be opened in it.
   const page = await (await browser.newContext({ viewport: { width, height } })).newPage()
   await openGuestCanvas(page, origin.origin)
-  const cookies = page.getByRole('button', { name: 'Accept cookies' })
+  const cookies = page.locator('[data-cookie-notice] button')
   if (await cookies.isVisible().catch(() => false)) await cookies.click()
   await expect.poll(() => userId(page)).toBeTruthy()
   return { page, id: await userId(page) }

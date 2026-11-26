@@ -8,7 +8,7 @@ test.use({ viewport: { width: 1280, height: 720 } });
 test("quick add opens under the pointer after the cookie notice is dismissed", async ({ page }) => {
   test.skip(!["localhost", "127.0.0.1", "test.slatebox.com"].includes(new URL(origin).hostname), "Creates a guest-owned test slate");
   await openGuestCanvas(page, origin);
-  const accept = page.getByRole("button", { name: "Accept cookies" });
+  const accept = page.locator('[data-cookie-notice] button');
   const trigger = page.getByRole("button", { name: "Slatebox - quickly add a node" });
   await expect(accept).toBeVisible();
   // The launcher sits in the canvas's corner, clear of the Ask Slatebox panel beside it. With the

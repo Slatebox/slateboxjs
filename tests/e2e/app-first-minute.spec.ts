@@ -23,7 +23,7 @@ async function newSlate(page: Page) {
   await expect.poll(() => userId(page)).toBeTruthy()
   const ok = page.getByRole('dialog', { name: /welcome/i }).getByRole('button', { name: 'OK', exact: true })
   if (await ok.waitFor({ timeout: 3000 }).then(() => true, () => false)) await ok.click()
-  const cookies = page.getByRole('button', { name: /^(Got it|OK|Accept cookies)$/ }).first()
+  const cookies = page.locator('[data-cookie-notice] button')
   if (await cookies.isVisible().catch(() => false)) await cookies.click()
   return (await userId(page))!
 }

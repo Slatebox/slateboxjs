@@ -2,11 +2,12 @@ import { expect, test, type Browser, type Page } from '@playwright/test'
 import { randomBytes } from 'node:crypto'
 import { openGuestCanvas, seedFirstNote } from './app-host.shared'
 import { dismissWelcome, getSlate, removeTestGuest, shareAs, userId } from './workshop-guests.shared'
+import { deleteDisposableAccounts, disposableHost } from './app-cleanup.shared'
 
 // The canvas header: getting around on the left, people and this session on the right, you at the
 // far right. Every control has a visible label or a name, and nothing lives in a "..." menu.
 const origin = process.env.SLATEBOX_APP_URL || 'http://localhost:3000'
-const local = ['localhost', '127.0.0.1'].includes(new URL(origin).hostname)
+const local = disposableHost(origin)
 const header = (page: Page) => page.locator('.sb-board-toolbar')
 const button = (page: Page, name: string | RegExp) => page.getByRole('button', { name, exact: typeof name === 'string' })
 const slateMenuButton = (page: Page) => header(page).getByRole('button', { name: /slate menu$/ })
@@ -31,7 +32,9 @@ async function noOverflow(page: Page) {
   return sizes
 }
 
-test.beforeEach(() => { test.skip(!local, 'Creates throwaway guests and accounts on a local app only.') })
+test.beforeEach(() => { test.skip(!local, 'Creates throwaway guests and accounts; a local app or staging only.') })
+// Every account and guest this spec makes is deleted before its page closes (staging keeps none).
+deleteDisposableAccounts(test)
 
 test('a guest sees Save your work, the menu, their account menu and no "..." menu', async ({ browser }) => {
   const { page, id } = await guestAt(browser, 1440)
@@ -49,11 +52,12 @@ test('a guest sees Save your work, the menu, their account menu and no "..." men
     const nav = page.getByRole('navigation', { name: 'Slatebox' })
     await expect(nav.getByRole('link', { name: 'Create slate', exact: true })).toHaveAttribute('href', '/new')
     await expect(nav.getByRole('link', { name: 'My slates', exact: true })).toHaveAttribute('href', '/')
-    await expect(nav.getByRole('link', { name: 'Theme library', exact: true })).toHaveAttribute('href', '/themes')
+    // The shared library replaced the theme library and community slates.
+    await expect(nav.getByRole('link', { name: 'Library', exact: true })).toHaveAttribute('href', '/library')
     await expect(nav.getByRole('button', { name: 'Help and support', exact: true })).toBeVisible()
     await expect(nav.getByRole('button', { name: 'Save your work', exact: true })).toBeVisible()
     // Nothing a guest cannot use: no team, no community, no profile.
-    for (const name of ['Create Team', 'Create team', 'Community slates', 'Community Slates', 'Profile'])
+    for (const name of ['Create Team', 'Create team', 'Community slates', 'Community Slates', 'Theme library', 'Profile'])
       await expect(nav.getByRole('link', { name, exact: true })).toHaveCount(0)
     await page.keyboard.press('Escape')
     await expect(nav).toBeHidden()
@@ -391,7 +395,9 @@ test('a signed-in person has the bell and an account menu with Profile, Dark mod
 
   await header(page).getByRole('button', { name: 'Open menu', exact: true }).click()
   const nav = page.getByRole('navigation', { name: 'Slatebox' })
-  await expect(nav.getByRole('link', { name: 'Community slates', exact: true })).toBeVisible()
+  await expect(nav.getByRole('link', { name: 'Library', exact: true })).toHaveAttribute('href', '/library')
+  for (const name of ['Community slates', 'Theme library'])
+    await expect(nav.getByRole('link', { name, exact: true })).toHaveCount(0)
   await expect(nav.getByRole('link', { name: 'Create team', exact: true })).toBeVisible()
   await expect(nav.getByRole('link', { name: 'Profile', exact: true })).toHaveCount(0)
   await nav.getByRole('link', { name: 'My slates', exact: true }).click()

@@ -23,7 +23,7 @@ for(const width of [1360,390]) test('a '+width+'px native drawing gains a route 
     expect(original.options.isPrivate).toBe(true)
     const welcome=page.getByRole('dialog',{name:/welcome/i}).getByRole('button',{name:'OK',exact:true})
     if(await welcome.isVisible()) await welcome.click()
-    const cookies=page.getByRole('button',{name:'Accept cookies'})
+    const cookies=page.locator('[data-cookie-notice] button')
     if(await cookies.isVisible()) await cookies.click()
     const request='Intake → Review → Notify'
     await chat.getByRole('textbox').fill(request)

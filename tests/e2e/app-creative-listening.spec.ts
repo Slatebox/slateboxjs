@@ -23,7 +23,7 @@ test('an owned listening slate persists a gesture and label and presents the sha
     const url = page.url(), key = url.split('/').pop()!
     const horn = page.getByRole('slider', { name: 'Listening horn' })
     await expect(horn).toHaveAttribute('aria-valuenow', '78')
-    const cookie = page.getByRole('button', { name: 'Accept cookies' })
+    const cookie = page.locator('[data-cookie-notice] button')
     if (await cookie.isVisible()) await cookie.click()
     const welcome = page.getByRole('dialog', { name: /welcome/i })
     if (await welcome.isVisible()) await welcome.getByRole('button', { name: 'OK' }).click()

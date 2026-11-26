@@ -35,7 +35,7 @@ test("independent copies of private and published slates start private for a fre
     await seedFirstNote(page);
     const welcome = page.getByRole("dialog", { name: /welcome/i });
     if (await welcome.waitFor({ timeout: 2000 }).then(() => true, () => false)) await welcome.getByRole("button", { name: "OK" }).click();
-    const consent = page.getByRole("button", { name: "Accept cookies" });
+    const consent = page.locator('[data-cookie-notice] button');
     if (await consent.isVisible()) await consent.click();
     await page.getByRole("button", { name: "Slatebox - quickly add a node" }).focus();
     await page.getByRole("button", { name: "Add Text", exact: true }).press("Enter");

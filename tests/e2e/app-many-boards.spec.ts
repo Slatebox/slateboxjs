@@ -3,6 +3,7 @@ import { randomBytes } from 'node:crypto'
 import { register, retire, type Actor } from './agent-principals.shared'
 import { getSlate } from './workshop-guests.shared'
 import { conversation, messageBox, resting, slateKey } from './app-native-workshop.shared'
+import { deleteDisposableAccounts, disposableHost } from './app-cleanup.shared'
 
 /**
  * Boards S4a (work-multiboard plan §2.4, §3): many boards on one slate, in the real Meteor app with the
@@ -15,7 +16,9 @@ import { conversation, messageBox, resting, slateKey } from './app-native-worksh
  */
 
 const origin = new URL(process.env.SLATEBOX_APP_URL || 'http://localhost:3000')
-test.skip(!['localhost', '127.0.0.1'].includes(origin.hostname), 'Creates disposable accounts and slates; local app only.')
+test.skip(!disposableHost(origin.href), 'Creates disposable accounts and slates; a local app or staging only.')
+// Every account and guest this spec makes is deleted before its page closes (staging keeps none).
+deleteDisposableAccounts(test)
 
 type Box = { x: number; y: number; width: number; height: number }
 const centre = (box: Box) => ({ x: box.x + box.width / 2, y: box.y + box.height / 2 })
@@ -97,7 +100,7 @@ test.describe('many boards, 1440 by 900', () => {
       const key = await register(owner, '/new?empty=1')
       await page.goto(new URL('/canvas/' + key, origin).href)
       await page.waitForURL(/\/canvas\/[a-zA-Z0-9]{10}$/)
-      const cookies = page.getByRole('button', { name: 'Accept cookies' })
+      const cookies = page.locator('[data-cookie-notice] button')
       if (await cookies.isVisible().catch(() => false)) await cookies.click()
       if (!await conversation(page).isVisible()) await page.getByRole('button', { name: 'Ask Slatebox', exact: true }).click()
       await expect(conversation(page)).toBeVisible()
@@ -296,7 +299,7 @@ test.describe('many boards on a phone, 390 by 844', () => {
       const key = await register(owner, '/new?empty=1')
       await page.goto(new URL('/canvas/' + key, origin).href)
       await page.waitForURL(/\/canvas\/[a-zA-Z0-9]{10}$/)
-      const cookies = page.getByRole('button', { name: 'Accept cookies' })
+      const cookies = page.locator('[data-cookie-notice] button')
       if (await cookies.isVisible().catch(() => false)) await cookies.click()
       const open = async () => {
         if (!await conversation(page).isVisible()) await page.getByRole('button', { name: 'Ask Slatebox', exact: true }).first().click()

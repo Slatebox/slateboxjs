@@ -37,7 +37,7 @@ async function verifyInvitation(browser: Browser, recipient: "existing" | "signe
   const owner = await ownerContext.newPage();
   const peer = await peerContext.newPage();
   for (const page of [owner, peer]) {
-    const notice = page.getByRole("button", {name: "Accept cookies"});
+    const notice = page.locator('[data-cookie-notice] button');
     await page.addLocatorHandler(notice, () => notice.click());
   }
   const share = owner.getByRole("dialog",{name:'Share this slate'});
@@ -216,7 +216,7 @@ test('a registered native editor finds their saved note in Recently joined until
   try {
     for (const page of [owner, editor, observer]) {
       page.setDefaultTimeout(15_000)
-      const consent = page.getByRole('button',{name:'Accept cookies'})
+      const consent = page.locator('[data-cookie-notice] button')
       await page.addLocatorHandler(consent,()=>consent.click())
       await page.goto(app + '/new?empty=1')
       await expect.poll(()=>userId(page)).toBeTruthy()
@@ -335,7 +335,7 @@ test('a signed-out whiteboard contributor can choose to keep the original invita
   let boardId: string | undefined
   try {
     for (const page of [owner, peer]) {
-      const consent = page.getByRole('button', {name:'Accept cookies'})
+      const consent = page.locator('[data-cookie-notice] button')
       await page.addLocatorHandler(consent, () => consent.click())
     }
     await owner.goto(app + '/new?empty=1')

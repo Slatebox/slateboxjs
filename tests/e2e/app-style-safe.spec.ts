@@ -1,5 +1,6 @@
 import { expect, test, type Browser, type Page } from '@playwright/test'
 import { randomBytes } from 'node:crypto'
+import { deleteDisposableAccounts, disposableHost } from './app-cleanup.shared'
 
 // A style never loses anything, and "Revert to original" is always there (owner, 2026-11-25). In a
 // fresh session with a new account: a library copy and a slate of one's own each wear a style from
@@ -9,12 +10,14 @@ import { randomBytes } from 'node:crypto'
 // generated note colors, no layout section), and a cog beside the slate's name opens the slate menu.
 
 const origin = process.env.SLATEBOX_APP_URL || 'http://localhost:3000'
-const local = ['localhost', '127.0.0.1'].includes(new URL(origin).hostname)
+const local = disposableHost(origin)
 const header = (page: Page) => page.locator('.sb-board-toolbar')
 const cog = (page: Page) => header(page).getByRole('button', { name: 'Slate settings and actions', exact: true })
 const panel = (page: Page) => page.getByRole('complementary', { name: 'Slate settings' })
 
-test.beforeEach(() => { test.skip(!local, 'Creates throwaway accounts and slates on a local app only.') })
+test.beforeEach(() => { test.skip(!local, 'Creates throwaway accounts and slates; a local app or staging only.') })
+// Every account and guest this spec makes is deleted before its page closes (staging keeps none).
+deleteDisposableAccounts(test)
 
 async function freshAccount(browser: Browser) {
   // A virgin context: no login token carried over from another session (a "fresh" check in a reused

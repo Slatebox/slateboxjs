@@ -281,7 +281,7 @@ test("archived flowchart keeps its wrapped label and connections through repeate
 
   try {
     await page.reload();
-    const cookies = page.getByRole("button", {name:"Accept cookies"});
+    const cookies = page.locator('[data-cookie-notice] button');
     if (await cookies.isVisible()) await cookies.click();
     await selectSavedNode(page, id);
     let state = await exerciseGestures(page, id, {wrapped:true});

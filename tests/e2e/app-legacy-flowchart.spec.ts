@@ -22,7 +22,7 @@ test("a saved legacy flowchart keeps its shapes and connections after an editor 
   const node = (key: string) => page.locator('#slateCanvas g[data-node-id="' + key + '"]').first();
   const decision = fixture.nodes.find((entry: any) => entry.options.text === "Decision");
   await expect(node(decision.options.id)).toContainText("Decision");
-  const cookieConsent = page.getByRole("button", { name: "Accept cookies" });
+  const cookieConsent = page.locator('[data-cookie-notice] button');
   if (await cookieConsent.isVisible()) await cookieConsent.click();
   await page.getByRole("button", {name: "Slatebox - quickly add a node"}).focus();
   const addText = page.getByRole("button", {name: "Add Text", exact: true});

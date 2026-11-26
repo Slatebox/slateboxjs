@@ -70,7 +70,7 @@ test('author reorders scenes, publishes an unlisted deck, and withdraws guest an
     const id = new URL(page.url()).pathname.split('/').pop()
     const publishedUrl = app+'/present/'+id
     const embedUrl = edge+'/embed/'+id
-    const cookies = page.getByRole('button',{name:'Accept cookies'})
+    const cookies = page.locator('[data-cookie-notice] button')
     if (await cookies.isVisible()) await cookies.click()
     await page.getByRole('button',{name:'Slatebox - quickly add a node'}).hover()
     await page.getByRole('button',{name:'Add Text',exact:true}).click()

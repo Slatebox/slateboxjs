@@ -10,7 +10,7 @@ test('the saved field handoff supports safe undo and keeps another editor tab’
   await expect(scene).toHaveAttribute('data-stage','review')
   const welcome = page.getByRole('dialog',{name:/welcome/i})
   if (await welcome.isVisible()) await welcome.getByRole('button',{name:'OK'}).click()
-  const cookies = page.getByRole('button',{name:'Accept cookies'})
+  const cookies = page.locator('[data-cookie-notice] button')
   if (await cookies.isVisible()) await cookies.click()
   const second = await context.newPage()
   await second.goto(page.url())

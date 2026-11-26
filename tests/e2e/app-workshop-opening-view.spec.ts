@@ -173,7 +173,7 @@ test.describe('on a phone', () => {
       expect(talking.notice!.top).toBeGreaterThanOrEqual(talking.conversation!.bottom)
       expect(talking.canvas.bottom).toBeLessThanOrEqual(talking.conversation!.top + 1)
       // Answered, the room it took goes back to the slate.
-      await page.getByRole('button', { name: 'Accept cookies' }).tap()
+      await page.locator('[data-cookie-notice] button').tap()
       await expect(notice).toHaveCount(0)
       await expect.poll(async () => (await seen(page)).conversation!.bottom).toBeGreaterThan(talking.conversation!.bottom + 40)
     } finally { await removeTestGuest(page, id) }

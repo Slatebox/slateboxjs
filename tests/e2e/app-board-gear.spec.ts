@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test'
 import { encodeWorkshopFragment, type Workshop } from '../../src/workshops/model'
 import { dismissWelcome, removeTestGuest, userId } from './workshop-guests.shared'
 import { closeConversation, conversation, finger, messageBox, note, openConversation, resting, slateKey, starter, storedWorkshop, workshopReady } from './app-native-workshop.shared'
+import { deleteDisposableAccounts, disposableHost } from './app-cleanup.shared'
 
 /**
  * Boards S2a (plan 2026-11-22, owner): "Change this board" puts the whole board in focus for the
@@ -13,7 +14,9 @@ import { closeConversation, conversation, finger, messageBox, note, openConversa
  */
 
 const origin = new URL(process.env.SLATEBOX_APP_URL || 'http://localhost:3000')
-test.skip(!['localhost', '127.0.0.1'].includes(origin.hostname), 'Creates disposable guests and slates; local app only.')
+test.skip(!disposableHost(origin.href), 'Creates disposable guests and slates; a local app or staging only.')
+// Every account and guest this spec makes is deleted before its page closes (staging keeps none).
+deleteDisposableAccounts(test)
 
 const board: Workshop = {
   version: 1, title: 'Vendor choice',

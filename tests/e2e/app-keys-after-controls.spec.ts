@@ -39,7 +39,7 @@ const paneClosed = (page: Page) => expect(pane(page)).toBeHidden()
 
 async function openSlate(page: Page) {
   await openGuestCanvas(page, origin.origin)
-  const cookies = page.getByRole('button', { name: 'Accept cookies' })
+  const cookies = page.locator('[data-cookie-notice] button')
   if (await cookies.isVisible()) await cookies.click()
   await expect.poll(() => userId(page)).toBeTruthy()
   await expect(noteNamed(page, 'Welcome!')).toBeVisible()

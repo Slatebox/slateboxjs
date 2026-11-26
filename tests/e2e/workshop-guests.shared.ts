@@ -9,7 +9,7 @@ export const getSlate = (page: Page, key: string) => page.evaluate(async key =>
 export async function dismissWelcome(page: Page) {
   const ok = page.getByRole('dialog', { name: /welcome/i }).getByRole('button', { name: 'OK', exact: true })
   if (await ok.waitFor({ timeout: 4000 }).then(() => true, () => false)) await ok.click()
-  const cookies = page.getByRole('button', { name: 'Accept cookies' })
+  const cookies = page.locator('[data-cookie-notice] button')
   if (await cookies.isVisible()) await cookies.click()
 }
 
