@@ -1,8 +1,8 @@
 {
   "name": "slateboxjs",
   "version": "3.1.3",
-  "commit": "f98bf6fa1734a62a907a6ac9baa814b5b12228b8",
+  "commit": "48381eae283f78113356a5ac84947f8740b95622",
   "branch": "fix/e2e-ci",
   "dirty": false,
-  "builtAt": "2026-11-26T11:05:14.985Z"
+  "builtAt": "2026-11-26T11:20:19.665Z"
 }

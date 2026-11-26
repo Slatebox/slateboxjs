@@ -7173,7 +7173,7 @@ class fh {
       }
   }
 }
-const $ = {}, ph = () => $.lineTool ?? null, mh = async () => $.lineTool ?? ($.lineTool = await import("./canvas-LineTool-CzyTv1UP.mjs")), gh = () => $.birdsEye ?? null, yh = async () => $.birdsEye ?? ($.birdsEye = await import("./canvas-BirdsEye-tw7Hef79.mjs")), bh = () => $.undoRedo ?? null, vh = async () => $.undoRedo ?? ($.undoRedo = await import("./canvas-UndoRedo-CmbpClTi.mjs")), wh = () => $.mediaInput ?? null, xh = async () => $.mediaInput ?? ($.mediaInput = await import("./canvas-MediaInput-CCV2ltsM.mjs")), _h = () => $.contextMenu ?? null, Ch = async () => $.contextMenu ?? ($.contextMenu = await import("./canvas-ContextMenu-B026AVbf.mjs")), Eh = () => $.keyboard ?? null, Sh = async () => $.keyboard ?? ($.keyboard = await import("./canvas-Keyboard-BrSgjS88.mjs")), Ah = () => $.presentation ?? null, Mh = async () => $.presentation ?? ($.presentation = await import("./canvas-Presentation-ydUBNUZh.mjs")), Th = () => $.mediaNote ?? null, Rh = async () => $.mediaNote ?? ($.mediaNote = await import("./canvas-MediaNote-afRCQoQe.mjs")), qe = /* @__PURE__ */ new Set(), Qt = /* @__PURE__ */ new Map(), kh = /* @__PURE__ */ new Set([
+const $ = {}, ph = () => $.lineTool ?? null, mh = async () => $.lineTool ?? ($.lineTool = await import("./canvas-LineTool-Cs0Q4qp4.mjs")), gh = () => $.birdsEye ?? null, yh = async () => $.birdsEye ?? ($.birdsEye = await import("./canvas-BirdsEye-Yhq9_r_O.mjs")), bh = () => $.undoRedo ?? null, vh = async () => $.undoRedo ?? ($.undoRedo = await import("./canvas-UndoRedo-B2DF-_Tt.mjs")), wh = () => $.mediaInput ?? null, xh = async () => $.mediaInput ?? ($.mediaInput = await import("./canvas-MediaInput-ra7gGMRY.mjs")), _h = () => $.contextMenu ?? null, Ch = async () => $.contextMenu ?? ($.contextMenu = await import("./canvas-ContextMenu-B1gtqAd5.mjs")), Eh = () => $.keyboard ?? null, Sh = async () => $.keyboard ?? ($.keyboard = await import("./canvas-Keyboard-DQVoMP8d.mjs")), Ah = () => $.presentation ?? null, Mh = async () => $.presentation ?? ($.presentation = await import("./canvas-Presentation-ydUBNUZh.mjs")), Th = () => $.mediaNote ?? null, Rh = async () => $.mediaNote ?? ($.mediaNote = await import("./canvas-MediaNote-afRCQoQe.mjs")), qe = /* @__PURE__ */ new Set(), Qt = /* @__PURE__ */ new Map(), kh = /* @__PURE__ */ new Set([
   "arial",
   "arial, sans-serif",
   "helvetica",
@@ -11357,11 +11357,16 @@ function ir(n, t, e) {
 async function sr(n, t, e = !1, i = !1) {
   const s = typeof n == "string" ? JSON.parse(n) : n, o = e ? null : t.takeInlineDraft?.() ?? null;
   t.beginRemoteApply?.();
+  let r = !1;
   try {
-    const r = Id(s, t, e, i);
-    await (t.holdUntilLoaded?.(r) ?? r);
+    const a = Id(s, t, e, i);
+    await (t.holdUntilLoaded?.(a) ?? a), r = !0;
   } finally {
-    t.endRemoteApply?.();
+    if (t.endRemoteApply?.(), !r && !e)
+      try {
+        t.notifyNotesReplaced?.();
+      } catch {
+      }
   }
   e || t.notifyNotesReplaced?.(), o && t.resumeInlineDraft?.(o);
 }
@@ -14266,7 +14271,7 @@ const pn = class pn {
     const t = this.element.querySelector("#slate-coordinates");
     t && t.remove(), this.canvas.off("click"), this._windowPointerDownHandler && (window.removeEventListener("pointerdown", this._windowPointerDownHandler, !0), this._windowPointerDownHandler = null), this._lastPointerDown = null, this.panZoom && this.panZoom.destroy(), this.birdsEye && this.birdsEye.disable(), this.zoomSlider && this.zoomSlider.destroy(), this.keyboard && this.keyboard.unbindGlobal(), this.mediaInput && this.mediaInput.destroy(), this.contextMenu && this.contextMenu.disable(), this.multiSelection && this.multiSelection.disable();
     for (const [e, i, s] of this._undoGestureHandlers) s.removeEventListener(e, i, !0);
-    this._undoGestureHandlers = [], this._undoPointers.clear(), this.undoRedo && this.undoRedo.clear(), this.collab && this.collab.disconnect(), this.camera?.destroy(), this.presentation && this.presentation.stop(), this.grid && this.grid.hide(), this.nodes && this.nodes.clear(), this.canvas && this.canvas.remove(), this._liveRegion && (this._liveRegion.remove(), this._liveRegion = null);
+    this._undoGestureHandlers = [], this._undoPointers.clear(), this.undoRedo && this.undoRedo.clear(), this.collab && this.collab.disconnect(), this.camera?.destroy(), this.presentation && this.presentation.stop(), this.grid && this.grid.hide(), this.nodes && this.nodes.clear(), this.selectedNodes = [], this._hadGroupSelection = !1, this.canvas && this.canvas.remove(), this._liveRegion && (this._liveRegion.remove(), this._liveRegion = null);
   }
   /**
    * Announce a message to screen readers via the hidden aria-live region.

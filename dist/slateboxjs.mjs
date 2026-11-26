@@ -8108,11 +8108,16 @@ function ws(n, t, e) {
 async function xs(n, t, e = !1, s = !1) {
   const i = typeof n == "string" ? JSON.parse(n) : n, o = e ? null : t.takeInlineDraft?.() ?? null;
   t.beginRemoteApply?.();
+  let r = !1;
   try {
-    const r = pf(i, t, e, s);
-    await (t.holdUntilLoaded?.(r) ?? r);
+    const a = pf(i, t, e, s);
+    await (t.holdUntilLoaded?.(a) ?? a), r = !0;
   } finally {
-    t.endRemoteApply?.();
+    if (t.endRemoteApply?.(), !r && !e)
+      try {
+        t.notifyNotesReplaced?.();
+      } catch {
+      }
   }
   e || t.notifyNotesReplaced?.(), o && t.resumeInlineDraft?.(o);
 }
@@ -16715,7 +16720,7 @@ const cs = class cs {
     const t = this.element.querySelector("#slate-coordinates");
     t && t.remove(), this.canvas.off("click"), this._windowPointerDownHandler && (window.removeEventListener("pointerdown", this._windowPointerDownHandler, !0), this._windowPointerDownHandler = null), this._lastPointerDown = null, this.panZoom && this.panZoom.destroy(), this.birdsEye && this.birdsEye.disable(), this.zoomSlider && this.zoomSlider.destroy(), this.keyboard && this.keyboard.unbindGlobal(), this.mediaInput && this.mediaInput.destroy(), this.contextMenu && this.contextMenu.disable(), this.multiSelection && this.multiSelection.disable();
     for (const [e, s, i] of this._undoGestureHandlers) i.removeEventListener(e, s, !0);
-    this._undoGestureHandlers = [], this._undoPointers.clear(), this.undoRedo && this.undoRedo.clear(), this.collab && this.collab.disconnect(), this.camera?.destroy(), this.presentation && this.presentation.stop(), this.grid && this.grid.hide(), this.nodes && this.nodes.clear(), this.canvas && this.canvas.remove(), this._liveRegion && (this._liveRegion.remove(), this._liveRegion = null);
+    this._undoGestureHandlers = [], this._undoPointers.clear(), this.undoRedo && this.undoRedo.clear(), this.collab && this.collab.disconnect(), this.camera?.destroy(), this.presentation && this.presentation.stop(), this.grid && this.grid.hide(), this.nodes && this.nodes.clear(), this.selectedNodes = [], this._hadGroupSelection = !1, this.canvas && this.canvas.remove(), this._liveRegion && (this._liveRegion.remove(), this._liveRegion = null);
   }
   /**
    * Announce a message to screen readers via the hidden aria-live region.
