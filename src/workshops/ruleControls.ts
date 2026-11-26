@@ -31,10 +31,12 @@ export interface RuleControlBox { x: number; y: number; width: number; height: n
  * - badge: a round button with a glyph;
  * - step: a small round − or + button;
  * - ghost: a dashed column with a + (a column not there yet);
- * - ladder: rungs from y down, `rungs` of them, `on` of them lit, with a grip on the top lit rung.
+ * - ladder: rungs from y down, `rungs` of them, `on` of them lit, with a grip on the top lit rung;
+ * - value: words in a pill (`label`), no button: the limit's value a header shows between − and + where no note of the
+ *   board shows it (a pipeline's stage).
  */
 export interface RuleControlLook {
-  shape: 'line' | 'chip' | 'badge' | 'step' | 'ghost' | 'ladder'
+  shape: 'line' | 'chip' | 'badge' | 'step' | 'ghost' | 'ladder' | 'value'
   on?: boolean
   /** A badge filled with this color (a column's color from the palette). */
   swatch?: string
@@ -62,6 +64,12 @@ export interface RuleControl {
   /** What its hint says on hover and focus (else the label's first sentence), and where (else just above it). */
   hint?: string
   hintAt?: { x: number; y: number }
+  /** The left and right edges a hint keeps inside (a header control's column), so it never runs into the next column. */
+  hintBounds?: { left: number; right: number }
+  /** A button that cannot act now (a limit at what its lane holds; a rule built into the board): it says why, and a tap does nothing. */
+  disabled?: boolean
+  /** A pointer's second way to a rule another control already gives the keyboard and a screen reader (a limit line, beside its − and +): not in Tab order. */
+  pointerOnly?: boolean
   /** An on-or-off toggle's state (a screen reader hears it as pressed or not); absent on a button that is no toggle. */
   pressed?: boolean
   /** The lane whose header it stands in: a screen reader hears a lane's controls as one group ("Lead controls"). */
@@ -203,6 +211,7 @@ export function ruleControls(board: Workshop, layout: RuleControlsLayout | null 
     return { id: 'color:' + c.key, primitive: 'look', anchor: { kind: 'lane', id: c.key }, hit, group: name,
       state: { value: c.now, sentence: c.sentence }, label: name + ' color: ' + now + '. Press for ' + (next && next !== 'none' ? next : 'its own color') + '.',
       hint: 'Change color (now: ' + now + ')', hintAt: { x: hit.x + hit.width / 2, y: head.below },
+      hintBounds: { left: place.x + 4, right: place.x + (family === 'lanes' ? Math.min(LANE_WIDTH, place.width) : place.width) - 4 },
       look: { shape: 'badge', icon: 'color', swatch: c.swatch }, gestures: { tap: [c.edit as WorkshopEdit] } }
   }
   const colored = new Set<string>()
@@ -225,7 +234,8 @@ export function ruleControls(board: Workshop, layout: RuleControlsLayout | null 
       // The strip runs to the column's right end (on a phone a stage's name takes only part of its width).
       const T = HEADER_TARGET, stripY = head.strip + T / 2, right = Math.max(head.label.x + head.label.width + HEADER_SLOT, place.x + laneWidth - 6)
       const hintAt = (hit: RuleControlBox) => ({ x: hit.x + hit.width / 2, y: head.below })
-      const header = (control: Omit<RuleControl, 'group' | 'hintAt'>) => out.push({ ...control, group: name, hintAt: hintAt(control.hit) })
+      const hintBounds = { left: place.x + 4, right: place.x + laneWidth - 4 }
+      const header = (control: Omit<RuleControl, 'group' | 'hintAt'>) => out.push({ ...control, group: name, hintAt: hintAt(control.hit), hintBounds })
       const color = colorOf(lane.id)
       if (color) { out.push(color); colored.add(lane.id) }
       if (family === 'lanes') {
@@ -236,7 +246,15 @@ export function ruleControls(board: Workshop, layout: RuleControlsLayout | null 
           label: bin ? name + ' is a bin. Press to make it an ordinary column.' : 'Make ' + name + ' a bin that archives cards' + (limit ? ' (its limit goes)' : '') + '.',
           look: { shape: 'badge', icon: 'bin', on: Boolean(bin) },
           gestures: { tap: bin ? [{ kind: 'remove_rule', rule: bin.id }] : [...setLimit(board, lane, null), { kind: 'add_rule', rule: { kind: 'bin', lane: lane.id } }] } })
-      } else if (!lane.role || lane.role === 'won') {
+      } else if (lane.role === 'won') {
+        // Won needs an amount on every pipeline (a built-in rule: pipeline.ts, and the board's "Won needs an amount" chip). Its
+        // padlock says so, locked on: a press could only add the same rule twice.
+        header({ id: 'gate:' + lane.id, primitive: 'gate', anchor: { kind: 'lane', id: lane.id }, hit: box(head.label.x + T / 2, stripY, T, T), pressed: true, disabled: true,
+          state: { value: true, sentence: name + ' needs an amount' },
+          label: name + ' needs an amount. Every pipeline asks a won deal for one, so this stays on.',
+          hint: 'Always needs an amount',
+          look: { shape: 'badge', icon: 'gate', on: true }, gestures: {} })
+      } else if (!lane.role) {
         // A pipeline's stage: "needs an amount" (the only field its deals carry).
         const gate = rules.find(item => item.kind === 'gate' && item.into === lane.id)
         header({ id: 'gate:' + lane.id, primitive: 'gate', anchor: { kind: 'lane', id: lane.id }, hit: box(head.label.x + T / 2, stripY, T, T), pressed: Boolean(gate),
@@ -251,15 +269,33 @@ export function ruleControls(board: Workshop, layout: RuleControlsLayout | null 
       const floor = limit && !limit.rule ? Math.max(1, held(board, lane.id)) : 1
       const minusMax = limit ? (limit.max <= 1 ? null : limit.max - 1) : null
       const plusMax = limit ? Math.min(MAX_HOLD, limit.max + 1) : Math.max(1, held(board, lane.id))
-      const minusX = head.value ? head.value.x - HEADER_GAP - T / 2 : right - T * 1.5 - HEADER_GAP
-      if (limit && !binned && (minusMax === null || minusMax >= floor)) header({ id: 'capacity-minus:' + lane.id, primitive: 'capacity', anchor: { kind: 'lane', id: lane.id },
+      // Where the header shows no value of its own (a pipeline's stage: its caption counts deals, not the limit), the strip
+      // says it in a pill between − and +, so a step's effect is read off the board, not only heard.
+      const noun = family === 'pipeline' ? 'deal' : 'card'
+      const readout = !head.value && !binned ? (limit ? 'limit ' + limit.max : 'no limit') : null
+      const readoutWidth = readout ? Math.max(T, chipWidth(readout, 1, false)) : 0
+      const readoutBox = readout ? box(right - T - HEADER_GAP - readoutWidth / 2, stripY, readoutWidth, T) : null
+      const minusX = head.value ? head.value.x - HEADER_GAP - T / 2 : readoutBox ? readoutBox.x - HEADER_GAP - T / 2 : right - T * 1.5 - HEADER_GAP
+      // A column's own capacity at what it holds cannot step down: its − stays, unable, and says why (never a gap where − was).
+      const stuck = Boolean(limit && minusMax !== null && minusMax < floor)
+      if (limit && !binned) header({ id: 'capacity-minus:' + lane.id, primitive: 'capacity', anchor: { kind: 'lane', id: lane.id },
         hit: box(minusX, stripY, T, T), state: { value: limit.max, sentence, ...(limit.rule && { ruleId: limit.rule.id }) },
-        label: limit.max <= 1 ? 'Remove the limit on ' + name : name + ': hold one fewer card (now ' + limit.max + ')',
-        hint: limit.max <= 1 ? 'Remove the limit' : 'One fewer (now ' + limit.max + ')',
-        look: { shape: 'step', icon: 'minus', on: true }, gestures: { tap: setLimit(board, lane, minusMax) } })
+        ...(stuck ? {
+          disabled: true,
+          label: name + ' holds ' + held(board, lane.id) + ' ' + noun + 's now, so its limit of ' + limit.max + ' cannot go lower. Move a ' + noun + ' out first.',
+          hint: 'Holds ' + held(board, lane.id) + ': cannot go lower',
+          look: { shape: 'step', icon: 'minus', on: false }, gestures: {},
+        } : {
+          label: limit.max <= 1 ? 'Remove the limit on ' + name : name + ': hold one fewer ' + noun + ' (now ' + limit.max + ')',
+          hint: limit.max <= 1 ? 'Remove the limit' : 'One fewer (now ' + limit.max + ')',
+          look: { shape: 'step', icon: 'minus', on: true }, gestures: { tap: setLimit(board, lane, minusMax) },
+        }) })
+      if (readout && readoutBox) header({ id: 'capacity-value:' + lane.id, primitive: 'capacity', anchor: { kind: 'lane', id: lane.id }, hit: readoutBox,
+        state: { value: limit?.max ?? null, sentence, ...(limit?.rule && { ruleId: limit.rule.id }) }, label: sentence,
+        look: { shape: 'value', label: readout, on: Boolean(limit) }, gestures: {} })
       if (!binned && (!limit || limit.max < MAX_HOLD)) header({ id: 'capacity-plus:' + lane.id, primitive: 'capacity', anchor: { kind: 'lane', id: lane.id },
         hit: box(right - T / 2, stripY, T, T), state: { value: limit?.max ?? null, sentence, ...(limit?.rule && { ruleId: limit.rule.id }) },
-        label: limit ? name + ': hold one more card (now ' + limit.max + ')' : 'Give ' + name + ' a limit of ' + plusMax,
+        label: limit ? name + ': hold one more ' + noun + ' (now ' + limit.max + ')' : 'Give ' + name + ' a limit of ' + plusMax,
         hint: limit ? 'One more (now ' + limit.max + ')' : 'Give it a limit of ' + plusMax,
         look: { shape: 'step', icon: 'plus', on: Boolean(limit) }, gestures: { tap: setLimit(board, lane, plusMax), ...(hold && { hold }) } })
       if (family === 'lanes' && !binned) {
@@ -283,7 +319,9 @@ export function ruleControls(board: Workshop, layout: RuleControlsLayout | null 
           return setLimit(board, lane, max)
         }
         const pill = limit ? 'holds ' + limit.max : 'no limit'
-        out.push({ id: 'capacity:' + lane.id, primitive: 'capacity', anchor: { kind: 'lane', id: lane.id }, group: name,
+        // The header's − , counter and + are the limit for the keyboard and a screen reader; this line is a pointer's way to
+        // drag it, so it is not a second stop in Tab order, and its pill carries words only while it is dragged.
+        out.push({ id: 'capacity:' + lane.id, primitive: 'capacity', anchor: { kind: 'lane', id: lane.id }, group: name, pointerOnly: true,
           // Its hit area stays inside the column (a wrapped row's next column starts just under its foot).
           hit: box(place.x + laneWidth / 2, Math.min(y, foot - H / 2), Math.max(H * 2.4, 104 * k), H), state: { value: limit?.max ?? null, sentence, ...(limit?.rule && { ruleId: limit.rule.id }) },
           label: sentence + '. Drag the line, or press the up and down arrows, to change it' + (limit ? '; Delete removes it' : '') + (hold ? '; Shift+Enter makes it ' + (warn ? 'refuse' : 'a warning only') : '') + '.',

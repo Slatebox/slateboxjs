@@ -94,7 +94,7 @@ describe('lane header: no control on a lane’s words', () => {
 describe('lane header: one order on every board', () => {
   /** A header control's slot: its row (the name's, or the strip), then left to right. */
   const slot = (control: RuleControl) => control.id.split(':')[0]
-  const ORDER = ['color', 'bin', 'gate', 'capacity-minus', 'capacity-plus']
+  const ORDER = ['color', 'bin', 'gate', 'capacity-minus', 'capacity-value', 'capacity-plus']
 
   it('pipeline, board of columns, nest and plan: color beside the name, then status, −, + in the strip, never overlapping, a finger each', () => {
     let lanes = 0
@@ -233,5 +233,113 @@ describe('lane header: what a screen reader and a pointer hear', () => {
     drawRuleControls({ canvas }, 'main', ruleControls(board, drawn(board, false).layout), {})
     for (const circle of svg.querySelectorAll('[data-rule-control] circle')) expect(circle.hasAttribute('stroke-dasharray')).toBe(false)
     svg.remove()
+  })
+})
+
+describe('lane header: a limit is read off the board, and each button says what it can do now', () => {
+  const slateWith = () => {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+    document.body.appendChild(svg)
+    return { canvas: { node: svg }, svg }
+  }
+
+  it('a pipeline stage shows its limit between − and +; at what it holds, − stays, unable, and says why', () => {
+    const board = preset('sales-pipeline')
+    for (const narrow of [false, true]) {
+      const controls = ruleControls(board, drawn(board, narrow).layout, { finger: narrow })
+      // Proposal: its own limit of 3, holding 3 deals.
+      const value = controls.find(control => control.id === 'capacity-value:proposal')!
+      expect(value.look).toMatchObject({ shape: 'value', label: 'limit 3' })
+      const minus = controls.find(control => control.id === 'capacity-minus:proposal')!
+      expect(minus.disabled).toBe(true)
+      expect(minus.gestures.tap).toBeUndefined()
+      expect(minus.label).toBe('Proposal holds 3 deals now, so its limit of 3 cannot go lower. Move a deal out first.')
+      const plus = controls.find(control => control.id === 'capacity-plus:proposal')!
+      expect(minus.hit.x + minus.hit.width).toBeLessThanOrEqual(value.hit.x)
+      expect(value.hit.x + value.hit.width).toBeLessThanOrEqual(plus.hit.x)
+      // A stage with no limit says so beside its +, so the + reads as the limit's step, on every stage that has one (Lost too).
+      for (const lane of ['lead', 'qualified', 'lost']) {
+        expect(controls.find(control => control.id === 'capacity-value:' + lane)!.look.label, lane).toBe('no limit')
+        expect(controls.some(control => control.id === 'capacity-minus:' + lane), lane).toBe(false)
+      }
+    }
+  })
+
+  it('the readout is words, not a button: no Tab stop, hidden from a screen reader; a unable − is aria-disabled but still heard', () => {
+    const board = preset('sales-pipeline')
+    const { canvas, svg } = slateWith()
+    drawRuleControls({ canvas }, 'main', ruleControls(board, drawn(board, false).layout), {})
+    const readout = svg.querySelector('[data-rule-readout="capacity-value:proposal"]')!
+    expect(readout.getAttribute('aria-hidden')).toBe('true')
+    expect(readout.hasAttribute('tabindex')).toBe(false)
+    expect(readout.textContent).toBe('limit 3')
+    // In the lane's group, between − and +.
+    const group = svg.querySelector('[data-rule-group="Proposal"]')!
+    const order = [...group.children].map(item => (item.getAttribute('data-rule-control') ?? item.getAttribute('data-rule-readout'))!.split(':')[0])
+    expect(order).toEqual(['color', 'gate', 'capacity-minus', 'capacity-value', 'capacity-plus'])
+    const minus = svg.querySelector('[data-rule-control="capacity-minus:proposal"]')!
+    expect(minus.getAttribute('aria-disabled')).toBe('true')
+    expect(minus.getAttribute('tabindex')).toBe('0')
+    svg.remove()
+  })
+
+  it('Won’s padlock reads the built-in rule the board’s chip says: on, locked, and a press adds nothing', () => {
+    const board = preset('sales-pipeline')
+    const gate = ruleControls(board, drawn(board, false).layout).find(control => control.id === 'gate:won')!
+    expect(gate.pressed).toBe(true)
+    expect(gate.disabled).toBe(true)
+    expect(gate.look.on).toBe(true)
+    expect(gate.gestures.tap).toBeUndefined()
+    expect(gate.label).toMatch(/^Won needs an amount\./)
+    const { canvas, svg } = slateWith()
+    drawRuleControls({ canvas }, 'main', [gate], {})
+    const item = svg.querySelector('[data-rule-control="gate:won"]')!
+    expect(item.getAttribute('aria-pressed')).toBe('true')
+    expect(item.getAttribute('aria-disabled')).toBe('true')
+    svg.remove()
+  })
+
+  it('a header hint is hidden two ways at rest, sits on a backing pill, and keeps inside its own column', () => {
+    const board = preset('retro')
+    const { layout } = drawn(board, false)
+    const controls = ruleControls(board, layout)
+    const { canvas, svg } = slateWith()
+    drawRuleControls({ canvas }, 'main', controls, {})
+    let checked = 0
+    // Every header control (the color button too), not only those that happen to carry bounds.
+    for (const control of controls.filter(item => item.group && item.look.shape !== 'line' && item.look.shape !== 'value')) {
+      expect(control.hintBounds, control.id).toBeDefined()
+      const item = svg.querySelector(`[data-rule-control="${control.id}"]`)!
+      const hint = item.querySelector('[data-rule-hint]')!
+      const back = item.querySelector('[data-rule-hint-back]')!
+      expect(hint.getAttribute('visibility'), control.id).toBe('hidden')
+      expect(back.getAttribute('visibility'), control.id).toBe('hidden')
+      const place = layout.places!.find(item => item.laneId === control.anchor.id)!
+      // The backing pill's left and right edges: its path starts at its top left after the corner's radius (M), runs to
+      // its top right before it (H), and turns each corner with that radius (A).
+      const [, start, end, radius] = /^M(-?[\d.]+),\S+ H(-?[\d.]+) A(-?[\d.]+),/.exec(back.getAttribute('d')!)!.map(Number)
+      expect(start - radius, control.id).toBeGreaterThanOrEqual(place.x)
+      expect(end + radius, control.id).toBeLessThanOrEqual(place.x + Math.min(228, place.width))
+      item.dispatchEvent(new Event('focus'))
+      expect(hint.getAttribute('visibility')).toBe('visible')
+      item.dispatchEvent(new Event('blur'))
+      checked++
+    }
+    expect(checked).toBeGreaterThan(6)
+    svg.remove()
+  })
+
+  it('a column’s counter is laid out at the height the canvas draws it, so it is centred between − and +', () => {
+    const board = preset('retro')
+    const { layout } = drawn(board, false)
+    const nodes = workshopToSlate(board, { native: true }).nodes
+    const controls = ruleControls(board, layout)
+    for (const lane of board.lanes) {
+      const counter = nodes.find(node => node.options.id === 'caption-' + lane.id)!.options as Record<string, number>
+      // A note grows to its words' height and 14 of padding (Node.ts fitHeightToText): about 1.45 of its size.
+      expect(counter.height, lane.id).toBeGreaterThanOrEqual(Math.ceil(counter.fontSize * 1.45) + 14)
+      const plus = controls.find(control => control.id === 'capacity-plus:' + lane.id)!
+      expect(Math.abs(counter.yPos + counter.height / 2 - (plus.hit.y + plus.hit.height / 2)), lane.id).toBeLessThanOrEqual(0.5)
+    }
   })
 })

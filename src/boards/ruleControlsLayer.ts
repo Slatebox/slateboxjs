@@ -98,6 +98,16 @@ export function hintOf(control: RuleControl): string {
   return first.length > 42 ? first.slice(0, 41).replace(/\s+\S*$/, '') + '…' : first
 }
 
+/** A hint's words in lines of at most `most` glyphs, two at most (the second cut with an ellipsis); a line keeps its trailing space. */
+export function hintLines(words: string, most: number): string[] {
+  if (words.length <= most) return [words]
+  const cut = words.lastIndexOf(' ', most)
+  const first = cut > 0 ? words.slice(0, cut + 1) : words.slice(0, most)
+  let rest = words.slice(first.length)
+  if (rest.length > most) rest = rest.slice(0, most - 1).replace(/\s+\S*$/, '') + '…'
+  return [first, rest]
+}
+
 /** The visible part of one control (the hit area is drawn separately), at a drag offset. */
 function drawLook(control: RuleControl, offset: { dx: number; dy: number }, said: string | null, busy: boolean): SVGGElement {
   const g = el('g', { 'pointer-events': 'none' }) as SVGGElement
@@ -109,13 +119,19 @@ function drawLook(control: RuleControl, offset: { dx: number; dy: number }, said
     const y = (look.y ?? cy) + offset.dy
     g.appendChild(el('line', { x1: look.x1 ?? hit.x, x2: look.x2 ?? hit.x + hit.width, y1: y, y2: y, 'stroke-width': look.on ? 2.5 : 1.5, 'stroke-dasharray': look.on ? '8 5' : '3 5',
       'stroke-linecap': 'round', ...(look.on ? {} : { opacity: 0.7 }) }, { stroke: look.on ? color : controlInk.offLine }))
-    const words = said ?? look.label ?? ''
-    const w = Math.max(84 * k, (words.length * 13 * 0.56 + 40) * k), h = 26 * k
+    // A pointer-only line (its lane's header says the value) shows its grip alone at rest, and its words while dragged.
+    const words = said ?? (control.pointerOnly ? '' : look.label ?? '')
+    const w = words || busy ? Math.max(84 * k, (Math.max(words.length, busy ? 7 : 0) * 13 * 0.56 + 40) * k) : 40 * k, h = 26 * k
     g.appendChild(el('path', { d: round(cx - w / 2, y - h / 2, w, h, h / 2), 'stroke-width': 1.5 }, { fill: look.on ? controlInk.off : controlInk.chip, stroke: look.on ? color : controlInk.offLine }))
     // The grip: up and down chevrons, a line to drag.
     g.appendChild(el('path', { d: `M${cx - w / 2 + 10 * k} ${y - 2 * k} l${4 * k} ${-4 * k} l${4 * k} ${4 * k} M${cx - w / 2 + 10 * k} ${y + 2 * k} l${4 * k} ${4 * k} l${4 * k} ${-4 * k}`,
       fill: 'none', 'stroke-width': 1.6, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, { stroke: look.on ? color : controlInk.ink }))
-    g.appendChild(text(cx + 8 * k, y + 4.5 * k, busy ? 'Saving…' : words, 13 * k, look.on ? controlInk.ink : controlInk.ink, 'middle', Boolean(look.on)))
+    if (words || busy) g.appendChild(text(cx + 8 * k, y + 4.5 * k, busy ? 'Saving…' : words, 13 * k, look.on ? controlInk.ink : controlInk.ink, 'middle', Boolean(look.on)))
+  } else if (look.shape === 'value') {
+    // The limit's value between − and +: a pill of words, no button (the steps either side say it to a screen reader).
+    const h = Math.min(30, hit.height - 8), y = cy - h / 2
+    g.appendChild(el('path', { d: round(hit.x, y, hit.width, h, h / 2), 'stroke-width': 1 }, { fill: look.on ? controlInk.off : controlInk.chip, stroke: controlInk.offLine }))
+    g.appendChild(text(cx, cy + 4.5, look.label ?? '', 13, controlInk.ink, 'middle', Boolean(look.on)))
   } else if (look.shape === 'chip') {
     const h = 30 * k, y = cy - h / 2
     g.appendChild(el('path', { d: round(hit.x, y, hit.width, h, h / 2), 'stroke-width': 1.2, ...(look.warn ? { 'stroke-dasharray': '3 3' } : {}) },
@@ -168,6 +184,8 @@ export function drawRuleControls(slate: unknown, boardId: string, controls: Rule
   group.setAttribute('data-board-scope', boardId)
   group.setAttribute('role', 'group')
   group.setAttribute('aria-label', 'How this board behaves: controls')
+  // Drawn for editing only: no picture of the slate (an export, a presentation's snapshot) carries a control or its hint.
+  group.setAttribute('data-export-never', '')
   let current = controls
   let origin = options.origin ?? { x: 0, y: 0 }
   let gone = false
@@ -214,15 +232,36 @@ export function drawRuleControls(slate: unknown, boardId: string, controls: Rule
     // A lane's controls are one group to a screen reader ("Lead controls"), in the order they are drawn: the DOM's order is
     // the visual order, so Tab goes name row, then strip, left to right, a lane at a time.
     const groups = new Map<string, SVGGElement>()
+    const into = (control: RuleControl, item: SVGGElement) => {
+      if (!control.group) { group.appendChild(item); return }
+      let lane = groups.get(control.group)
+      if (!lane) {
+        lane = el('g', { role: 'group', 'aria-label': control.group + ' controls', 'data-rule-group': control.group }) as SVGGElement
+        groups.set(control.group, lane)
+        group.appendChild(lane)
+      }
+      lane.appendChild(item)
+    }
     for (const control of current) {
+      if (control.look.shape === 'value') {
+        // Words, not a button: no Tab stop, and hidden from a screen reader (the − and + beside it name the value).
+        const words = el('g', { 'data-rule-readout': control.id, 'aria-hidden': 'true', 'pointer-events': 'none' }) as SVGGElement
+        words.appendChild(drawLook(control, { dx: 0, dy: 0 }, null, false))
+        into(control, words)
+        continue
+      }
       const dragging = held?.control.id === control.id && held.moved
       const offset = dragging ? held!.delta : { dx: 0, dy: 0 }
       const said = dragging ? control.gestures.preview?.(offset) ?? null : null
-      const item = el('g', { 'data-rule-control': control.id, 'data-primitive': control.primitive, role: control.gestures.drag ? 'slider' : 'button', tabindex: 0,
+      const item = el('g', { 'data-rule-control': control.id, 'data-primitive': control.primitive, role: control.gestures.drag ? 'slider' : 'button', tabindex: control.pointerOnly ? -1 : 0,
+        ...(control.pointerOnly ? { 'aria-hidden': 'true' } : {}), ...(control.disabled ? { 'aria-disabled': 'true' } : {}),
         'aria-label': control.label, ...(control.pressed !== undefined && !control.gestures.drag ? { 'aria-pressed': String(control.pressed) } : {}),
-        ...(control.gestures.drag ? { 'aria-valuetext': control.state.sentence } : {}), cursor: control.gestures.drag ? (control.gestures.axis === 'x' ? 'ew-resize' : 'ns-resize') : 'pointer' }) as SVGGElement
+        ...(control.gestures.drag ? { 'aria-valuetext': control.state.sentence } : {}), cursor: control.disabled ? 'not-allowed' : control.gestures.drag ? (control.gestures.axis === 'x' ? 'ew-resize' : 'ns-resize') : 'pointer' }) as SVGGElement
       item.style.setProperty('outline', 'none')
-      item.appendChild(drawLook(control, offset, said, busy === control.id))
+      const look = drawLook(control, offset, said, busy === control.id)
+      // A button that cannot act now is drawn faint; its hint and label say why.
+      if (control.disabled) look.setAttribute('opacity', '0.5')
+      item.appendChild(look)
       const { hit } = control
       // The hit area: a finger's size at least, and follows a dragged line.
       const area = el('rect', { x: hit.x, y: hit.y + (control.look.shape === 'line' || control.look.shape === 'ladder' ? offset.dy : 0), width: hit.width, height: hit.height,
@@ -240,11 +279,41 @@ export function drawRuleControls(slate: unknown, boardId: string, controls: Rule
       tip.textContent = control.label
       item.appendChild(tip)
       const scale = Math.min(hit.width, hit.height) / 44
-      const hintX = control.hintAt?.x ?? hit.x + hit.width / 2, hintY = control.hintAt?.y ?? hit.y - 8 * scale
-      const hint = control.look.shape === 'line' || control.look.shape === 'ladder' ? null
-        : text(hintX, hintY, hintOf(control), 12 * scale, controlInk.ink, 'middle', true, true)
-      if (hint) { hint.setAttribute('opacity', '0'); hint.setAttribute('data-rule-hint', ''); item.appendChild(hint) }
-      const show = (on: boolean) => hint?.setAttribute('opacity', on ? '1' : '0')
+      const hintWords = control.look.shape === 'line' || control.look.shape === 'ladder' ? null : hintOf(control)
+      // A hint on a backing pill (it may lie over a card), kept inside its column (hintBounds): never across the next one.
+      // Too long for its column, it wraps onto a second line.
+      const hintSize = 12 * scale, glyphW = hintSize * 0.58, pad = 8 * scale, lineH = hintSize * 1.3
+      const room = control.hintBounds ? control.hintBounds.right - control.hintBounds.left : Infinity
+      const lines = hintWords ? hintLines(hintWords, Math.max(8, Math.floor((room - pad * 2) / glyphW))) : []
+      const hintW = lines.length ? Math.max(...lines.map(line => line.trimEnd().length)) * glyphW + pad * 2 : 0
+      const hintH = 22 * scale + (lines.length - 1) * lineH
+      let hintX = control.hintAt?.x ?? hit.x + hit.width / 2
+      const hintY = control.hintAt?.y ?? hit.y - 8 * scale
+      if (control.hintBounds) {
+        const { left, right } = control.hintBounds
+        hintX = hintW >= right - left ? (left + right) / 2 : Math.max(left + hintW / 2, Math.min(right - hintW / 2, hintX))
+      }
+      const back = lines.length ? el('path', { d: round(hintX - hintW / 2, hintY - 16 * scale, hintW, hintH, 11 * scale), 'stroke-width': 1, 'pointer-events': 'none', 'data-rule-hint-back': '' },
+        { fill: controlInk.off, stroke: controlInk.offLine }) : null
+      const hint = lines.length ? text(hintX, hintY, lines.length === 1 ? lines[0] : '', hintSize, controlInk.ink, 'middle', true, false) : null
+      if (hint && lines.length > 1) {
+        // Each line its own tspan; a line keeps its trailing space, so the hint's words read whole (textContent).
+        lines.forEach((line, i) => {
+          const span = document.createElementNS(svgNS, 'tspan')
+          span.setAttribute('x', String(hintX))
+          span.setAttribute('dy', String(i ? lineH : 0))
+          span.textContent = line
+          hint.appendChild(span)
+        })
+      }
+      // Hidden two ways (opacity and visibility), so no copy of the canvas that drops one of them shows a hint at rest.
+      const show = (on: boolean) => {
+        for (const node of [back, hint]) {
+          node?.setAttribute('opacity', on ? '1' : '0')
+          node?.setAttribute('visibility', on ? 'visible' : 'hidden')
+        }
+      }
+      if (back && hint) { hint.setAttribute('data-rule-hint', ''); item.appendChild(back); item.appendChild(hint); show(false) }
       // A pointer's hint waits a moment: a control just drawn under a resting pointer (a lane selected by a click) says
       // nothing until the pointer stays on it. The keyboard's focus says it at once.
       let hover: ReturnType<typeof setTimeout> | undefined
@@ -258,15 +327,7 @@ export function drawRuleControls(slate: unknown, boardId: string, controls: Rule
         item.appendChild(text(hintX, control.hintAt ? hintY : hit.y - 8 * (hit.height / 44), words, 13 * scale, flash.ok ? controlInk.line : controlInk.refuse, 'middle', true, true))
         item.setAttribute('data-rule-flash', words)
       }
-      if (control.group) {
-        let lane = groups.get(control.group)
-        if (!lane) {
-          lane = el('g', { role: 'group', 'aria-label': control.group + ' controls', 'data-rule-group': control.group }) as SVGGElement
-          groups.set(control.group, lane)
-          group.appendChild(lane)
-        }
-        lane.appendChild(item)
-      } else group.appendChild(item)
+      into(control, item)
     }
     // Above every note of the slate, as the chrome's badges are.
     if (root!.lastChild !== group) root!.appendChild(group)

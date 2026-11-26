@@ -16,9 +16,15 @@ export const HEADER_TARGET = 44
 export const HEADER_GAP = 4
 /** A board of columns' name: its height (the strip under it ends before the first card, at 98). */
 export const LANE_NAME_HEIGHT = 40
-/** A board of columns' counter ("2 / 3"): its height, and the widest it gets (it sits between − and +). */
+/** A board of columns' counter ("2 / 3"): its least height, and the widest it gets (it sits between − and +). */
 export const LANE_COUNTER_HEIGHT = 22
 export const LANE_COUNTER_MAX = 84
+/**
+ * The counter's height as the canvas draws it: a note grows to fit its words (Node.ts fitHeightToText: the text's height
+ * and 14 of padding), so a box shorter than that is drawn taller, from the same top, and sits lower than the − and + it
+ * stands between. The layout takes the drawn height, so the counter is centred in the strip as drawn.
+ */
+export const laneCounterHeight = (fontSize: number) => Math.min(HEADER_TARGET, Math.max(LANE_COUNTER_HEIGHT, Math.ceil(fontSize * 1.45) + 14))
 
 /** A board of columns' first card (its header's foot) and one card's slot, as model.ts workshopLayout draws them. */
 export const LANE_TOP = 98
@@ -28,12 +34,12 @@ export const LANE_ROW = 88
 export interface HeaderBox { x: number; y: number; width: number; height: number }
 
 /** A board of columns' header, in a column at (x, y): its name, its counter, and its strip. */
-export function laneHeaderBoxes(x: number, y: number, counterWidth: number, noteWidth = 228) {
+export function laneHeaderBoxes(x: number, y: number, counterWidth: number, noteWidth = 228, counterHeight = LANE_COUNTER_HEIGHT) {
   const label: HeaderBox = { x: x + 8, y: y + 6, width: noteWidth - HEADER_SLOT, height: LANE_NAME_HEIGHT }
   const stripY = label.y + label.height + HEADER_GAP
   const pill = Math.min(LANE_COUNTER_MAX, counterWidth)
   // The counter sits just before + (the strip's last slot), so − , the counter and + read as one stepper.
-  const counter: HeaderBox = { x: x + 8 + noteWidth - HEADER_TARGET - HEADER_GAP - pill, y: stripY + (HEADER_TARGET - LANE_COUNTER_HEIGHT) / 2, width: pill, height: LANE_COUNTER_HEIGHT }
+  const counter: HeaderBox = { x: x + 8 + noteWidth - HEADER_TARGET - HEADER_GAP - pill, y: stripY + (HEADER_TARGET - counterHeight) / 2, width: pill, height: counterHeight }
   return { label, counter, strip: { x: x + 8, y: stripY, width: noteWidth, height: HEADER_TARGET } }
 }
 

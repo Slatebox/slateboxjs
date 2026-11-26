@@ -219,8 +219,16 @@ describe('rule controls: the layer', () => {
       expect(group.querySelector('foreignObject, div, button')).toBeNull()
       for (const item of group.querySelectorAll('[data-rule-control]')) {
         expect(item.getAttribute('aria-label')!.length).toBeGreaterThan(5)
-        expect(item.getAttribute('tabindex')).toBe('0')
+        // A limit line is a pointer's second way to the limit its header's − and + give the keyboard: one Tab stop a rule.
+        const line = item.getAttribute('data-rule-control')!.startsWith('capacity:')
+        expect(item.getAttribute('tabindex'), item.getAttribute('data-rule-control')!).toBe(line ? '-1' : '0')
+        if (line) {
+          expect(item.getAttribute('aria-hidden')).toBe('true')
+          expect(group.querySelector(`[data-rule-control="capacity-plus:${item.getAttribute('data-rule-control')!.slice('capacity:'.length)}"]`)!.getAttribute('tabindex')).toBe('0')
+        }
       }
+      // Drawn for editing only: no export or presentation snapshot of the slate keeps the controls.
+      expect(group.hasAttribute('data-export-never')).toBe(true)
       svg.remove()
     }
   })

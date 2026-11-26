@@ -13,7 +13,7 @@ export { registerRulebook, rulebook, rulebookLoaded, registerWorkshopRules, work
   type WorkshopFieldReader, type WorkshopLimits } from './kinds'
 import type { NodeJSON, SlateJSON } from '../core/Serialization'
 import { DEFAULT_NOTE_STYLE } from '../core/NoteDefaults'
-import { fitName, laneHeaderBoxes, type HeaderBox } from './laneHeader'
+import { fitName, laneCounterHeight, laneHeaderBoxes, type HeaderBox } from './laneHeader'
 /** How the engine draws an ordinary note when nothing says otherwise: what a card looks like with no style. */
 export { DEFAULT_NOTE_STYLE }
 
@@ -1879,7 +1879,7 @@ export function workshopLanePlaces(input: Workshop, options: Pick<WorkshopArtwor
 export function workshopLaneHeader(board: Workshop, place: { laneId: string; x: number; y: number }, style: Pick<WorkshopNoteStyle, 'fontSize' | 'captionFontSize'> = {}): { label: HeaderBox; value: HeaderBox } {
   const size = style.captionFontSize ?? Math.max(11, (style.fontSize ?? DEFAULT_NOTE_STYLE.fontSize) - 1)
   const counter = workshopLaneCaption(board, place.laneId)
-  const { label, counter: value } = laneHeaderBoxes(place.x, place.y, Math.max(40, Math.ceil(counter.length * size * 0.6) + 24), workshopLayout.width)
+  const { label, counter: value } = laneHeaderBoxes(place.x, place.y, Math.max(40, Math.ceil(counter.length * size * 0.6) + 24), workshopLayout.width, laneCounterHeight(size))
   return { label, value }
 }
 
@@ -1927,7 +1927,7 @@ function nativeWorkshopToSlate(board: Workshop, options: WorkshopArtworkOptions)
     const pillSize = captionSize
     const pill = header?.value ?? { x: x + 8 - origin.x, y: y + 68 - origin.y, width, height: 22 }
     note({ id: captionNodeId(lane.id), text: counter, name: lane.label, xPos: origin.x + pill.x, yPos: origin.y + pill.y, width: pill.width, height: pill.height,
-      vectorPath: roundedBox(pill.width, pill.height, map ? 0 : 11), backgroundColor: map ? 'transparent' : workshopLaneFull(board, lane.id) ? laneColors[index % laneColors.length] : 'rgba(255,255,255,0.72)',
+      vectorPath: roundedBox(pill.width, pill.height, map ? 0 : Math.round(pill.height / 2)), backgroundColor: map ? 'transparent' : workshopLaneFull(board, lane.id) ? laneColors[index % laneColors.length] : 'rgba(255,255,255,0.72)',
       borderWidth: 0, fontSize: pillSize })
     if (image) {
       nodes.push({ options: { id: imageNodeId(lane.id), name: image.alt, text: '', xPos: x + 8, yPos: y + top, width, height: stationImageHeight,
