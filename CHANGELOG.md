@@ -77,6 +77,16 @@
 
 ### Fixed
 
+- Undo with a workshop card selected kept it selected on its new copy again: a whole-slate replace (`NodesManager.clear()`)
+  puts a selected note's outline, plugs and cog away but leaves the selection for `notifyNotesReplaced` to drop, after
+  the workshop has read it (it was deselected mid-replace, and the host was told nothing was selected).
+- A launch plan's held or refused grip keeps its words above every note: a selection outline drawn after them (the
+  grip, selected where it glides back) no longer covers them.
+- On a phone a launch plan's arrow turns in the gap between rows and comes down into its task's bar, clear of the start
+  grip, so a tap along it selects the link instead of grabbing the grip.
+- A board with no header controls (a budget, a release plan, a decision board) reserves no room for them: its lane
+  names keep the column's width and height (13px or more on a phone) and its captions ("$200 · 1 placement") one line
+  above the first card.
 - Ctrl+Shift+Z redid nothing where the browser reports the capital letter (Windows, Linux, Firefox): the key is
   read in either case, and by its place on a keyboard whose letters are not Latin.
 - A drag, a resize or a rotation held still for longer than the burst's pause became several undo steps: a press

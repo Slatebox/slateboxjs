@@ -15,7 +15,7 @@ export { registerRulebook, rulebook, rulebookLoaded, registerWorkshopRules, work
   type WorkshopFieldReader, type WorkshopLimits } from './kinds'
 import type { NodeJSON, SlateJSON } from '../core/Serialization'
 import { DEFAULT_NOTE_STYLE } from '../core/NoteDefaults'
-import { fitName, laneCounterHeight, laneHeaderBoxes, type HeaderBox } from './laneHeader'
+import { fitName, laneCounterHeight, laneHeaderBoxes, laneHeaderHasControls, type HeaderBox } from './laneHeader'
 /** How the engine draws an ordinary note when nothing says otherwise: what a card looks like with no style. */
 export { DEFAULT_NOTE_STYLE }
 
@@ -1912,7 +1912,7 @@ export function workshopLanePlaces(input: Workshop, options: Pick<WorkshopArtwor
 export function workshopLaneHeader(board: Workshop, place: { laneId: string; x: number; y: number }, style: Pick<WorkshopNoteStyle, 'fontSize' | 'captionFontSize'> = {}): { label: HeaderBox; value: HeaderBox } {
   const size = style.captionFontSize ?? Math.max(11, (style.fontSize ?? DEFAULT_NOTE_STYLE.fontSize) - 1)
   const counter = workshopLaneCaption(board, place.laneId)
-  const { label, counter: value } = laneHeaderBoxes(place.x, place.y, Math.max(40, Math.ceil(counter.length * size * 0.6) + 24), workshopLayout.width, laneCounterHeight(size))
+  const { label, counter: value } = laneHeaderBoxes(place.x, place.y, Math.max(40, Math.ceil(counter.length * size * 0.6) + 24), workshopLayout.width, laneCounterHeight(size), laneHeaderHasControls(board))
   return { label, value }
 }
 

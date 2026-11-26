@@ -33,8 +33,28 @@ export const LANE_ROW = 88
 /** A box in board coordinates. */
 export interface HeaderBox { x: number; y: number; width: number; height: number }
 
-/** A board of columns' header, in a column at (x, y): its name, its counter, and its strip. */
-export function laneHeaderBoxes(x: number, y: number, counterWidth: number, noteWidth = 228, counterHeight = LANE_COUNTER_HEIGHT) {
+/**
+ * Whether a board drawn as columns of native notes (model.ts) shows header controls at all: a board of columns does;
+ * a budget, a release plan, a decision board or a map takes no rules (ruleControls.ts ruleControlsFamily), so its
+ * header reserves no room for them.
+ */
+export const laneHeaderHasControls = (board: { kind?: unknown; experience?: unknown; lanes: { station?: unknown }[] }) =>
+  !(board.kind || board.experience || board.lanes.some(lane => lane.station))
+
+/**
+ * A board of columns' header, in a column at (x, y): its name, its counter, and its strip. A header with no controls
+ * (`controls` false) keeps no slot or stepper: its name takes the column's width and the height down to its counter,
+ * and its counter (a budget's "$200 · 4 customer calls", a release plan's "3 / 8 points") the column's width, centred
+ * just above the first card, so neither shrinks or wraps for room nothing uses.
+ */
+export function laneHeaderBoxes(x: number, y: number, counterWidth: number, noteWidth = 228, counterHeight = LANE_COUNTER_HEIGHT, controls = true) {
+  if (!controls) {
+    const pill = Math.min(noteWidth, counterWidth)
+    const counterY = y + LANE_TOP - HEADER_GAP - counterHeight
+    const label: HeaderBox = { x: x + 8, y: y + 6, width: noteWidth, height: Math.max(LANE_NAME_HEIGHT, counterY - HEADER_GAP - (y + 6)) }
+    const counter: HeaderBox = { x: x + 8 + Math.round((noteWidth - pill) / 2), y: counterY, width: pill, height: counterHeight }
+    return { label, counter, strip: { x: x + 8, y: label.y + LANE_NAME_HEIGHT + HEADER_GAP, width: noteWidth, height: HEADER_TARGET } }
+  }
   const label: HeaderBox = { x: x + 8, y: y + 6, width: noteWidth - HEADER_SLOT, height: LANE_NAME_HEIGHT }
   const stripY = label.y + label.height + HEADER_GAP
   const pill = Math.min(LANE_COUNTER_MAX, counterWidth)

@@ -17,7 +17,8 @@ export type LayerShape =
   | { t: 'path'; d: string; color: string; width?: number; hit?: number; fill?: string; dash?: string; role?: string
       /** How strong the line is (stroke-opacity; a fill keeps its own). */
       strokeOpacity?: number
-      arrow?: { x: number; y: number; angle: number }; unlink?: { cardId: string; waitsOn: string; label: string; armed?: string }
+      /** The arrowhead; `note` is where the words a tapped link says end, if not just before the head. */
+      arrow?: { x: number; y: number; angle: number; note?: { x: number; y: number } }; unlink?: { cardId: string; waitsOn: string; label: string; armed?: string }
       pick?: { key: string; label: string } }
   /** Words; `lines` sets `text` on several lines (each line a tspan, `lineHeight` apart), whose words together are `text`. */
   | { t: 'text'; x: number; y: number; text: string; color: string; size?: number; anchor?: 'start' | 'middle' | 'end'; bold?: boolean; role?: string; lines?: string[]; lineHeight?: number
@@ -148,7 +149,8 @@ export function renderLayerShapes(group: SVGGElement, shapes: LayerShape[], onUn
         group.appendChild(element('path', { d: 'M0 0 L-8 -4.5 L-8 4.5 Z', transform: `translate(${x} ${y}) rotate(${angle})`, 'pointer-events': 'none' }, { fill: shape.color }))
       }
       if (shape.unlink && links?.armed === shape.unlink.waitsOn + '>' + shape.unlink.cardId && shape.arrow) {
-        const note = element('text', { x: shape.arrow.x - 6, y: shape.arrow.y - 14, 'font-size': 13, 'font-weight': 600, 'text-anchor': 'end',
+        const at = shape.arrow.note ?? { x: shape.arrow.x - 6, y: shape.arrow.y - 14 }
+        const note = element('text', { x: at.x, y: at.y, 'font-size': 13, 'font-weight': 600, 'text-anchor': 'end',
           'font-family': 'system-ui, sans-serif', 'pointer-events': 'none', 'data-board-layer': 'unlink-armed' }, { fill: layerInk.refuse })
         note.textContent = shape.unlink.armed ?? 'Tap again to remove this link'
         group.appendChild(note)
@@ -176,6 +178,13 @@ export function createBoardLayer(slate: any, paint: (shown: Workshop, state: Boa
   top.setAttribute('data-board-layer-top', '')
   top.setAttribute('pointer-events', 'none')
   let gone = false
+  // Whatever the canvas gains after the layer is drawn (a selected note's outline, handles and knob,
+  // drawn again where a released grip glides back to) goes under the words, never over them: the
+  // top layer stays the canvas's last child for as long as it has something to say.
+  const keepOnTop = typeof MutationObserver === 'function' && root ? new MutationObserver(() => {
+    if (!gone && top.parentNode === root && root.lastChild !== top) root.appendChild(top)
+  }) : null
+  keepOnTop?.observe(root!, { childList: true })
   // A tapped link waits a few seconds for the second tap that removes it.
   let last: [Workshop, Workshop | null, BoardLayerState] | null = null
   let disarm: ReturnType<typeof setTimeout> | undefined
@@ -213,6 +222,7 @@ export function createBoardLayer(slate: any, paint: (shown: Workshop, state: Boa
     },
     destroy() {
       gone = true
+      keepOnTop?.disconnect()
       clearTimeout(disarm)
       group.remove()
       top.remove()

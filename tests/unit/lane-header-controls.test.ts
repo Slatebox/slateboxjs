@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { validateWorkshop, workshopLanePlaces, workshopToSlate, type Workshop } from '../../src/workshops/model'
+import { createBudgetWorkshop, validateWorkshop, workshopLanePlaces, workshopToSlate, type Workshop } from '../../src/workshops/model'
 import { catalog, catalogPreset } from '../../src/workshops/catalog'
 import { catalogSamples } from '../../src/workshops/samples'
 import '../../src/workshops/rules'
@@ -143,6 +143,25 @@ describe('lane header: one order on every board', () => {
 
   it('maps and budgets show no controls: nothing to cover', () => {
     for (const id of ['decision-path', 'budget']) expect(ruleControls(preset(id), drawn(preset(id), false).layout)).toEqual([])
+  })
+
+  // A header with no controls reserves no room for them (aec7a027 reserved a color slot and a stepper strip on every
+  // board, and a budget's names shrank under the 13px a phone reads and its sentences wrapped into the first card).
+  it('a budget keeps its whole width: its names stay 13px or more and its sentence stays one line above the first card', () => {
+    const board = validateWorkshop(createBudgetWorkshop())
+    expect(ruleControls(board, workshopLanePlaces(board, {}))).toEqual([])
+    const nodes = workshopToSlate(board, { native: true, layout: { lanesPerRow: 1 } as never }).nodes
+    const o = (id: string) => nodes.find(node => node.options.id === id)!.options as Record<string, any>
+    for (const lane of board.lanes) {
+      const name = o('lane-' + lane.id), caption = o('caption-' + lane.id), column = o('column-' + lane.id)
+      expect(name.fontSize, lane.label).toBeGreaterThanOrEqual(13)
+      expect(name.text, lane.label).toBe(lane.label)
+      // One line of 13px words fits its pill (about 0.6em a glyph, 12 either side), and the pill ends above the first card.
+      expect(caption.width, String(caption.text)).toBeGreaterThanOrEqual(Math.ceil(String(caption.text).length * 13 * 0.6) + 24)
+      expect(caption.yPos + caption.height).toBeLessThanOrEqual(column.yPos + 98)
+      expect(caption.xPos).toBeGreaterThanOrEqual(column.xPos)
+      expect(caption.xPos + caption.width).toBeLessThanOrEqual(column.xPos + column.width)
+    }
   })
 
   it('a passive rule badge stands where its control does, so the two are never drawn apart (one rule, one mark)', () => {

@@ -510,36 +510,25 @@ test.describe("Connection Updates on Node Changes", () => {
     await sourceNode.click({ force: true });
     await page.waitForTimeout(300);
 
-    // Find rotation handle (small circle without connection-handle class)
-    const rotationHandles = await page
-      .locator("svg circle:not(.connection-handle)")
-      .all();
-    let rotationHandle = null;
-
-    for (const handle of rotationHandles) {
-      const box = await handle.boundingBox();
-      if (box && box.width < 20 && box.height < 20) {
-        rotationHandle = handle;
-        break;
-      }
-    }
-
-    if (rotationHandle) {
-      const handleBox = await rotationHandle.boundingBox();
-      if (handleBox) {
-        // Perform rotation
-        await page.mouse.move(
-          handleBox.x + handleBox.width / 2,
-          handleBox.y + handleBox.height / 2
-        );
-        await page.mouse.down();
-        await page.mouse.move(
-          handleBox.x + handleBox.width / 2 + 30,
-          handleBox.y + handleBox.height / 2 + 30
-        );
-        await page.mouse.up();
-      }
-    }
+    // The rotate knob. Since b35f38cb the knob is screen-sized (28px), so the old
+    // "first circle under 20px" heuristic picked the node-tool plug glyph instead and
+    // the drag drew a second line. Target the knob by its class.
+    const rotationHandle = page.locator(".svg_select_handle_rot_knob").first();
+    await expect(rotationHandle).toBeVisible();
+    const handleBox = await rotationHandle.boundingBox();
+    expect(handleBox).not.toBeNull();
+    // Perform rotation
+    await page.mouse.move(
+      handleBox!.x + handleBox!.width / 2,
+      handleBox!.y + handleBox!.height / 2
+    );
+    await page.mouse.down();
+    await page.mouse.move(
+      handleBox!.x + handleBox!.width / 2 + 30,
+      handleBox!.y + handleBox!.height / 2 + 30,
+      { steps: 5 }
+    );
+    await page.mouse.up();
 
     await page.waitForTimeout(500);
 

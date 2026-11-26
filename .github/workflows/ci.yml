@@ -53,8 +53,22 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install chromium --with-deps
 
+      # The library suite: vite's dev server on src and the collab relay (tests/collab-server-standalone.cjs),
+      # both started by playwright.config.ts. Nothing here needs a live app: the real-consumer specs
+      # (tests/e2e/app-*.spec.ts) run only through playwright.app.config.ts (npm run test:app), locally.
       - name: E2E tests (Chromium)
         run: npx playwright test --project=chromium
+
+      # A red E2E run leaves its report, traces and videos to read (the step after a failed one is skipped otherwise).
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ matrix.node-version }}
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4

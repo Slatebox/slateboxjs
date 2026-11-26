@@ -19,6 +19,11 @@ const view = (page: Page) => page.evaluate(() => {
   const v = (window as any).native.slate.canvas.viewbox()
   return { x: Math.round(v.x), y: Math.round(v.y), width: Math.round(v.width) }
 })
+/** Wait until the note drawn at the centre of a note's box is that note (a card gliding into its slot has arrived). */
+const underPointer = (page: Page, id: string) => expect.poll(() => page.evaluate(key => {
+  const b = (window as any).native.box(key)
+  return document.elementFromPoint(b.x + b.width / 2, b.y + b.height / 2)?.closest('[data-node-id]')?.getAttribute('data-node-id')
+}, id)).toBe(id)
 const noteIds = (page: Page) => page.evaluate(() => (window as any).native.slate.nodes.allNodes.map((n: any) => n.id) as string[])
 
 /** A button and a dialog beside the canvas, as a host page has them. */
@@ -103,6 +108,8 @@ test('while a card is held each lane\'s column says whether it takes the card, a
   await expect.poll(() => cards(page)).toBe('alpha@later beta@now gamma@now')
   await expect.poll(drops).toEqual({ 'column-now': null, 'column-later': null })
   // Later is full now: Beta is offered nothing, and a drop there is refused on the lane.
+  // Beta glides up into Alpha's old slot; box() gives where it is going, so press once it is there.
+  await underPointer(page, 'card-beta')
   const beta = await box(page, 'card-beta')
   await page.mouse.move(beta.x + beta.width / 2, beta.y + beta.height / 2)
   await page.mouse.down()
@@ -117,6 +124,7 @@ test('while a card is held each lane\'s column says whether it takes the card, a
   await expect.poll(drops, { timeout: 4000 }).toEqual({ 'column-now': null, 'column-later': null })
   // A viewer picks nothing up, so nothing is offered.
   await page.evaluate(() => (window as any).native.board.setReadOnly(true))
+  await underPointer(page, 'card-gamma')
   const gamma = await box(page, 'card-gamma')
   await page.mouse.move(gamma.x + gamma.width / 2, gamma.y + gamma.height / 2)
   await page.mouse.down()

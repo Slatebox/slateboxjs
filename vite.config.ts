@@ -58,7 +58,8 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    open: true
+    // Not on CI, where there is no browser to open (Playwright starts this server for the e2e suite).
+    open: !process.env.CI
   },
   define: {
     'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development')

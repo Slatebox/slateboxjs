@@ -58,7 +58,9 @@ test.describe('desktop, 1440 by 900', () => {
     const day = bar.width / 6
     const grip = await center(page, 'handle-build')
     await drag(page, grip, { x: grip.x + 3 * day, y: grip.y }, false)
-    await expect(layer(page, 'clamp')).toHaveText('Launch is day 14.')
+    // Held past launch, the grip shows the nearest legal end and says the rule's sentence (edgeGrip, since
+    // 6f453fb8 put grips on both edges): the same words the refused drop then keeps on screen.
+    await expect(layer(page, 'clamp')).toHaveText('That pushes QA to day 15, after launch on day 14.')
     await expect(layer(page, 'header')).toHaveAttribute('fill', '#c2410c')
     await page.mouse.up()
     expect(await refusals(page)).toEqual(['That pushes QA to day 15, after launch on day 14.'])
@@ -83,13 +85,16 @@ test.describe('desktop, 1440 by 900', () => {
     await expect(arrow).toHaveCount(1)
     await drag(page, await center(page, 'card-design'), await center(page, 'card-qa'))
     expect((await refusals(page)).at(-1)).toBe('QA already waits on Design, so Design can\'t wait on QA.')
-    // Partway along the arrow, clear of the grips at either end.
-    const path = await arrow.evaluate(element => {
+    // Partway along the arrow, clear of the grips at either end. The refused plan glides back for a
+    // moment, a card passing over that point on its way: click once the point is the arrow's.
+    const point = () => arrow.evaluate(element => {
       const line = element as SVGPathElement
       const at = line.getPointAtLength(line.getTotalLength() * 0.4)
       const screen = new DOMPoint(at.x, at.y).matrixTransform(line.getScreenCTM()!)
-      return { x: screen.x, y: screen.y }
+      return { x: screen.x, y: screen.y, hit: document.elementFromPoint(screen.x, screen.y)?.closest('[data-board-link]') === line }
     })
+    await expect.poll(async () => (await point()).hit).toBe(true)
+    const path = await point()
     await page.mouse.click(path.x, path.y)
     await expect.poll(async () => (await value(page)).cards.find((card: any) => card.id === 'copy').dependsOn).toBeUndefined()
   })

@@ -398,20 +398,26 @@ describe("NodesManager", () => {
       expect(manager.count()).toBe(0);
     });
 
-    it("lets go of the selection and a selected line, so no outline, plug or line cog stays", () => {
+    // The selection itself is left for the replace to drop (notifyNotesReplaced), after a host has
+    // read it: a workshop re-selects the redrawn card across an undo. Deselecting here told the host
+    // "nothing selected" mid-replace and lost it (native-workshop-hardening, native-workshop-host).
+    it("puts a selected note's outline, plugs and cog away and the selected line's cog, but leaves the selection for the replace", () => {
       const kept = manager.add({ id: "kept" });
       const chosen = manager.add({ id: "chosen" });
       const selection = [chosen];
       const order: string[] = [];
       (slate as any).clearLineCog = vi.fn(() => order.push("line cog"));
       (slate as any).getSelectedNodes = vi.fn(() => selection);
-      (slate as any).deselectNode = vi.fn((n: any) => { order.push(`deselect ${n.id}`); selection.splice(selection.indexOf(n), 1); });
+      (slate as any).deselectNode = vi.fn();
+      (slate as any).putAwaySelectionUi = vi.fn((n: any) => order.push(`put away ${n.id}`));
       chosen.remove.mockImplementation(() => order.push("remove chosen"));
       manager.clear();
       expect((slate as any).clearLineCog).toHaveBeenCalledTimes(1);
-      expect((slate as any).deselectNode).toHaveBeenCalledTimes(1);
-      expect((slate as any).deselectNode).toHaveBeenCalledWith(chosen);
-      expect(order).toEqual(["line cog", "deselect chosen", "remove chosen"]);
+      expect((slate as any).putAwaySelectionUi).toHaveBeenCalledTimes(1);
+      expect((slate as any).putAwaySelectionUi).toHaveBeenCalledWith(chosen);
+      expect((slate as any).deselectNode).not.toHaveBeenCalled();
+      expect(selection).toEqual([chosen]);
+      expect(order).toEqual(["line cog", "put away chosen", "remove chosen"]);
       expect(kept._removed).toBe(true);
     });
 

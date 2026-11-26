@@ -72,6 +72,26 @@ describe('the board layer', () => {
     expect(svg.querySelector('[data-board-layer-top]')).toBeNull()
   })
 
+  it('the held grip\'s words stay last in the canvas when a note\'s selection outline is drawn after them', async () => {
+    const { slate, svg } = canvas()
+    const plan = validateWorkshop(sampleLaunchPlan())
+    const layer = launchPlanKit.layer(slate)
+    layer.draw(plan, null, state({ clamp: { name: 'handle-build', text: 'Launch is day 14.' }, refused: true }))
+    // svg.select draws a selected note's outline as a group appended to the canvas (the grip, selected
+    // where it glides back after a refused drop).
+    const outline = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+    svg.appendChild(outline)
+    await Promise.resolve()
+    expect(svg.lastElementChild!.hasAttribute('data-board-layer-top')).toBe(true)
+    expect(outline.parentNode).toBe(svg)
+    // With nothing to say, the layer leaves and stays away.
+    layer.draw(plan, null, state())
+    svg.appendChild(document.createElementNS('http://www.w3.org/2000/svg', 'g'))
+    await Promise.resolve()
+    expect(svg.querySelector('[data-board-layer-top]')).toBeNull()
+    layer.destroy()
+  })
+
   it('pipeline: the forecast bar is drawn from the board on show and turns the accept colour at the target', () => {
     const { slate, svg } = canvas()
     const pipeline = validateWorkshop(samplePipeline())

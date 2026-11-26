@@ -304,8 +304,8 @@ window.clearFilters = function() {
 // --- Collab (Yjs) ---
 (async function() {
   try {
-    const Y = (await Function('return import("yjs")')()) as any;
-    const { WebsocketProvider } = (await Function('return import("y-websocket")')()) as any;
+    const Y = await Function('return import("yjs")')();
+    const { WebsocketProvider } = await Function('return import("y-websocket")')();
     document.getElementById('st-collab').textContent = 'Collab: yjs available (not connected)';
 
     // Auto-connect if collab init is configured

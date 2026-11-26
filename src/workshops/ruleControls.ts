@@ -14,7 +14,7 @@
 //   piles, where a far drop goes and what piles rank by.
 import { appearanceChips, workshopLaneHeader, type Workshop, type WorkshopLane } from './model'
 import type { WorkshopEdit } from './edits'
-import { boxesOverlap, HEADER_GAP, HEADER_SLOT, HEADER_TARGET, LANE_NAME_HEIGHT, type HeaderBox } from './laneHeader'
+import { boxesOverlap, HEADER_GAP, HEADER_SLOT, HEADER_TARGET, LANE_NAME_HEIGHT, laneHeaderHasControls, type HeaderBox } from './laneHeader'
 export { ruleControlsLayoutOf } from './laneHeader'
 
 export type RuleControlPrimitive =
@@ -119,8 +119,7 @@ export function ruleControlsFamily(board: Pick<Workshop, 'kind' | 'lanes' | 'exp
   if (board.kind === 'pipeline') return 'pipeline'
   if (board.kind === 'launch-plan' || board.kind === 'hiring-plan') return 'time'
   if (board.kind === 'nest') return 'nest'
-  if (board.kind || board.experience || board.lanes.some(lane => lane.station)) return null
-  return 'lanes'
+  return laneHeaderHasControls(board) ? 'lanes' : null
 }
 
 const rulesOf = (board: Workshop): Rule[] => ((board.behaviour as { rules?: Rule[] } | undefined)?.rules ?? []) as Rule[]

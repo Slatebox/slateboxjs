@@ -26,6 +26,8 @@ const FIRST = 'handle-_first', LAST = 'handle-_last'
 const BAR = 32
 /** A phone row's bar: a whole finger's height. */
 const PHONE_BAR = 44
+/** On a phone, the space above each task's bar, between it and the row before: the task's words sit in it, and arrows turn in it. */
+const PHONE_GAP = 20
 /**
  * How far an edge grip's box reaches over its bar: on a laptop up to 22px of a 44px box, less on a short bar so
  * its middle is still there to slide it; on a phone none of it (a finger's 44px box sits past the edge), so a
@@ -104,7 +106,7 @@ export function launchLayout(board: Workshop, layout: WorkshopBoardLayout = {}):
     gridTop = 130
     y = 138
     // Each row: its words, then a 44px bar, with 4px between one bar and the next row's words.
-    for (const card of board.cards) { bar(card.id, y + 20); y += 64 }
+    for (const card of board.cards) { bar(card.id, y + PHONE_GAP); y += PHONE_BAR + PHONE_GAP }
   } else {
     axisY = 48
     gridTop = 56
@@ -134,13 +136,25 @@ function withCaptions(board: Workshop, geometry: LaunchGeometry, caption: (laneI
   return geometry
 }
 
-/** The elbow from the end of `from` to the start of `to`, with its arrowhead pointing into `to`. */
-function elbow(from: { x: number; y: number; width: number; height: number }, to: { x: number; y: number; width: number; height: number }) {
+/**
+ * The elbow from the end of `from` to the start of `to`, with its arrowhead pointing into `to`. On a phone a task's
+ * start grip is a finger's 44px box just before its bar, at the bar's height, so an arrow coming in from the left
+ * would run under the grip for most of its length and a tap on it would take the grip. There the arrow turns in the
+ * gap between the rows and comes down (or up) into the bar's start, clear of every grip; the words a tapped link
+ * says stay beside the bar.
+ */
+function elbow(from: { x: number; y: number; width: number; height: number }, to: { x: number; y: number; width: number; height: number }, narrow = false) {
   const end = from.x + from.width
   const sx = Math.max(from.x + 4, end - 10)
   const below = to.y + to.height / 2 > from.y + from.height / 2
   const sy = below ? from.y + from.height : from.y
   const ty = to.y + to.height / 2
+  if (narrow) {
+    const tx = to.x + Math.min(6, to.width / 2)
+    const edge = below ? to.y : to.y + to.height
+    const gap = below ? edge - PHONE_GAP / 2 : edge + PHONE_GAP / 2
+    return { d: `M ${sx} ${sy} V ${gap} H ${tx} V ${edge}`, arrow: { x: tx, y: edge, angle: below ? 90 : -90, note: { x: to.x - 6, y: ty - 14 } } }
+  }
   return { d: `M ${sx} ${sy} V ${ty} H ${to.x}`, arrow: { x: to.x, y: ty, angle: 0 } }
 }
 
@@ -186,7 +200,7 @@ function paint(board: Workshop, state: BoardLayerState): LayerShape[] {
       const tight = times.get(id)!.critical && times.get(card.id)!.critical
       const before = board.cards.find(item => item.id === id)!.label
       const breaks = broken.has(id + '>' + card.id)
-      shapes.push({ t: 'path', ...elbow(from, to), color: breaks ? layerInk.refuse : tight ? CRITICAL : layerInk.ink, width: breaks || tight ? 2 : 1.5,
+      shapes.push({ t: 'path', ...elbow(from, to, g.narrow), color: breaks ? layerInk.refuse : tight ? CRITICAL : layerInk.ink, width: breaks || tight ? 2 : 1.5,
         ...(breaks && { dash: '5 4', role: 'broken-' + id + '-' + card.id }),
         unlink: { cardId: card.id, waitsOn: id, label: breaks ? `Remove the link: ${card.label} waits on ${before}, and starts before it ends` : `Remove the link: ${card.label} waits on ${before}` } })
     }

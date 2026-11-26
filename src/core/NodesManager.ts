@@ -145,8 +145,9 @@ export class NodesManager {
    * leaves as remove() lets one go, less the per-line bookkeeping (every note is going): its lines
    * are taken down with everything they drew outside the note, the end handles and arrowheads in
    * the slate's shared markers layer too (removing the note's group alone left those behind, one
-   * more set of orphan end dots per replace), and it leaves the selection, so no outline, plug or
-   * cog stays round empty canvas. Nothing is broadcast or recorded: the replace is the change.
+   * more set of orphan end dots per replace), and a selected note puts its outline, plug and cog
+   * away, so none stays round empty canvas (it leaves the selection itself when the replace is
+   * told, notifyNotesReplaced). Nothing is broadcast or recorded: the replace is the change.
    */
   public clear(): void {
     const slate: any = this.slate
@@ -155,7 +156,11 @@ export class NodesManager {
     if (nodes.length) slate?.clearLineCog?.()
     nodes.forEach((node) => {
       try {
-        if (slate?.getSelectedNodes?.()?.includes?.(node)) slate.deselectNode?.(node)
+        // Its outline, plugs and cog go now, but it stays in the selection: the replace that follows
+        // (notifyNotesReplaced) drops it, after a host has read it to select the note's new copy
+        // (a workshop card selected across an undo). Deselecting here told the host "nothing
+        // selected" mid-replace and lost the selection.
+        if (slate?.getSelectedNodes?.()?.includes?.(node)) slate.putAwaySelectionUi?.(node)
       } catch (e) {
         /* its drawing is already gone */
       }

@@ -267,7 +267,8 @@ test.describe("agent suggestions on a touch screen", () => {
     });
     const hit = page.locator('[data-suggestion-hit="add:a"]');
     // The buttons, once shown, cover the ghost's middle: that is where the browser's click for the tap lands.
-    const covers = await page.evaluate(() => {
+    // Only once the slate's fitted view is on (the ghost drawn zoomed out, the buttons at screen size): poll until it is.
+    const covers = () => page.evaluate(() => {
       const hitBox = document.querySelector('[data-suggestion-hit="add:a"]')!.getBoundingClientRect();
       const row = document.querySelector('[data-suggestion-controls="add:a"]') as SVGGElement;
       row.style.display = ""; row.style.visibility = "";
@@ -275,7 +276,7 @@ test.describe("agent suggestions on a touch screen", () => {
       row.style.display = "none"; row.style.visibility = "hidden";
       return r.width > hitBox.width;
     });
-    expect(covers).toBe(true);
+    await expect.poll(covers).toBe(true);
     await hit.tap();
     await expect(page.locator('[data-suggestion-controls="add:a"] [data-suggestion-button="discard"]')).toBeVisible();
     // The tap's focus is on the ghost it tapped, never on the Discard (or Keep) that appeared under the finger.
