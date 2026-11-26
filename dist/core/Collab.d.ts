@@ -10,8 +10,19 @@
 export interface CollabOptions {
     /** WebSocket URL for y-websocket server */
     wsUrl?: string;
-    /** Query-string params sent on connect (e.g. HMAC bearer + timestamp) */
-    wsParams?: Record<string, string>;
+    /**
+     * The relay credentials from the host: a v2 room token `{ token, exp }` (sent as the
+     * `token` query param; its role decides whether this screen may write), or the legacy
+     * `{ bearer, timestamp }` pair, sent only when no token is given.
+     */
+    wsParams?: Record<string, any>;
+    /**
+     * Ask the host for fresh relay credentials for the same slate (the host re-runs its
+     * access check). Resolves to `{ websocketParams }` or the params themselves, or null
+     * when this person no longer has access. A host may instead return
+     * `refreshWebsocketParams` from onInitCollaboration.
+     */
+    refreshWebsocketParams?: RefreshWebsocketParams;
     /** Optionally inject the yjs module (skips the dynamic import) */
     Y?: any;
     /** Optionally inject the y-websocket WebsocketProvider class */
@@ -41,6 +52,13 @@ export interface CollabOptions {
     /** Called when awareness (user presence) changes */
     onAwarenessChange?: (users: CollabUser[]) => void;
 }
+/** Why the engine asks the host for new relay credentials. */
+export type RelayRefreshReason = "expiring" | "expired" | "refused";
+/**
+ * The host's refresh for relay credentials: given why, resolve to
+ * `{ websocketParams: { token, exp } }` (or `{ token, exp }`), or null for no access.
+ */
+export type RefreshWebsocketParams = (reason: RelayRefreshReason) => unknown | Promise<unknown>;
 export interface CollabUser {
     clientID: number;
     userName: string;
@@ -77,6 +95,7 @@ export interface NoteTrades {
 }
 import type { Slate } from "./Slate";
 import type { SlatePackage } from "./SlatePackage";
+import { type RelayRole } from "./RoomToken";
 /**
  * A WebSocket class for y-websocket that hands Yjs only binary frames. The relay
  * sends one text frame ("Unauthenticated") when it refuses a connection; y-websocket
@@ -145,6 +164,17 @@ export declare class Collab {
     private hostChangeAt;
     /** Connection/user payload returned by the host's onInitCollaboration */
     userBaseData?: Record<string, any>;
+    /** The relay credentials in hand (see RoomToken). */
+    private credentials;
+    /** The role the relay grants this screen: a read role writes nothing to the room. */
+    private role;
+    private renewTimer;
+    /** A renewal (and the reconnect after it) is on its way. */
+    private renewing;
+    /** Refusals since this screen last synced with the room. */
+    private authFailures;
+    /** The relay will not have this screen (no access, or refused again and again). */
+    private relayGaveUp;
     constructor(slate: Slate, options?: CollabOptions);
     /**
      * The relay answered with words instead of a Yjs message. It does so only when it
@@ -155,6 +185,7 @@ export declare class Collab {
      * array" for every such frame.
      */
     private relayRefused;
+    private giveUpOnRelay;
     private _relayRefusedSaid;
     /**
      * Initialize collaboration.
@@ -385,5 +416,34 @@ export declare class Collab {
     destroy(): void;
     /** Get client ID */
     getClientID(): number;
+    /** The role the relay grants this screen ('write' with legacy credentials). */
+    getRole(): RelayRole;
+    /** True when the relay lets this screen only watch: no local edit is made or sent. */
+    isReadOnlyRole(): boolean;
+    private canWriteRoom;
+    private refreshFn;
+    /** Take these credentials as the ones in hand. True when the role changed. */
+    private useCredentials;
+    /** Milliseconds until the token in hand runs out (Infinity when it does not). */
+    private msLeft;
+    private clearRenewTimer;
+    /**
+     * Ask for a new token a little before this one runs out, so any reconnect has a good one.
+     * The relay checks a token only when a socket opens: a live socket stays open past it.
+     */
+    private scheduleRenewal;
+    /** Ask the host for new credentials. Null when it gave none (no access); throws on failure. */
+    private askHost;
+    /** The timer's renewal: new params for the next reconnect, the socket left as it is. */
+    private renewInPlace;
+    /** The socket closed: renew first when the relay refused it or the token is about to run out. */
+    private connectionClosed;
+    /** Close and open the provider's socket again with the params in hand. */
+    private reconnect;
+    /**
+     * Stop the provider's own retry (it would send the same refused token), ask the host for
+     * a new token, and connect with it.
+     */
+    private renewAndReconnect;
     private handleRemotePackage;
 }

@@ -28,10 +28,18 @@ export interface SlateEvents {
     onSlateChanged?: (pkg: SlatePackage, collabUsers?: CollabUser[]) => void;
     /**
      * Called before the collab websocket connects. May return (or resolve to)
-     * connection details: `{websocketUrl, websocketParams: {bearer, timestamp},
-     * userName, color, ...}` — websocketParams carries server auth.
+     * connection details: `{websocketUrl, websocketParams: {token, exp}, userName,
+     * color, refreshWebsocketParams, ...}` — websocketParams carries the relay auth: a
+     * v2 room token (its role decides whether this screen may edit), or the legacy
+     * `{bearer, timestamp}`, sent only when no token is given. `refreshWebsocketParams(reason)`
+     * resolves to fresh `{websocketParams}` for the same slate, or null when access ended.
      */
     onInitCollaboration?: (clientID: string) => void | Record<string, any> | Promise<void | Record<string, any>>;
+    /**
+     * Fresh relay credentials for this slate (instead of returning refreshWebsocketParams
+     * from onInitCollaboration): same contract.
+     */
+    onRefreshCollaboration?: (reason: "expiring" | "expired" | "refused") => unknown | Promise<unknown>;
     onTextPaneRequested?: (node: Node, cb: Function) => void;
     /**
      * A video address was pasted or dropped on the canvas (MediaInput). A host that
@@ -469,7 +477,11 @@ export declare class Slate {
      * during init and again after loadJSON replaces the options.
      */
     applyContainerStyle(): void;
-    /** v1: host-supplied permission check — true when the viewer cannot edit. */
+    /**
+     * v1: host-supplied permission check — true when the viewer cannot edit. Also true
+     * when the collaboration relay granted this screen only a read role (its room token):
+     * every edit guard then holds, so a viewer never makes a change it could not send.
+     */
     isReadOnly(): boolean;
     /** v1: host-supplied permission check — true when only comments are allowed. */
     isCommentOnly(): boolean;

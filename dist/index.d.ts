@@ -46,7 +46,8 @@ export type { DragPolicy, DragVerdict, DragGesture, DragCancelReason, NodeCapabi
 export type { SlateJSON, NodeJSON } from './core/Serialization';
 export type { ShapeDefinition } from './core/ShapeRegistry';
 export type { Association } from './core/Relationship';
-export type { CollabOptions, CollabUser, CollabPackage } from './core/Collab';
+export type { CollabOptions, CollabUser, CollabPackage, RefreshWebsocketParams, RelayRefreshReason } from './core/Collab';
+export type { RelayRole, RoomTokenClaims } from './core/RoomToken';
 export type { SlatePackage } from './core/SlatePackage';
 export type { ExportOptions } from './core/Export';
 export type { LayoutMove } from './core/Layout';

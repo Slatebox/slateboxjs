@@ -1,4 +1,4 @@
-import { s as E, d as C } from "./canvas-canvas-Dfe12wPu.mjs";
+import { s as E, d as C } from "./canvas-canvas-Bt5Moisx.mjs";
 const M = /* @__PURE__ */ new Set(["collabBaseline", "viewPort"]), R = (r, t) => r === t || JSON.stringify(r) === JSON.stringify(t), w = (r) => r?.options?.id, D = (r) => r.relationships?.associations ?? [];
 function y(r) {
   return r.id != null && r.id !== "" ? String(r.id) : `${r.parentId}->${r.childId}`;
