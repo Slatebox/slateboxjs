@@ -175,6 +175,13 @@ export declare class Collab {
     private authFailures;
     /** The relay will not have this screen (no access, or refused again and again). */
     private relayGaveUp;
+    /**
+     * A planned renewal put a newer token in the provider's params while the open socket
+     * still runs on the older one. The relay ends that socket with 4401 when the older
+     * token runs out; the provider's own retry then sends the newer token, so that close
+     * is no refusal.
+     */
+    private renewedInPlace;
     constructor(slate: Slate, options?: CollabOptions);
     /**
      * The relay answered with words instead of a Yjs message. It does so only when it
@@ -429,7 +436,8 @@ export declare class Collab {
     private clearRenewTimer;
     /**
      * Ask for a new token a little before this one runs out, so any reconnect has a good one.
-     * The relay checks a token only when a socket opens: a live socket stays open past it.
+     * The relay closes a socket (4401) when the token it opened with runs out; the reconnect
+     * then carries the token renewed here.
      */
     private scheduleRenewal;
     /** Ask the host for new credentials. Null when it gave none (no access); throws on failure. */
