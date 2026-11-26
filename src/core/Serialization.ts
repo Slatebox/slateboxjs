@@ -105,13 +105,25 @@ export async function deserialize(
   // taken now and opened again on its new copy once the load has finished.
   const draft = preserve ? null : slate.takeInlineDraft?.() ?? null;
   slate.beginRemoteApply?.();
+  let loaded = false;
   try {
     // Packages from the room wait for this load: one applied to a slate that is
     // half loaded is lost with the notes it was meant for.
     const load = deserializeInner(data, slate, preserve, skipZoom);
     await (slate.holdUntilLoaded?.(load) ?? load);
+    loaded = true;
   } finally {
     slate.endRemoteApply?.();
+    // A load that failed after clear() took the notes away still drops them from the
+    // selection (clear() leaves that to the replace): a selection holding notes that
+    // are gone lets Delete act on them and breaks the next selection drawn.
+    if (!loaded && !preserve) {
+      try {
+        slate.notifyNotesReplaced?.();
+      } catch (error) {
+        /* the load's own error is the one that matters */
+      }
+    }
   }
   // Replacing the notes also removed any that a host draws from its own state.
   if (!preserve) slate.notifyNotesReplaced?.();

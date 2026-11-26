@@ -161,6 +161,19 @@ export function renderLayerShapes(group: SVGGElement, shapes: LayerShape[], onUn
 }
 
 /**
+ * Whether something other than a board's top layer comes after `top` in the canvas. Every board's
+ * top layer is kept at the end of the canvas, after every note and every piece of selection chrome;
+ * the top layers of several boards share that end and never move to pass one another, so their
+ * observers settle instead of trading the last place forever.
+ */
+function coveredOnTop(top: Element): boolean {
+  for (let next = top.nextSibling; next; next = next.nextSibling) {
+    if (!(next instanceof Element && next.hasAttribute('data-board-layer-top'))) return true
+  }
+  return false
+}
+
+/**
  * The layer for one attached board. `paint` says what to draw for the board on show; the
  * committed board is passed too, for what a preview is compared against.
  */
@@ -180,9 +193,10 @@ export function createBoardLayer(slate: any, paint: (shown: Workshop, state: Boa
   let gone = false
   // Whatever the canvas gains after the layer is drawn (a selected note's outline, handles and knob,
   // drawn again where a released grip glides back to) goes under the words, never over them: the
-  // top layer stays the canvas's last child for as long as it has something to say.
+  // top layer stays at the canvas's end for as long as it has something to say. Other boards' top
+  // layers share that end (coveredOnTop): it moves only past a note or chrome, never past them.
   const keepOnTop = typeof MutationObserver === 'function' && root ? new MutationObserver(() => {
-    if (!gone && top.parentNode === root && root.lastChild !== top) root.appendChild(top)
+    if (!gone && top.parentNode === root && coveredOnTop(top)) root.appendChild(top)
   }) : null
   keepOnTop?.observe(root!, { childList: true })
   // A tapped link waits a few seconds for the second tap that removes it.
@@ -216,8 +230,8 @@ export function createBoardLayer(slate: any, paint: (shown: Workshop, state: Boa
       const above = state.above && state.above.parentNode === root ? state.above : null
       const before = above ? above.nextSibling : root.firstChild
       if (group.parentNode !== root || group.previousSibling !== above) root.insertBefore(group, before === group ? group.nextSibling : before)
-      // Last in the canvas: above every note, the board's own and the slate's.
-      if (top.firstChild && root.lastChild !== top) root.appendChild(top)
+      // At the canvas's end: above every note, the board's own and the slate's (with any other board's top layer).
+      if (top.firstChild && (top.parentNode !== root || coveredOnTop(top))) root.appendChild(top)
       else if (!top.firstChild && top.parentNode) top.remove()
     },
     destroy() {

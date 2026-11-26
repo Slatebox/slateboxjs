@@ -258,6 +258,43 @@ describe("Serialization", () => {
       expect(mockSlate.nodes.clear).not.toHaveBeenCalled();
     });
 
+    // clear() leaves the replaced notes in the selection for the replace to drop (notifyNotesReplaced).
+    // A load that fails after clear() must still drop them: a selection holding notes that are gone
+    // lets Delete act on them and breaks the next selection drawn ("reading 'screenCTM'").
+    it("a load that fails after clearing still drops the replaced notes from the selection, and still throws", async () => {
+      const live = new Map<string, any>([["n1", mockNode1], ["n2", mockNode2]]);
+      let selection: any[] = [mockNode1];
+      mockSlate.nodes.one = vi.fn((id: string) => live.get(id) ?? null);
+      mockSlate.nodes.clear = vi.fn(() => live.clear());
+      mockSlate.getSelectedNodes = () => selection;
+      mockSlate.notifyNotesReplaced = vi.fn(() => {
+        selection = selection.filter((n) => mockSlate.nodes.one(n.id) === n);
+      });
+      mockSlate.endRemoteApply = vi.fn();
+      mockSlate.holdUntilLoaded = vi.fn(async (load: Promise<void>) => {
+        await load;
+        throw new Error("load failed");
+      });
+      await expect(deserialize({ options: {}, nodes: [], shareId: "" }, mockSlate)).rejects.toThrow("load failed");
+      expect(mockSlate.nodes.clear).toHaveBeenCalled();
+      expect(mockSlate.endRemoteApply).toHaveBeenCalledTimes(1);
+      expect(mockSlate.notifyNotesReplaced).toHaveBeenCalledTimes(1);
+      expect(selection).toEqual([]);
+      // A drop that throws never hides the load's own error.
+      mockSlate.notifyNotesReplaced = vi.fn(() => { throw new Error("drop failed"); });
+      await expect(deserialize({ options: {}, nodes: [], shareId: "" }, mockSlate)).rejects.toThrow("load failed");
+      // Merged in (preserve), nothing was replaced and the selection is left alone.
+      mockSlate.notifyNotesReplaced = vi.fn();
+      await expect(deserialize({ options: {}, nodes: [], shareId: "" }, mockSlate, true)).rejects.toThrow("load failed");
+      expect(mockSlate.notifyNotesReplaced).not.toHaveBeenCalled();
+    });
+
+    it("a load that succeeds tells the replace once", async () => {
+      mockSlate.notifyNotesReplaced = vi.fn();
+      await deserialize({ options: {}, nodes: [], shareId: "" }, mockSlate);
+      expect(mockSlate.notifyNotesReplaced).toHaveBeenCalledTimes(1);
+    });
+
     it("should apply shareId from JSON", () => {
       const json: SlateJSON = {
         options: {},

@@ -92,6 +92,71 @@ describe('the board layer', () => {
     layer.destroy()
   })
 
+  // Several boards on one canvas: each board's top layer keeps above every note and every piece of selection
+  // chrome, and their observers settle instead of trading the last place forever (which hung the page).
+  for (const count of [2, 3]) {
+    for (const phone of [false, true]) {
+      it(`${count} launch plans on one canvas${phone ? ' (phone: grips on every bar)' : ''}: the top layers stay at the end and the observers settle`, async () => {
+        const Real = globalThis.MutationObserver
+        let calls = 0
+        const observers: MutationObserver[] = []
+        // Count every observer callback; past a bound, stop forwarding so a loop fails the test instead of hanging it.
+        class Counting extends Real {
+          constructor(callback: MutationCallback) {
+            super((records, observer) => { if (++calls <= 200) callback(records, observer) })
+            observers.push(this)
+          }
+        }
+        globalThis.MutationObserver = Counting as typeof MutationObserver
+        const { slate, svg } = canvas()
+        const plan = validateWorkshop(sampleLaunchPlan())
+        const held = (i: number) => state({ origin: { x: 40 + i * 900, y: 20 }, layout: phone ? { narrow: true, width: 390 } : {},
+          clamp: { name: 'handle-build', text: 'Launch is day ' + (14 + i) + '.' }, refused: true })
+        const layers = Array.from({ length: count }, () => launchPlanKit.layer(slate))
+        try {
+          layers.forEach((layer, i) => layer.draw(plan, null, held(i)))
+          const tops = () => [...svg.querySelectorAll('[data-board-layer-top]')]
+          const tail = () => [...svg.children].slice(-count)
+          const settle = async () => { for (let i = 0; i < 20; i++) await Promise.resolve() }
+          await settle()
+          expect(tops()).toHaveLength(count)
+          expect(tops().every(top => top.firstChild)).toBe(true)
+          expect(tail().every(child => child.hasAttribute('data-board-layer-top'))).toBe(true)
+          // A selected note's outline, its handles and a note drawn after the layers: every top layer goes back above them.
+          for (let round = 0; round < 3; round++) {
+            calls = 0
+            const chrome = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+            svg.appendChild(chrome)
+            await settle()
+            expect(calls).toBeLessThanOrEqual(count * 3)
+            expect(chrome.parentNode).toBe(svg)
+            expect(tail().every(child => child.hasAttribute('data-board-layer-top'))).toBe(true)
+            expect(svg.children[svg.children.length - count - 1]).toBe(chrome)
+          }
+          // A redraw of one board keeps the order settled too.
+          calls = 0
+          layers[0].draw(plan, null, held(0))
+          await settle()
+          expect(calls).toBeLessThanOrEqual(count * 3)
+          expect(tail().every(child => child.hasAttribute('data-board-layer-top'))).toBe(true)
+          // One board with nothing more to say leaves; the others stay at the end.
+          layers[0].draw(plan, null, state({ layout: phone ? { narrow: true, width: 390 } : {} }))
+          svg.appendChild(document.createElementNS('http://www.w3.org/2000/svg', 'g'))
+          await settle()
+          const left = phone ? count : count - 1
+          expect(tops()).toHaveLength(left)
+          expect([...svg.children].slice(-left).every(child => child.hasAttribute('data-board-layer-top'))).toBe(true)
+        } finally {
+          layers.forEach(layer => layer.destroy())
+          globalThis.MutationObserver = Real
+          svg.remove()
+        }
+        expect(svg.querySelector('[data-board-layer-top]')).toBeNull()
+        expect(observers.length).toBe(count)
+      })
+    }
+  }
+
   it('pipeline: the forecast bar is drawn from the board on show and turns the accept colour at the target', () => {
     const { slate, svg } = canvas()
     const pipeline = validateWorkshop(samplePipeline())

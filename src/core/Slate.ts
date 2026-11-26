@@ -784,6 +784,10 @@ export class Slate {
     if (this.nodes) {
       this.nodes.clear();
     }
+    // clear() leaves the selection to the replace that follows; nothing follows a destroy, so
+    // the notes it took away leave the selection here (their outlines went with clear()).
+    this.selectedNodes = [];
+    this._hadGroupSelection = false;
 
     // Remove the SVG canvas
     if (this.canvas) {

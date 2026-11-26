@@ -490,6 +490,24 @@ describe("Slate", () => {
       expect(selected[0]).toBe(n2);
     });
 
+    // NodesManager.clear() leaves the selection to the replace that follows it (notifyNotesReplaced);
+    // nothing follows a destroy, so the notes it took away must not stay selected.
+    it("a destroyed slate keeps none of its notes selected", () => {
+      const slate = new Slate(container);
+      const n1 = slate.addNode({ id: "n1" });
+      const n2 = slate.addNode({ id: "n2" });
+      slate.selectNodes([n1, n2]);
+      expect(slate.getSelectedNodes()).toHaveLength(2);
+      // The sub-module mocks here carry no teardown; destroy() skips the ones a slate lacks.
+      for (const key of ["panZoom", "birdsEye", "zoomSlider", "keyboard", "mediaInput", "contextMenu", "multiSelection", "undoRedo", "collab", "camera", "presentation", "grid"])
+        (slate as any)[key] = null;
+      // clear() puts the outlines away and leaves the selection (as NodesManager.clear does).
+      (slate as any).nodes.clear = vi.fn();
+      slate.destroy();
+      expect((slate as any).nodes.clear).toHaveBeenCalledTimes(1);
+      expect(slate.getSelectedNodes()).toEqual([]);
+    });
+
     it("adds to existing selection when addToSelection is true", () => {
       const slate = new Slate(container);
       const n1 = slate.addNode({ id: "n1" });
