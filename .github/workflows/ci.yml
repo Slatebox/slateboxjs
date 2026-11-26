@@ -8,7 +8,7 @@ on:
 
 jobs:
   test-and-build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     strategy:
       # Each Node version reports on its own: one red job never cancels the others.
@@ -64,7 +64,7 @@ jobs:
           retention-days: 7
 
   cross-browser:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: test-and-build
 
     strategy:
