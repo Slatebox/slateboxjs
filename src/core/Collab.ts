@@ -11,8 +11,19 @@
 export interface CollabOptions {
   /** WebSocket URL for y-websocket server */
   wsUrl?: string;
-  /** Query-string params sent on connect (e.g. HMAC bearer + timestamp) */
-  wsParams?: Record<string, string>;
+  /**
+   * The relay credentials from the host: a v2 room token `{ token, exp }` (sent as the
+   * `token` query param; its role decides whether this screen may write), or the legacy
+   * `{ bearer, timestamp }` pair, sent only when no token is given.
+   */
+  wsParams?: Record<string, any>;
+  /**
+   * Ask the host for fresh relay credentials for the same slate (the host re-runs its
+   * access check). Resolves to `{ websocketParams }` or the params themselves, or null
+   * when this person no longer has access. A host may instead return
+   * `refreshWebsocketParams` from onInitCollaboration.
+   */
+  refreshWebsocketParams?: RefreshWebsocketParams;
   /** Optionally inject the yjs module (skips the dynamic import) */
   Y?: any;
   /** Optionally inject the y-websocket WebsocketProvider class */
@@ -42,6 +53,17 @@ export interface CollabOptions {
   /** Called when awareness (user presence) changes */
   onAwarenessChange?: (users: CollabUser[]) => void;
 }
+
+/** Why the engine asks the host for new relay credentials. */
+export type RelayRefreshReason = "expiring" | "expired" | "refused";
+
+/**
+ * The host's refresh for relay credentials: given why, resolve to
+ * `{ websocketParams: { token, exp } }` (or `{ token, exp }`), or null for no access.
+ */
+export type RefreshWebsocketParams = (
+  reason: RelayRefreshReason,
+) => unknown | Promise<unknown>;
 
 export interface CollabUser {
   clientID: number;
@@ -181,6 +203,40 @@ function withoutNote(pkg: SlatePackage, id: string): SlatePackage | null {
 import type { Slate } from "./Slate";
 import type { SlatePackage } from "./SlatePackage";
 import { v2NodeToV1 } from "./compat";
+import {
+  relayCredentials,
+  refreshedParams,
+  RELAY_AUTH_CLOSE_CODES,
+  type RelayCredentials,
+  type RelayRole,
+} from "./RoomToken";
+
+/** Ask for a new token this long before the one in hand runs out. */
+const RENEW_BEFORE_MS = 2 * 60 * 1000;
+/** A token with less than this left is renewed before a reconnect instead of sent. */
+const RECONNECT_MARGIN_MS = 60 * 1000;
+/** After this many refusals in a row (no sync in between) the screen stops trying. */
+const MAX_AUTH_RETRIES = 3;
+/** Wait this long before asking again when a renewal failed (the host or the network). */
+const RENEW_RETRY_MS = 30 * 1000;
+
+/**
+ * The room's map as a read-only person's screen holds it: reads go through, writes do
+ * nothing while `writable()` says no. Every write to the room passes through the map,
+ * so a read role never produces a Yjs update for the relay to refuse.
+ */
+function guardRoomMap(map: any, writable: () => boolean): any {
+  const blocked = new Set(["set", "delete", "clear"]);
+  return new Proxy(map, {
+    get(target, prop) {
+      if (typeof prop === "string" && blocked.has(prop) && !writable()) {
+        return () => undefined;
+      }
+      const value = Reflect.get(target, prop, target);
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  });
+}
 
 /**
  * A WebSocket class for y-websocket that hands Yjs only binary frames. The relay
@@ -272,6 +328,17 @@ export class Collab {
   private hostChangeAt = 0;
   /** Connection/user payload returned by the host's onInitCollaboration */
   public userBaseData?: Record<string, any>;
+  /** The relay credentials in hand (see RoomToken). */
+  private credentials: RelayCredentials = relayCredentials(undefined);
+  /** The role the relay grants this screen: a read role writes nothing to the room. */
+  private role: RelayRole = "write";
+  private renewTimer: ReturnType<typeof setTimeout> | null = null;
+  /** A renewal (and the reconnect after it) is on its way. */
+  private renewing: Promise<void> | null = null;
+  /** Refusals since this screen last synced with the room. */
+  private authFailures = 0;
+  /** The relay will not have this screen (no access, or refused again and again). */
+  private relayGaveUp = false;
 
   constructor(slate: Slate, options: CollabOptions = {}) {
     this.slate = slate;
@@ -293,7 +360,18 @@ export class Collab {
    * array" for every such frame.
    */
   private relayRefused(text: string): void {
-    if (!/unauthenticated/i.test(text)) return;
+    if (!/unauthenticated|forbidden|expired/i.test(text)) return;
+    // With a way to ask the host for a new credential, ask (a few times) before giving up.
+    if (this.refreshFn() && !this.relayGaveUp && this.authFailures < MAX_AUTH_RETRIES) {
+      this.renewAndReconnect("refused");
+      return;
+    }
+    this.giveUpOnRelay(text);
+  }
+
+  private giveUpOnRelay(text: string): void {
+    this.relayGaveUp = true;
+    this.clearRenewTimer();
     if (!this._relayRefusedSaid) {
       this._relayRefusedSaid = true;
       console.warn(
@@ -318,6 +396,8 @@ export class Collab {
     if (opts) {
       Object.assign(this.options, opts);
     }
+    this.relayGaveUp = false;
+    this.authFailures = 0;
 
     try {
       // Lazy dynamic imports keep yjs optional at install time while letting
@@ -370,6 +450,9 @@ export class Collab {
         if (userBaseData.websocketParams) {
           this.options.wsParams = userBaseData.websocketParams;
         }
+        if (typeof userBaseData.refreshWebsocketParams === "function") {
+          this.options.refreshWebsocketParams = userBaseData.refreshWebsocketParams;
+        }
         if (userBaseData.userName) {
           this.options.userName = userBaseData.userName;
         }
@@ -381,8 +464,10 @@ export class Collab {
         }
       }
 
-      // Create shared map for collab packages
-      this.collabMap = this.doc.getMap("collabPackages");
+      this.useCredentials(this.options.wsParams);
+
+      // Create shared map for collab packages. A read role writes nothing to it.
+      this.collabMap = guardRoomMap(this.doc.getMap("collabPackages"), () => this.canWriteRoom());
 
       // Set up observer for remote changes
       this.collabMap.observe((event: any) => {
@@ -391,8 +476,9 @@ export class Collab {
         this.applyRemoteChanges(event.keysChanged);
       });
 
-      // Create WebSocket provider — params carry auth (e.g. HMAC bearer +
-      // timestamp) as query string values, matching y-websocket's API
+      // Create WebSocket provider — params carry auth as query string values,
+      // matching y-websocket's API: the room token alone when there is one, else the
+      // legacy bearer + timestamp. The provider reads them again on every reconnect.
       const WebSocketPolyfill = relayTextGuard((text) => this.relayRefused(text));
       this.provider = new WebsocketProvider(
         this.options.wsUrl!,
@@ -400,10 +486,14 @@ export class Collab {
         this.doc,
         {
           connect: true,
-          params: this.options.wsParams || {},
+          params: { ...this.credentials.params },
           ...(WebSocketPolyfill ? { WebSocketPolyfill } : {}),
         }
       );
+      // The relay closes a socket whose token is wrong, run out or not enough (4401/4403);
+      // any other drop with a token about to run out is renewed before the provider retries.
+      this.provider.on?.("connection-close", (event: any) => this.connectionClosed(event));
+      this.scheduleRenewal();
 
       // Set up awareness (user presence)
       this.awareness = this.provider.awareness;
@@ -550,7 +640,7 @@ export class Collab {
       return [sent];
     });
 
-    if (this.collabMap) {
+    if (this.collabMap && this.canWriteRoom()) {
       for (const pkg of pkgs) {
         // This person changed the note: their copy is their own now, not the record's.
         for (const id of this.fromRecord) if (withoutNote(pkg, id) !== pkg) this.fromRecord.delete(id);
@@ -951,6 +1041,7 @@ export class Collab {
   /** The room has been synced with (or lost). */
   private roomSynced(synced: boolean): void {
     this.synced = synced;
+    if (synced) this.authFailures = 0;
     if (synced) this.scheduleTradeFix();
   }
 
@@ -1654,9 +1745,13 @@ export class Collab {
     }
     this.cursorElements.clear();
 
+    this.clearRenewTimer();
+    this.renewing = null;
     if (this.provider) {
-      this.provider.disconnect();
+      // Let go of it first: the close it emits is this screen leaving, not a drop to renew after.
+      const provider = this.provider;
       this.provider = null;
+      provider.disconnect();
     }
     if (this.doc) {
       this.doc.destroy();
@@ -1687,6 +1782,182 @@ export class Collab {
   /** Get client ID */
   public getClientID(): number {
     return this.clientID;
+  }
+
+  // ─── Relay credentials ───────────────────────────────────────────
+
+  /** The role the relay grants this screen ('write' with legacy credentials). */
+  public getRole(): RelayRole {
+    return this.role;
+  }
+
+  /** True when the relay lets this screen only watch: no local edit is made or sent. */
+  public isReadOnlyRole(): boolean {
+    return this.role === "read";
+  }
+
+  private canWriteRoom(): boolean {
+    return this.role === "write";
+  }
+
+  private refreshFn(): RefreshWebsocketParams | null {
+    const fn =
+      this.options?.refreshWebsocketParams ??
+      (this.slate?.options?.events as any)?.onRefreshCollaboration;
+    return typeof fn === "function" ? fn : null;
+  }
+
+  /** Take these credentials as the ones in hand. True when the role changed. */
+  private useCredentials(wsParams: Record<string, any> | null | undefined): boolean {
+    this.options.wsParams = wsParams || undefined;
+    this.credentials = relayCredentials(wsParams);
+    const before = this.role;
+    this.role = this.credentials.role;
+    if (this.credentials.kind === "token") {
+      console.log(
+        "COLLAB_DEBUG: relay token in hand (role " + this.role + ", " +
+          (this.credentials.exp ? Math.round(this.msLeft() / 1000) + "s left" : "no expiry") + ")"
+      );
+    }
+    return before !== this.role;
+  }
+
+  /** Milliseconds until the token in hand runs out (Infinity when it does not). */
+  private msLeft(): number {
+    const exp = this.credentials.exp;
+    return exp == null ? Infinity : exp * 1000 - Date.now();
+  }
+
+  private clearRenewTimer(): void {
+    if (this.renewTimer) clearTimeout(this.renewTimer);
+    this.renewTimer = null;
+  }
+
+  /**
+   * Ask for a new token a little before this one runs out, so any reconnect has a good one.
+   * The relay checks a token only when a socket opens: a live socket stays open past it.
+   */
+  private scheduleRenewal(delayMs?: number): void {
+    this.clearRenewTimer();
+    if (this.relayGaveUp || !this.refreshFn() || this.credentials.kind !== "token") return;
+    const left = this.msLeft();
+    if (!Number.isFinite(left)) return;
+    const wait = delayMs ?? Math.max(5000, left - RENEW_BEFORE_MS);
+    this.renewTimer = setTimeout(() => {
+      this.renewTimer = null;
+      void this.renewInPlace();
+    }, Math.min(wait, 24 * 60 * 60 * 1000));
+  }
+
+  /** Ask the host for new credentials. Null when it gave none (no access); throws on failure. */
+  private async askHost(reason: RelayRefreshReason): Promise<Record<string, any> | null> {
+    const fn = this.refreshFn();
+    if (!fn) return null;
+    return refreshedParams(await fn(reason));
+  }
+
+  /** The timer's renewal: new params for the next reconnect, the socket left as it is. */
+  private async renewInPlace(): Promise<void> {
+    if (this.renewing || !this.provider) return;
+    const provider = this.provider;
+    let fresh: Record<string, any> | null;
+    try {
+      fresh = await this.askHost(this.msLeft() > 0 ? "expiring" : "expired");
+    } catch (error) {
+      console.warn("COLLAB: could not renew the collaboration token; trying again soon", error);
+      if (this.provider === provider) this.scheduleRenewal(RENEW_RETRY_MS);
+      return;
+    }
+    if (this.provider !== provider) return; // disconnected meanwhile
+    if (!fresh) {
+      // The host says this person may no longer be here: leave the room.
+      this.giveUpOnRelay("access ended");
+      return;
+    }
+    const roleChanged = this.useCredentials(fresh);
+    provider.params = { ...this.credentials.params };
+    // The relay fixed this socket's role when it opened: a new role needs a new socket.
+    if (roleChanged) this.reconnect(provider);
+    this.scheduleRenewal();
+  }
+
+  /** The socket closed: renew first when the relay refused it or the token is about to run out. */
+  private connectionClosed(event: any): void {
+    if (this.relayGaveUp || this.renewing) return;
+    const code = typeof event?.code === "number" ? event.code : 0;
+    if (RELAY_AUTH_CLOSE_CODES.has(code)) {
+      if (!this.refreshFn() || this.authFailures >= MAX_AUTH_RETRIES) {
+        this.giveUpOnRelay("closed " + code);
+        return;
+      }
+      this.renewAndReconnect(code === 4403 ? "refused" : "expired");
+      return;
+    }
+    if (this.credentials.kind === "token" && this.refreshFn() && this.msLeft() < RECONNECT_MARGIN_MS) {
+      this.renewAndReconnect(this.msLeft() > 0 ? "expiring" : "expired");
+    }
+  }
+
+  /** Close and open the provider's socket again with the params in hand. */
+  private reconnect(provider: any): void {
+    try {
+      provider.disconnect();
+    } catch {
+      /* already closed */
+    }
+    provider.params = { ...this.credentials.params };
+    provider.connect();
+  }
+
+  /**
+   * Stop the provider's own retry (it would send the same refused token), ask the host for
+   * a new token, and connect with it.
+   */
+  private renewAndReconnect(reason: RelayRefreshReason): void {
+    if (this.renewing || !this.provider) return;
+    const provider = this.provider;
+    this.authFailures++;
+    this.clearRenewTimer();
+    this.renewing = (async () => {
+      // After the provider has finished handling the close (it schedules its retry, which
+      // finds shouldConnect off and does nothing).
+      await Promise.resolve();
+      if (this.provider !== provider) return;
+      try {
+        provider.disconnect();
+      } catch {
+        /* already closed */
+      }
+      let fresh: Record<string, any> | null = null;
+      let failed = false;
+      try {
+        fresh = await this.askHost(reason);
+      } catch (error) {
+        failed = true;
+        console.warn("COLLAB: could not renew the collaboration token", error);
+      }
+      if (this.provider !== provider) return; // disconnected meanwhile
+      this.renewing = null;
+      if (!fresh) {
+        if (failed) {
+          // The host could not answer (offline?): that is no refusal; try again in a while.
+          this.authFailures--;
+          this.renewTimer = setTimeout(() => {
+            this.renewTimer = null;
+            this.renewAndReconnect(reason);
+          }, RENEW_RETRY_MS);
+          return;
+        }
+        this.giveUpOnRelay(failed ? "renewal failed" : "access ended");
+        return;
+      }
+      this.useCredentials(fresh);
+      provider.params = { ...this.credentials.params };
+      provider.connect();
+      this.scheduleRenewal();
+    })().finally(() => {
+      if (this.provider === provider) this.renewing = null;
+    });
   }
 
   // ─── Private ─────────────────────────────────────────────────────
