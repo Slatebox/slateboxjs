@@ -211,6 +211,33 @@ describe("renewing the token", () => {
     collab.destroy();
   });
 
+  it("when the relay ends the session after a planned renewal, the provider's retry sends the renewed token", async () => {
+    vi.useFakeTimers();
+    const first = token({ role: "write", exp: nowSec() + 900 });
+    const second = token({ role: "write", exp: nowSec() + 1800 });
+    const refresh = vi.fn(async () => ({ websocketParams: { token: second, exp: nowSec() + 1800 } }));
+    const { collab, provider } = await connect(
+      mockSlate({ onInitCollaboration: async () => ({ websocketParams: { token: first, exp: nowSec() + 900 }, refreshWebsocketParams: refresh }) }),
+    );
+    await vi.advanceTimersByTimeAsync(13 * 60 * 1000 + 1000);
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(provider.params).toEqual({ token: second });
+    // The relay closes the socket the first token opened, at its exp + skew.
+    await vi.advanceTimersByTimeAsync(3 * 60 * 1000);
+    provider.emit("connection-close", { code: 4401 }, provider);
+    await settle();
+    // No second ask and no forced disconnect: y-websocket's retry reconnects with `second`.
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(provider.disconnect).not.toHaveBeenCalled();
+    expect(provider.params).toEqual({ token: second });
+    // A refusal of the renewed token itself goes back to the host.
+    provider.emit("connection-close", { code: 4401 }, provider);
+    await settle();
+    expect(refresh).toHaveBeenCalledTimes(2);
+    expect(refresh).toHaveBeenLastCalledWith("expired");
+    collab.destroy();
+  });
+
   it("on a 4401 close: stops the provider's retry, asks the host, reconnects with the new token", async () => {
     const fresh = token({ role: "write", exp: nowSec() + 900 });
     const refresh = vi.fn(async () => ({ websocketParams: { token: fresh } }));

@@ -339,6 +339,13 @@ export class Collab {
   private authFailures = 0;
   /** The relay will not have this screen (no access, or refused again and again). */
   private relayGaveUp = false;
+  /**
+   * A planned renewal put a newer token in the provider's params while the open socket
+   * still runs on the older one. The relay ends that socket with 4401 when the older
+   * token runs out; the provider's own retry then sends the newer token, so that close
+   * is no refusal.
+   */
+  private renewedInPlace = false;
 
   constructor(slate: Slate, options: CollabOptions = {}) {
     this.slate = slate;
@@ -397,6 +404,7 @@ export class Collab {
       Object.assign(this.options, opts);
     }
     this.relayGaveUp = false;
+    this.renewedInPlace = false;
     this.authFailures = 0;
 
     try {
@@ -1835,7 +1843,8 @@ export class Collab {
 
   /**
    * Ask for a new token a little before this one runs out, so any reconnect has a good one.
-   * The relay checks a token only when a socket opens: a live socket stays open past it.
+   * The relay closes a socket (4401) when the token it opened with runs out; the reconnect
+   * then carries the token renewed here.
    */
   private scheduleRenewal(delayMs?: number): void {
     this.clearRenewTimer();
@@ -1878,6 +1887,7 @@ export class Collab {
     provider.params = { ...this.credentials.params };
     // The relay fixed this socket's role when it opened: a new role needs a new socket.
     if (roleChanged) this.reconnect(provider);
+    else this.renewedInPlace = true;
     this.scheduleRenewal();
   }
 
@@ -1885,6 +1895,18 @@ export class Collab {
   private connectionClosed(event: any): void {
     if (this.relayGaveUp || this.renewing) return;
     const code = typeof event?.code === "number" ? event.code : 0;
+    const renewed = this.renewedInPlace;
+    this.renewedInPlace = false;
+    if (
+      code === 4401 &&
+      renewed &&
+      this.credentials.kind === "token" &&
+      this.msLeft() > RECONNECT_MARGIN_MS
+    ) {
+      // The relay ended the session the older token bought; the provider retries with the
+      // newer one already in its params.
+      return;
+    }
     if (RELAY_AUTH_CLOSE_CODES.has(code)) {
       if (!this.refreshFn() || this.authFailures >= MAX_AUTH_RETRIES) {
         this.giveUpOnRelay("closed " + code);
@@ -1900,6 +1922,7 @@ export class Collab {
 
   /** Close and open the provider's socket again with the params in hand. */
   private reconnect(provider: any): void {
+    this.renewedInPlace = false;
     try {
       provider.disconnect();
     } catch {
