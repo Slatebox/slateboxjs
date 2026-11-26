@@ -1,8 +1,8 @@
 {
   "name": "slateboxjs",
   "version": "3.1.3",
-  "commit": "51b835e331f2b769d4a9ec8df2fd48eaf8de686b",
-  "branch": "fix/engine-plan-exports",
+  "commit": "5d3a66b60a3f8f97de56f23c55c70bc19d7bcc70",
+  "branch": "chore/quality-pass",
   "dirty": false,
-  "builtAt": "2026-11-26T08:34:49.293Z"
+  "builtAt": "2026-11-26T08:37:09.002Z"
 }
