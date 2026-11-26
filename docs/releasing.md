@@ -6,7 +6,7 @@ tied to the Slatebox app's version.
 | What | Where |
 | --- | --- |
 | Package | [`slateboxjs` on npm](https://www.npmjs.com/package/slateboxjs) |
-| Tags | `vX.Y.Z` in this repository, at the commit the npm tarball was built from |
+| Tags | Releases from 3.1.3 on are tagged `vX.Y.Z` in this repository, at the commit the npm tarball was built from |
 | Notes | [CHANGELOG.md](../CHANGELOG.md), one section per version, and a GitHub Release per tag |
 
 ## Between releases
@@ -25,7 +25,7 @@ tied to the Slatebox app's version.
    minor, fixes only a patch.
 2. Move the `[Unreleased]` notes under `## [X.Y.Z] — YYYY-MM-DD`, set `version` in
    `package.json`, and commit it as `chore(release): slateboxjs X.Y.Z`.
-3. Run the gates: `npx tsc --noEmit`, `npm test`, `npm run test:node`, `npm run build`,
+3. Run the gates: `npx tsc --noEmit`, `npm test`, `npm run test:node` (`node --test tests/node/*.test.mjs`), `npm run build`,
    `npm run verify:package`, `npm run check:budget` and `npm run test:e2e`.
 4. Tag the commit `vX.Y.Z` and create a GitHub Release from its changelog section.
 5. A maintainer runs `npm publish` from that commit (npm publishing needs the maintainer's

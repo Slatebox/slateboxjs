@@ -134,7 +134,7 @@
     "serve": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:node": "node --test tests/node/",
+    "test:node": "node --test tests/node/*.test.mjs",
     "test:e2e": "npx playwright test --project=chromium",
     "test:app": "npx playwright test --config playwright.app.config.ts",
     "test:e2e:ui": "npx playwright test --ui",

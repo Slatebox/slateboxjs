@@ -576,8 +576,8 @@ problems privately: see [SECURITY.md](SECURITY.md).
 
 SlateboxJS is versioned on its own, separately from the Slatebox app, with
 [Semantic Versioning](https://semver.org/). Releases are published to npm as
-[`slateboxjs`](https://www.npmjs.com/package/slateboxjs), each one tagged `vX.Y.Z` in this
-repository and described in [CHANGELOG.md](CHANGELOG.md). The Slatebox app and the self-host
+[`slateboxjs`](https://www.npmjs.com/package/slateboxjs) and described in
+[CHANGELOG.md](CHANGELOG.md). Releases from 3.1.3 on are tagged `vX.Y.Z` in this repository. The Slatebox app and the self-host
 image build on a pinned engine commit. How a release is cut: [docs/releasing.md](docs/releasing.md).
 
 ## License

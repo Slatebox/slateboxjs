@@ -11,6 +11,11 @@
   Anton, Space Grotesk, Fraunces and Inter join `DEFAULT_FONTS`. SVG export draws the slate's own background (color or
   gradient) as `rect[data-background]` unless `noBackground`, so a dark styled slate exports dark.
 
+### Changed
+
+- Node 22 or later is now required (`engines.node` is `>=22.0.0`). **Breaking** for consumers still on Node 18
+  or 20.
+
 ### Removed
 
 - The theme system: `Theme` (and `window.Theme`), `applyTheme`, `slate.applyTheme()`, `buildNodeStyleFromTheme`, the
