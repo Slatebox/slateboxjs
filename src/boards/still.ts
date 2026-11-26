@@ -17,7 +17,7 @@ type Box = { x: number; y: number; width: number; height: number }
 type Point = { x: number; y: number }
 
 /** The boards drawn by a kit of their own (slateboxjs/boards); a nested board's kit is a chunk of its own too. */
-export const KIT_KINDS = ['launch-plan', 'hiring-plan', 'pipeline', 'budget', 'nest']
+export const KIT_KINDS = ['launch-plan', 'hiring-plan', 'pipeline', 'budget', 'nest', 'grid']
 
 // How a board's lanes and cards look on a slate: the family, size and corners of the note a new slate starts with, with
 // dark text because lanes keep the workshop's own pale fills. Cards are drawn as the slate's own notes (workshopStyle).
@@ -81,6 +81,8 @@ export interface StillModules {
   boards: () => Promise<KitsModule>
   /** slateboxjs/boards/nest (the nested boards' kit; registers itself with the kits) */
   nest: () => Promise<unknown>
+  /** slateboxjs/boards/grid (the grid sheet's kit; registers itself with the kits). Needed only to draw a grid sheet. */
+  grid?: () => Promise<unknown>
   /** slateboxjs/workshops/behaviour (the rulebook; registers itself with the model) */
   behaviour: () => Promise<unknown>
   /** slateboxjs (or slateboxjs/canvas): the canvas class renderStill draws on */
@@ -254,6 +256,7 @@ export function createStillRenderer(modules: StillModules): StillRenderer {
     const [kits] = await Promise.all([
       needsKit ? modules.boards() : null,
       workshop?.kind === 'nest' ? modules.nest() : null,
+      workshop?.kind === 'grid' ? (modules.grid ? modules.grid() : Promise.reject(new Error('Pass a grid loader (slateboxjs/boards/grid) to draw a grid sheet.'))) : null,
       // A kit board's legend is its rulebook's sentences (boardChrome kitLegend), so a kit board needs it too.
       (workshop?.behaviour || needsKit) && !parts.rulebookLoaded() ? modules.behaviour() : null,
     ])

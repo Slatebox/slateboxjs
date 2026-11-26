@@ -39,7 +39,8 @@ export function registerBoardKit(kind: BusinessBoardKind, kit: WorkshopBoardKit)
 export function kitFor(kind: Workshop['kind'] | string | undefined): WorkshopBoardKit {
   const kit = kits[kind as BusinessBoardKind]
   if (!kit && kind === 'nest') throw new Error('The nested board\'s kit has not loaded: import slateboxjs/boards/nest first.')
-  if (!kit) throw new Error(`No board kit for "${kind}". Only a launch plan, a hiring plan, a pipeline, a budget and a nested board have one.`)
+  if (!kit && kind === 'grid') throw new Error('The grid sheet\'s kit has not loaded: import slateboxjs/boards/grid first.')
+  if (!kit) throw new Error(`No board kit for "${kind}". Only a launch plan, a hiring plan, a pipeline, a budget, a nested board and a grid sheet have one.`)
   return kit
 }
 

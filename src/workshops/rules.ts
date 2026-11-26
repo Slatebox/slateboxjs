@@ -7,6 +7,7 @@
 export * from './plans'
 export * from './nest'
 export * from './nestPlus'
+export * from './grid'
 export * from './pipeline'
 export * from './budget'
 export * from './numbers'

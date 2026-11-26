@@ -9,15 +9,16 @@ import { catalogSamples as samples } from '../../src/workshops/samples'
 // chat, exec and the site read. Only entries whose kind is built are listed.
 
 const ids = ['now-next-later', 'pros-cons', 'must-should-could', 'decision-path', 'retro', 'triage', 'team-board', 'launch-plan', 'customer-go-live', 'hiring-plan',
-  'sort-evidence', 'discovery-tree', 'break-down-problem', 'incident-review', 'impact-effort', 'reorg-sandbox', 'goals-owners', 'sales-pipeline', 'budget']
+  'sort-evidence', 'discovery-tree', 'break-down-problem', 'incident-review', 'impact-effort', 'reorg-sandbox', 'goals-owners', 'printable-page', 'sales-pipeline', 'budget']
 const nestRuleKinds = ['nests', 'children', 'depth', 'rank', 'emptyDrop', 'quadrant', 'parent', 'contains', 'sameOwnerAs']
+const gridRuleKinds = ['tileTypes', 'tileMax', 'tileNeeds', 'tileSpan']
 
 describe('catalogue', () => {
-  it('lists the nineteen entries built on this line, each with a group, a line, ways to say it and a loop', () => {
+  it('lists the twenty entries built on this line, each with a group, a line, ways to say it and a loop', () => {
     expect(catalog.map(entry => entry.id)).toEqual(ids)
     expect(catalogVersion).toMatch(/^\d+\.\d+$/)
     for (const entry of catalog) {
-      expect(['plan', 'decide', 'meetings', 'track', 'map']).toContain(entry.group)
+      expect(['plan', 'decide', 'meetings', 'track', 'map', 'make']).toContain(entry.group)
       expect(entry.name.length).toBeGreaterThan(2)
       expect(entry.line.length).toBeLessThanOrEqual(80)
       expect(entry.addSay[0]).toMatch(/^Add /)
@@ -40,7 +41,7 @@ describe('catalogue', () => {
       expect(workshopBoardKind(board)).toBe(entry.build.kind)
       const accepted = describeWorkshopEdits(board).filter(edit => edit.accepted).map(edit => edit.kind)
       for (const edit of entry.edits) expect(accepted, entry.id + ' lists ' + edit).toContain(edit)
-      for (const rule of entry.rules) expect(entry.build.kind === 'launch-plan' || entry.build.kind === 'hiring-plan' ? timeRuleKindIds : entry.build.kind === 'nest' ? nestRuleKinds : ruleKindIds).toContain(rule)
+      for (const rule of entry.rules) expect(entry.build.kind === 'launch-plan' || entry.build.kind === 'hiring-plan' ? timeRuleKindIds : entry.build.kind === 'nest' ? nestRuleKinds : entry.build.kind === 'grid' ? gridRuleKinds : ruleKindIds).toContain(rule)
       // Every edit it offers has a move with a phrase; the app's listing gate checks each phrase parses.
       expect(entry.edits).toEqual([...new Set(entry.moves.map(item => item.edit))])
     }
@@ -78,6 +79,10 @@ describe('catalogue', () => {
     expect(catalogMatch('something to find quick wins')?.entries[0]).toBe('impact-effort')
     expect(catalogMatch('I need a board for our reorg and reporting lines')?.entries[0]).toBe('reorg-sandbox')
     expect(catalogMatch('something for quarterly planning of okrs')?.entries[0]).toBe('goals-owners')
+    // The printable page (a grid sheet): found by the job, added by name, in its own group.
+    expect(catalogMatch('something to make a worksheet')?.entries[0]).toBe('printable-page')
+    expect(catalogAddRequest('Add a printable page about fractions')).toEqual({ id: 'printable-page', topic: 'fractions' })
+    expect(catalogEntry('printable-page')).toMatchObject({ group: 'make', build: { kind: 'grid', sample: 'worksheet' } })
     expect(catalogAddRequest('Add an impact × effort board about Q1 bets')).toEqual({ id: 'impact-effort', topic: 'Q1 bets' })
     expect(catalogAddRequest('Add a reorg & hiring sandbox')).toEqual({ id: 'reorg-sandbox' })
     expect(catalogAddRequest('Add a goals & owners board')).toEqual({ id: 'goals-owners' })

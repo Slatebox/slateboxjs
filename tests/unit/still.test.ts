@@ -6,6 +6,7 @@ import { catalog, catalogPreset } from '../../src/workshops/catalog'
 import { catalogSamples } from '../../src/workshops/samples'
 import { kitFor } from '../../src/boards'
 import '../../src/boards/nest'
+import '../../src/boards/grid'
 import '../../src/workshops/behaviour'
 import { componentSlate, createStillRenderer, drawnBox, fitViewbox, KIT_KINDS, lanesPerRow, slateBoards, workshopOrigin } from '../../src/boards/still'
 
@@ -16,6 +17,7 @@ const modules = {
   model: loader('model', () => import('../../src/workshops/model')),
   boards: loader('boards', () => import('../../src/boards')),
   nest: loader('nest', () => import('../../src/boards/nest')),
+  grid: loader('grid', () => import('../../src/boards/grid')),
   behaviour: loader('behaviour', () => import('../../src/workshops/behaviour')),
 }
 const { drawBoard, renderStill } = createStillRenderer({ ...modules, Slate: async () => (globalThis as any).__stillSlate })
@@ -159,12 +161,17 @@ describe('the renderer stays out of a first visit', () => {
     loaded.length = 0
     await r.loadBoardKit(validateWorkshop(catalogPreset('discovery-tree', undefined, catalogSamples)))
     expect(loaded).toContain('nest')
+    loaded.length = 0
+    // A grid sheet draws with its own kit, fetched only for it.
+    await r.loadBoardKit(validateWorkshop(catalogPreset('printable-page', undefined, catalogSamples)))
+    expect(loaded).toContain('grid')
+    expect(loaded).not.toContain('nest')
   })
   it('a still is read-only and laid out as a desktop canvas shows it; a draft wears its frame', () => {
     expect(source).toMatch(/readOnly: true/)
     expect(source).toMatch(/how === 'draft' \? \{ draft: true \} : \{ still: true \}/)
     expect(source).toMatch(/width = 1440/)
-    expect(KIT_KINDS).toEqual(['launch-plan', 'hiring-plan', 'pipeline', 'budget', 'nest'])
+    expect(KIT_KINDS).toEqual(['launch-plan', 'hiring-plan', 'pipeline', 'budget', 'nest', 'grid'])
   })
 })
 

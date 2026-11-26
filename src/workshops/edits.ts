@@ -9,7 +9,7 @@
 import {
   addWorkshopBranch, addWorkshopCard, addWorkshopLane, businessKind, nextWorkshopId, startupExperienceKind, validateWorkshop, workshopCandidate, workshopOverrideCandidate, workshopFreshOverride, workshopCardLabelOf,
   workshopLaneHeld, workshopLineRefusal, workshopNewLine, workshopPresentationLanes, workshopRefusal, workshopWithLine, workshopWithoutCardLines,
-  type StationImage, type Workshop, type WorkshopCard, type WorkshopLane, type WorkshopSignal,
+  type GridTileType, type StationImage, type Workshop, type WorkshopCard, type WorkshopLane, type WorkshopSignal,
 } from './model'
 import { workshopNewCardName, workshopRules, type BusinessEditTools, type WorkshopLimits } from './kinds'
 import { listed, said, workshopFinder, WorkshopReferenceError, type WorkshopFinder } from './names'
@@ -18,9 +18,9 @@ import type { RuleAudit, RuleInput } from './behaviour'
 import { appearancePalette, appearanceQuadrants, withAppearance, type AppearanceEdit } from './appearance'
 
 /** The kinds of board, each with its own rules. */
-export type WorkshopBoardKind = 'lanes' | 'release-plan' | 'customer-interviews' | 'experiment-budget' | 'map' | 'launch-plan' | 'pipeline' | 'budget' | 'hiring-plan' | 'nest'
+export type WorkshopBoardKind = 'lanes' | 'release-plan' | 'customer-interviews' | 'experiment-budget' | 'map' | 'launch-plan' | 'pipeline' | 'budget' | 'hiring-plan' | 'nest' | 'grid'
 /** Every kind of board, for a schema that names them (the app's Workshop record, an MCP tool). */
-export const WORKSHOP_BOARD_KINDS: readonly WorkshopBoardKind[] = ['lanes', 'release-plan', 'customer-interviews', 'experiment-budget', 'map', 'launch-plan', 'pipeline', 'budget', 'hiring-plan', 'nest']
+export const WORKSHOP_BOARD_KINDS: readonly WorkshopBoardKind[] = ['lanes', 'release-plan', 'customer-interviews', 'experiment-budget', 'map', 'launch-plan', 'pipeline', 'budget', 'hiring-plan', 'nest', 'grid']
 const everyBoard = [...WORKSHOP_BOARD_KINDS]
 const laneBoards: WorkshopBoardKind[] = ['lanes', 'release-plan', 'customer-interviews', 'experiment-budget']
 const business = WORKSHOP_BOARD_KINDS.slice(5)
@@ -43,7 +43,9 @@ export type WorkshopEdit =
   | { kind: 'add_lane'; label: string; capacity?: number }
   | { kind: 'remove_lane'; lane: WorkshopRef }
   | { kind: 'add_card'; lane: WorkshopRef; label?: string; allowedLanes?: WorkshopRef[]; duration?: number; lag?: number; waitsOn?: WorkshopRef[]; amount?: number; band?: string; free?: boolean
-      under?: WorkshopRef; role?: string; source?: string }
+      under?: WorkshopRef; role?: string; source?: string
+      /** Grid sheet: the tile a card made from a note is (grid.ts), its words, its picture and its cell (1-based). */
+      type?: GridTileType; body?: string; image?: StationImage; row?: number; col?: number }
   | { kind: 'remove_card'; card: WorkshopRef }
   | { kind: 'move_card'; card: WorkshopRef; lane: WorkshopRef; override?: boolean }
   | { kind: 'advance_card'; card: WorkshopRef }
@@ -77,7 +79,8 @@ export type WorkshopEdit =
   | { kind: 'set_budget_total'; amount: number; edge?: 'start' | 'end' }
   | { kind: 'add_rule'; rule: RuleInput }
   | { kind: 'set_rule'; rule: string; on?: boolean; severity?: 'refuse' | 'warn'; max?: number; to?: WorkshopRef[]; floor?: number; onConflict?: 'push' | 'stop'; unit?: 'day' | 'week'
-      under?: string[]; by?: string; drop?: 'new-pile' | 'unsorted'; mode?: 'warn' | 'ask' | 'carry' }
+      under?: string[]; by?: string; drop?: 'new-pile' | 'unsorted'; mode?: 'warn' | 'ask' | 'carry'
+      types?: string[]; per?: 'page' | 'sheet'; atLeast?: number; rows?: number; cols?: number }
   | { kind: 'remove_rule'; rule: string }
   | ({ kind: 'set_appearance'; lane?: WorkshopRef } & AppearanceEdit)
   // A hiring plan's (slateboxjs/workshops/plans adds them to the table as it loads).
@@ -99,6 +102,14 @@ export type WorkshopEdit =
   | { kind: 'rename_field'; field: string; label: string }
   | { kind: 'add_owner'; label: string }
   | { kind: 'set_owner'; card: WorkshopRef; owner: string; carry?: WorkshopRef[] }
+  // A grid sheet's (slateboxjs/workshops/grid adds them to the table as it loads). Rows and columns are 1-based, as said.
+  | { kind: 'set_page'; size?: 'letter' | 'a4'; orientation?: 'portrait' | 'landscape'; margin?: number }
+  | { kind: 'set_grid'; rows?: number; cols?: number; gutter?: number }
+  | { kind: 'add_tile'; type: GridTileType; label?: string; body?: string; words?: string[]; image?: StationImage; alt?: string; link?: string
+      stamp?: boolean; page?: WorkshopRef; row?: number; col?: number; rows?: number; cols?: number }
+  | { kind: 'place_tile'; card: WorkshopRef; page: WorkshopRef; row: number; col: number; rows?: number; cols?: number; override?: boolean }
+  | { kind: 'set_tile'; card: WorkshopRef; body?: string; words?: string[]; image?: StationImage | null; alt?: string; link?: string | null; type?: GridTileType }
+  | { kind: 'add_page'; copyOf?: WorkshopRef; shuffle?: boolean; label?: string }
 
 export type WorkshopEditKindName = WorkshopEdit['kind']
 
@@ -205,7 +216,7 @@ const sentences = {
   noRules: 'Only boards of columns and pipelines take rules for now.',
 }
 const keepsTeams = { 'launch-plan': sentences.launchLanes, pipeline: sentences.pipelineLanes, budget: sentences.budgetLanes, 'hiring-plan': sentences.launchLanes.replace('launch', 'hiring').replace('tasks', 'hires'),
-  nest: 'This board keeps its two areas. You can rename them.' }
+  nest: 'This board keeps its two areas. You can rename them.', grid: 'A grid sheet keeps its tray first. Add a page, or remove one, instead.' }
 const others = (kinds: WorkshopBoardKind[], sentence: string) => Object.fromEntries(everyBoard.filter(kind => !kinds.includes(kind)).map(kind => [kind, sentence]))
 
 // ---------------------------------------------------------------------------------------------
@@ -218,10 +229,14 @@ export type WorkshopEditField =
   | { type: 'ref'; of: 'lane' | 'card' | 'outcome'; optional?: boolean; about: string }
   | { type: 'refs'; of: 'lane' | 'card'; min: number; max: number; nullable?: boolean; optional?: boolean; about: string }
   | { type: 'integer'; min: number; max: Limit; nullable?: boolean; optional?: boolean; about: string }
-  | { type: 'image'; about: string }
+  | { type: 'image'; optional?: boolean; about: string }
   | { type: 'choice'; values: string[]; optional?: boolean; about: string }
   | { type: 'flag'; optional?: boolean; about: string }
   | { type: 'rule'; about: string }
+  /** A number that need not be whole (a grid sheet's margin and gutter, in inches). */
+  | { type: 'number'; min: number; max: number; optional?: boolean; about: string }
+  /** A list of words (a grid sheet's word bank). */
+  | { type: 'words'; min: number; max: number; each: number; optional?: boolean; about: string }
 
 export interface WorkshopEditKind {
   kind: WorkshopEditKindName
@@ -254,7 +269,7 @@ export const workshopEditKinds: WorkshopEditKind[] = [
     boards: ['lanes'], refusals: { 'release-plan': sentences.releaseLanes, 'customer-interviews': sentences.keepsLanes, 'experiment-budget': sentences.keepsLanes, map: sentences.mapAddLane, ...keepsTeams } },
   { kind: 'remove_lane', summary: 'Remove an empty lane, or a step no token is at, with everything that pointed at it. Two always stay.', intent: false,
     fields: { lane: lane('The lane or step.') },
-    boards: ['lanes', 'map'], refusals: { 'release-plan': sentences.releaseLanes, 'customer-interviews': sentences.keepsLanes, 'experiment-budget': sentences.keepsLanes, ...keepsTeams } },
+    boards: ['lanes', 'map', 'grid'], refusals: { 'release-plan': sentences.releaseLanes, 'customer-interviews': sentences.keepsLanes, 'experiment-budget': sentences.keepsLanes, ...keepsTeams } },
   { kind: 'add_card', summary: 'Add a card to a lane that has room, or a token at a step. A workshop has up to 24 cards.', intent: false,
     fields: { lane: lane('The lane or step it starts in.'), label: text(80, 'What the card says. Left out, the card takes the board’s name for a new item: “New card”, “New hire”, “New task”, “New deal” (on a map, a token is numbered; a free card is “New stop”).', true),
       allowedLanes: { type: 'refs', of: 'lane', min: 1, max: 5, optional: true, about: 'Lane boards only: the lanes it may go in, including the one it starts in. Leave it out for any lane.' },
@@ -392,6 +407,8 @@ function fieldSchema(field: WorkshopEditField, board?: WorkshopBoardKind): Recor
       properties: { src: { type: 'string', minLength: 1, maxLength: 2048 }, alt: { type: 'string', minLength: 1, maxLength: 240 } } }, true), description: field.about }
     case 'choice': return { enum: field.values, description: field.about }
     case 'flag': return { type: 'boolean', description: field.about }
+    case 'number': return { type: 'number', minimum: field.min, maximum: field.max, description: field.about }
+    case 'words': return { type: 'array', items: { type: 'string', minLength: 1, maxLength: field.each }, minItems: field.min, maxItems: field.max, description: field.about }
     // A rule's body only (its id, state and audit line are the board's): behaviour.ts bodyKeys.
     case 'rule': return { type: 'object', required: ['kind'], additionalProperties: false, properties: {
       kind: { enum: workshopRuleSchema.kinds }, severity: { enum: ['refuse', 'warn'] },
@@ -518,6 +535,8 @@ function shapeProblem(edit: Record<string, unknown>, entry: WorkshopEditKind): s
         break
       case 'choice': if (!field.values.includes(value as string)) return wrong + field.values.join(', ') + '.'; break
       case 'flag': if (typeof value !== 'boolean') return wrong + 'true or false.'; break
+      case 'number': if (typeof value !== 'number' || !Number.isFinite(value)) return wrong + 'a number.'; break
+      case 'words': if (!Array.isArray(value) || value.length > field.max || !value.every(word => typeof word === 'string')) return wrong + 'a list of up to ' + field.max + ' words.'; break
       case 'rule': if (!value || typeof value !== 'object' || Array.isArray(value) || typeof (value as { kind?: unknown }).kind !== 'string') return wrong + 'an object with a kind.'; break
     }
   }
@@ -993,7 +1012,7 @@ export function applyWorkshopEdits(board: Workshop, edits: readonly WorkshopEdit
     // a card anyway") would be made. Asked only of a refused move.
     // Its reason is then what the move made anyway would break, every rule of it: the sentence the person is asked to
     // agree to is the one the card's mark keeps.
-    const movable = (edit.kind === 'move_card' || edit.kind === 'set_task' || edit.kind === 'nest_card') && edit.override !== true
+    const movable = (edit.kind === 'move_card' || edit.kind === 'set_task' || edit.kind === 'nest_card' || edit.kind === 'place_tile') && edit.override !== true
     const anyway = (code: WorkshopEditRefusalCode, reason: string): { reason: string; overridable?: true } => {
       if (!movable || code !== 'refused') return { reason }
       const made = applyWorkshopEdits(current, [{ ...edit, override: true } as WorkshopEdit], options)
@@ -1067,7 +1086,7 @@ function fixedBusinessField(before: Workshop, after: Workshop): string | null {
 
 const boardNames: Record<WorkshopBoardKind, string> = {
   lanes: 'lane workshop', 'release-plan': 'release plan', 'customer-interviews': 'interview workshop',
-  'experiment-budget': 'budget workshop', map: 'map', 'launch-plan': 'launch plan', pipeline: 'sales pipeline', budget: 'budget', 'hiring-plan': 'hiring plan', nest: 'nested board',
+  'experiment-budget': 'budget workshop', map: 'map', 'launch-plan': 'launch plan', pipeline: 'sales pipeline', budget: 'budget', 'hiring-plan': 'hiring plan', nest: 'nested board', grid: 'grid sheet',
 }
 
 /**
@@ -1090,7 +1109,8 @@ export function checkWorkshopReplacement(before: Workshop, after: Workshop): str
     return sameLanes(original, next) ? sentences.keepsCards : sentences.keepsLanes
   }
   if ((was === 'customer-interviews' || was === 'experiment-budget') && !sameOrder(original, next)) return sentences.keepsOrder
-  if (businessKind(original) && now === was && !(sameLanes(original, next) && sameOrder(original, next))) return keepsTeams[was as keyof typeof keepsTeams]
+  // A grid sheet's pages come and go (add_page, remove_lane); its tray stays first (gridRules.fixed).
+  if (businessKind(original) && now === was && was !== 'grid' && !(sameLanes(original, next) && sameOrder(original, next))) return keepsTeams[was as keyof typeof keepsTeams]
   if (businessKind(original) && now === was) {
     const fixed = fixedBusinessField(original, next)
     if (fixed) return fixed

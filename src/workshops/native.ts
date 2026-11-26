@@ -92,6 +92,15 @@ export interface PartPlace {
   lineWidth?: number
   fontSize?: number
   weight?: 'bold'
+  /** A picture the note shows (an address a card keeps, workshopKeepsPicture), with the picture's own size. */
+  image?: string
+  imageOrigWidth?: number
+  imageOrigHeight?: number
+  /** The note's outline when it is not a plain box (a rounded tile, a speech bubble, a box with rules across it). */
+  vectorPath?: string
+  borderStyle?: 'solid' | 'dashed' | 'dotted'
+  textXAlign?: 'left' | 'center' | 'right'
+  textYAlign?: 'top' | 'middle' | 'bottom'
 }
 
 /** What a board layer is told on each redraw. */
@@ -188,6 +197,8 @@ export interface WorkshopBoardKit {
   noteUnder?(board: Workshop, point: { x: number; y: number }, layout: WorkshopBoardLayout): string | null
   /** A plan: the calendar day (a fraction, from its first day) under this point, where a note dropped there starts; null off the days. */
   noteDay?(board: Workshop, point: { x: number; y: number }, layout: WorkshopBoardLayout): number | null
+  /** A grid sheet: the cell (1-based) under this point of a page, where a note dropped there becomes a tile; null off the cells. */
+  noteCell?(board: Workshop, point: { x: number; y: number }, layout: WorkshopBoardLayout): { row: number; col: number } | null
 }
 
 /**
@@ -993,6 +1004,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     const open = value.lanes.filter(lane => !obstacle && workshopNoteRefusal(value, lane.id, offer) === null).map(lane => lane.id)
     const under = laneId && kit?.noteUnder?.(value, local(point), layout)
     if (under) offer.under = under
+    celled(offer, point)
     const refusal = laneId ? obstacle ?? workshopNoteRefusal(value, laneId, offer) : null
     if (hovering && hovering.noteId === node.id && hovering.laneId === laneId && hovering.refusal === refusal) return
     hovering = { noteId: node.id, laneId, refusal, open }
@@ -1008,6 +1020,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
     const under = kit?.noteUnder?.(value, local(point), layout)
     if (under) offer.under = under
     dated(offer, point)
+    celled(offer, point)
     const lane = value.lanes.find(item => item.id === laneId)!
     const reason = noteObstacle(node) ?? workshopNoteRefusal(value, laneId, offer)
     if (reason) {
@@ -1162,6 +1175,7 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
       const offer = offerOf(note)
       const under = kit?.noteUnder?.(value, local(point), layout)
       if (under) offer.under = under
+      celled(offer, point)
       return { laneId, laneLabel: value.lanes.find(item => item.id === laneId)!.label, reason: noteObstacle(note) ?? workshopNoteRefusal(value, laneId, offer) }
     },
     take: (note, point, from) => policy.onFreeDrop?.(note, point, from),
@@ -2599,6 +2613,14 @@ export function attachWorkshop(slate: any, workshop: Workshop, options: AttachWo
   function dated(offer: WorkshopNoteOffer, point: WorldPoint): WorkshopNoteOffer {
     const day = kit?.noteDay?.(value, local(point), drawnLayout)
     if (typeof day === 'number' && Number.isFinite(day)) offer.day = day
+    return offer
+  }
+
+  /** On a grid sheet, the offer with the cell under `point`, so the note becomes a tile in the cell it was let go on. */
+  function celled(offer: WorkshopNoteOffer, point: WorldPoint): WorkshopNoteOffer {
+    const cell = kit?.noteCell?.(value, local(point), drawnLayout)
+    if (cell) offer.cell = cell
+    else delete offer.cell
     return offer
   }
 

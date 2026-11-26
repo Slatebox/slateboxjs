@@ -171,3 +171,20 @@ describe('workshopToSlate with no options', () => {
     expect(hashes).toEqual(recorded.hashes)
   })
 })
+
+describe('workshopCandidate on a grid sheet', () => {
+  it('agrees with the sheet’s own rule: the tray takes any tile off a page, a page asks for a cell, a stamp stays', async () => {
+    await import('../../src/workshops/behaviour')
+    const { gridRules, worksheetSample, bingoSample } = await import('../../src/workshops/rules')
+    for (const board of [validateWorkshop(worksheetSample()), validateWorkshop(bingoSample())]) {
+      for (const card of board.cards) for (const lane of board.lanes) {
+        const actual = workshopCandidate(board, card.id, lane.id)
+        const rule = gridRules.planMove(board, card.id, lane.id)
+        if (card.laneId === lane.id) { expect(actual).toBe(board); continue }
+        expect(actual === null, card.label + ' to ' + lane.label).toBe(rule === null)
+        if (rule) expect(actual!.cards.find(item => item.id === card.id)).toEqual(rule.cards.find(item => item.id === card.id))
+        if (!rule) expect(workshopRefusal(board, card.id, lane.id)).toBe(lane.id === 'tray' ? 'That move is not available.' : 'Say where on the page: row and column.')
+      }
+    }
+  })
+})

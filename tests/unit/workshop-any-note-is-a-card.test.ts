@@ -93,3 +93,16 @@ describe('what still keeps a note a note: the board\'s own rules', () => {
     expect(workshopNoteRefusal(board, 'now', { id: 'n', label: '<b>Hi</b>' })).toBeNull()
   })
 })
+
+describe('a grid sheet holds its own number of tiles', () => {
+  it('a 25th note dropped on a grid sheet is a tile: the sheet holds 120', async () => {
+    await import('../../src/workshops/behaviour')
+    const { worksheetSample } = await import('../../src/workshops/rules')
+    let sheet = validateWorkshop(worksheetSample())
+    while (sheet.cards.length < 24) sheet = workshopNoteCandidate(sheet, 'tray', { id: 'n' + sheet.cards.length, label: 'Word ' + sheet.cards.length })!
+    expect(workshopNoteRefusal(sheet, 'tray', { id: 'n25', label: 'Twenty-fifth' })).toBeNull()
+    const next = workshopNoteCandidate(sheet, 'tray', { id: 'n25', label: 'Twenty-fifth' })!
+    expect(next.cards).toHaveLength(25)
+    expect(next.cards.at(-1)).toMatchObject({ id: 'n25', laneId: 'tray', tile: { type: 'text' } })
+  })
+})

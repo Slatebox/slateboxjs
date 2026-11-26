@@ -19,12 +19,14 @@ import type { WorkshopEdit, WorkshopRef } from './edits'
 import type { BusinessEditStep, BusinessEditTools } from './kinds'
 import type { WorkshopFinder } from './names'
 
-export type RuleKindId = 'capacity' | 'path' | 'gate' | 'bin' | TimeRuleKindId | NestRuleKindId
+export type RuleKindId = 'capacity' | 'path' | 'gate' | 'bin' | TimeRuleKindId | NestRuleKindId | GridRuleKindId
 export const ruleKindIds: readonly RuleKindId[] = ['capacity', 'path', 'gate', 'bin']
 /** A plan's rule kinds (timeRules.ts, with the plans' rules): a launch plan's and a hiring plan's. */
 export type TimeRuleKindId = 'deadline' | 'overlap' | 'snap' | 'workdays' | 'blackout' | 'cascade' | 'locked'
 /** A nest board's rule kinds (nest.ts): what sits under what, how many, how deep, how piles rank, where a far drop goes. */
 export type NestRuleKindId = 'nests' | 'children' | 'depth' | 'rank' | 'emptyDrop' | 'quadrant' | 'parent' | 'contains' | 'sameOwnerAs'
+/** A grid sheet's rule kinds (grid.ts): the tiles it uses, how many of a kind, what every page needs, how big a kind spans. */
+export type GridRuleKindId = 'tileTypes' | 'tileMax' | 'tileNeeds' | 'tileSpan'
 
 /** Who set a rule, when, and from where (canvas: a rule control drawn on the board). Shown when a refusal is explained. */
 export interface RuleAudit { by: string; at: string; via: 'chat' | 'exec' | 'preset' | 'canvas' }
@@ -56,6 +58,12 @@ export type RuleBody =
   | { kind: 'parent'; not: string }
   | { kind: 'contains'; role: string; of: string; atLeast: number }
   | { kind: 'sameOwnerAs'; mode: 'warn' | 'ask' | 'carry'; role?: string }
+  // grid.ts: only these tiles; at most max of a kind per page or per sheet; every page needs at least so many of a kind
+  // (said, never blocking a drag); a kind spans at most rows by cols.
+  | { kind: 'tileTypes'; types: string[] }
+  | { kind: 'tileMax'; type: string; max: number; per: 'page' | 'sheet' }
+  | { kind: 'tileNeeds'; type: string; atLeast: number; per: 'page' }
+  | { kind: 'tileSpan'; type: string; rows: number; cols: number }
 
 export type BehaviourRule = RuleBody & { id: string; on: boolean; severity: 'refuse' | 'warn'; set: RuleAudit }
 
@@ -449,7 +457,7 @@ export function applyRuleEdit(board: Workshop, edit: WorkshopEdit, audit: RuleAu
       rule.to = edit.to.map(lane)
     }
     // A plan's rule: the line's floor, a slip's reach, the snap; a nested board's: what a role sits under, how piles rank, a far drop.
-    for (const key of ['floor', 'onConflict', 'unit', 'under', 'by', 'drop', 'mode'] as const) if (edit[key] !== undefined) {
+    for (const key of ['floor', 'onConflict', 'unit', 'under', 'by', 'drop', 'mode', 'types', 'per', 'atLeast', 'rows', 'cols'] as const) if (edit[key] !== undefined) {
       if (!(key in rule)) return t.refuse('That rule does not take ' + key + '.')
       ;(rule as Record<string, unknown>)[key] = edit[key]
     }

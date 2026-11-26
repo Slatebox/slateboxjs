@@ -76,6 +76,11 @@
       "import": "./dist/boards-nest.mjs",
       "require": "./dist/boards-nest.cjs"
     },
+    "./boards/grid": {
+      "types": "./dist/boards/grid.d.ts",
+      "import": "./dist/boards-grid.mjs",
+      "require": "./dist/boards-grid.cjs"
+    },
     "./boards/still": {
       "types": "./dist/boards/still.d.ts",
       "import": "./dist/boards-still.mjs",

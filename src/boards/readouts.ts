@@ -124,7 +124,10 @@ export function partNotes(parts: PartPlace[], board: Workshop, origin: { x: numb
     const text = fitted?.text ?? words
     return { options: { id: part.name, text, name: board.cards.find(card => 'card-' + card.id === part.name)?.label ?? words,
       xPos: origin.x + part.x, yPos: origin.y + part.y, width: part.width, height: part.height, shapeHint: 'rectangle',
-      vectorPath: `M 0 0 H ${part.width} V ${part.height} H 0 Z`,
+      vectorPath: part.vectorPath ?? `M 0 0 H ${part.width} V ${part.height} H 0 Z`,
+      // A tile's picture (a grid sheet's image, QR code or sticker), with the picture's own size so it is drawn true.
+      ...(part.image && { image: part.image, imageOrigWidth: part.imageOrigWidth ?? part.width, imageOrigHeight: part.imageOrigHeight ?? part.height }),
+      ...(part.borderStyle && { borderStyle: part.borderStyle }), ...(part.textXAlign && { textXAlign: part.textXAlign }), ...(part.textYAlign && { textYAlign: part.textYAlign }),
       backgroundColor: handle ? 'transparent' : part.fill ?? style.backgroundColor ?? '#fffdf6', foregroundColor: part.ink ?? ink,
       borderColor: part.line ?? line, borderWidth: handle ? 0 : part.lineWidth ?? 1,
       ...(style.fontFamily ? { fontFamily: style.fontFamily } : {}), ...(part.weight && { fontWeight: part.weight }),

@@ -21,6 +21,13 @@ export interface ExportOptions {
   useDataImageUrls?: boolean;
   /** Scale factor for PNG export */
   scale?: number;
+  /**
+   * The exact box to export, in canvas units (a grid sheet's page): the picture's viewBox is this box, with no
+   * padding, instead of the box around the content.
+   */
+  frame?: { x: number; y: number; width: number; height: number };
+  /** The SVG's printed size, such as `{ width: '8.5in', height: '11in' }`: its width and height attributes. Left out, the frame's size in px. */
+  size?: { width: string; height: string };
 }
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -239,10 +246,20 @@ export function exportSVG(
       });
     }
 
+    // A frame given (a page to print): the picture is exactly that box, at the size asked for.
+    const frame = opts.frame;
+    const framed = Boolean(frame && [frame.x, frame.y, frame.width, frame.height].every(Number.isFinite) && frame.width > 0 && frame.height > 0);
+    if (framed) {
+      svgNode.setAttribute("viewBox", `${frame!.x} ${frame!.y} ${frame!.width} ${frame!.height}`);
+      const size = opts.size && /^\d+(?:\.\d+)?(?:in|cm|mm|pt|px)?$/.test(opts.size.width) && /^\d+(?:\.\d+)?(?:in|cm|mm|pt|px)?$/.test(opts.size.height) ? opts.size : null;
+      svgNode.setAttribute("width", size ? size.width : String(frame!.width));
+      svgNode.setAttribute("height", size ? size.height : String(frame!.height));
+      svgNode.setAttribute("preserveAspectRatio", "xMidYMid meet");
+    }
     // Frame the export to the CONTENT bounds (all remaining node groups), NOT the
     // canvas's current pan/zoom viewBox — otherwise a scrolled or zoomed-in view
     // exports clipped or blank. This gives the whole diagram every time (Miro).
-    try {
+    if (!framed) try {
       const groups = svgNode.querySelectorAll("[data-node-id]");
       if (groups.length > 0) {
         const pad = 40;
@@ -411,7 +428,8 @@ export async function exportPNG(
   opts: ExportOptions = {},
   callback?: (result: string | Blob) => void
 ): Promise<string | Blob> {
-  const drawn = exportSVG(slate, opts);
+  // A PNG is sized by its viewBox and scale, never by a printed size.
+  const drawn = exportSVG(slate, { ...opts, size: undefined });
   // Pictures are written into the SVG, so the PNG shows them (a video note's poster included).
   // (A slate with no picture is drawn at once, as before.)
   const svgString = drawn && hasOutsidePictures(drawn) ? await inlinePictures(drawn) : drawn;

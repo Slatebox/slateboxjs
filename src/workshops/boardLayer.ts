@@ -162,10 +162,13 @@ export function renderLayerShapes(group: SVGGElement, shapes: LayerShape[], onUn
  * The layer for one attached board. `paint` says what to draw for the board on show; the
  * committed board is passed too, for what a preview is compared against.
  */
-export function createBoardLayer(slate: any, paint: (shown: Workshop, state: BoardLayerState, committed: Workshop) => LayerShape[]): BoardLayer {
+export function createBoardLayer(slate: any, paint: (shown: Workshop, state: BoardLayerState, committed: Workshop) => LayerShape[],
+  options: { exportNever?: boolean } = {}): BoardLayer {
   const root: SVGSVGElement | undefined = slate?.canvas?.node
   const group = document.createElementNS(svgNS, 'g') as SVGGElement
   group.setAttribute('data-board-layer', '')
+  // Guides drawn for the view only (a grid sheet's cells and margins): no picture, print or PDF shows them.
+  if (options.exportNever) group.setAttribute('data-export-never', '')
   group.setAttribute('pointer-events', 'none')
   // The words a held or refused handle says (why it stops, why it was refused) go above every
   // note, so a bar or a card never covers them.

@@ -6,6 +6,7 @@ import '../../src/workshops/rules'
 import { behaviourOf, validateBehaviour } from '../../src/workshops/behaviour'
 import { kitFor } from '../../src/boards'
 import '../../src/boards/nest'
+import '../../src/boards/grid'
 import { ruleControls, RULE_CONTROL_EDITS, type RuleControl } from '../../src/workshops/controls'
 import { drawRuleControls, hintOf, HINT_DELAY } from '../../src/boards/ruleControlsLayer'
 

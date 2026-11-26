@@ -64,6 +64,8 @@ export default defineConfig({
       // workshop-rules: the launch plan's, pipeline's and budget's rules for a server (the browser takes them with the kits).
       // boards: the business boards' kits (layout, board layer, Dragology specs), loaded only for a slate that holds one.
       // boards-nest: the nested boards' kit, loaded with boards only for a slate that holds a nested board.
+      // boards-grid: the grid sheet's kit (and its QR encoder), loaded with boards only for a slate that holds a grid sheet.
+      // workshop-grid: the grid sheet and its rules (loaded with the rules).
       // shapes: custom shapes as data (validate, normalise, text box), DOM-free for a server.
       // presence: the agents' pointers and tags, loaded only when an agent arrives.
       // suggestions: what agents suggest (ghost notes, a frame, a tag and Keep all / Discard all per answer), loaded when the
@@ -74,7 +76,7 @@ export default defineConfig({
       // workshop-nest-plus: impact × effort, the reorg sandbox and goals & owners, plugged into the nested boards (loaded with them).
       // workshop-samples: the boards the library adds (catalogSamples), loaded only where a board is added.
       // workshop-behaviour: a board's rulebook, loaded only for a board that has rules (and by a server).
-      entry: { dragology: dragologyEntry, workshops: 'src/workshops/index.tsx', 'workshop-model': 'src/workshops/model.ts', 'workshop-rules': 'src/workshops/rules.ts', 'workshop-plans': 'src/workshops/plans.ts', 'workshop-nest': 'src/workshops/nest.ts', 'workshop-nest-plus': 'src/workshops/nestPlus.ts', 'workshop-samples': 'src/workshops/samples.ts', catalog: 'src/workshops/catalog.ts', 'workshop-behaviour': 'src/workshops/behaviour.ts', 'workshop-mount': 'src/workshops/mount.ts', operations: 'src/operations/index.ts', shapes: 'src/shapes/index.ts', boards: 'src/boards/index.ts', 'boards-nest': 'src/boards/nest.ts', 'boards-still': 'src/boards/still.ts', 'workshop-controls': 'src/workshops/controls.ts', presence: 'src/core/AgentPresence.ts', suggestions: 'src/core/AgentSuggestions.ts' },
+      entry: { dragology: dragologyEntry, workshops: 'src/workshops/index.tsx', 'workshop-model': 'src/workshops/model.ts', 'workshop-rules': 'src/workshops/rules.ts', 'workshop-plans': 'src/workshops/plans.ts', 'workshop-nest': 'src/workshops/nest.ts', 'workshop-nest-plus': 'src/workshops/nestPlus.ts', 'workshop-grid': 'src/workshops/grid.ts', 'workshop-samples': 'src/workshops/samples.ts', catalog: 'src/workshops/catalog.ts', 'workshop-behaviour': 'src/workshops/behaviour.ts', 'workshop-mount': 'src/workshops/mount.ts', operations: 'src/operations/index.ts', shapes: 'src/shapes/index.ts', boards: 'src/boards/index.ts', 'boards-nest': 'src/boards/nest.ts', 'boards-grid': 'src/boards/grid.ts', 'boards-still': 'src/boards/still.ts', 'workshop-controls': 'src/workshops/controls.ts', presence: 'src/core/AgentPresence.ts', suggestions: 'src/core/AgentSuggestions.ts' },
       formats: ['es', 'cjs'],
       fileName: (format, entry) => entry + (format === 'es' ? '.mjs' : '.cjs'),
     },

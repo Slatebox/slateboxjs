@@ -7,9 +7,10 @@ import type { Behaviour, BehaviourRule, RuleInput, RuleKindId } from './behaviou
 const bodyKeys: Record<RuleKindId, string[]> = { capacity: ['where', 'max'], path: ['from', 'to', 'noSkip'], gate: ['into', 'needs'], bin: ['lane'],
   deadline: ['at', 'floor'], overlap: ['lane'], snap: ['unit'], workdays: [], blackout: ['start', 'end', 'label'], cascade: ['onConflict'], locked: ['cards'],
   nests: ['role', 'under'], children: ['max', 'role'], depth: ['max'], rank: ['by'], emptyDrop: ['drop'],
-  quadrant: ['quadrant', 'max'], parent: ['not'], contains: ['role', 'of', 'atLeast'], sameOwnerAs: ['mode', 'role'] }
+  quadrant: ['quadrant', 'max'], parent: ['not'], contains: ['role', 'of', 'atLeast'], sameOwnerAs: ['mode', 'role'],
+  tileTypes: ['types'], tileMax: ['type', 'max', 'per'], tileNeeds: ['type', 'atLeast', 'per'], tileSpan: ['type', 'rows', 'cols'] }
 /** What set_rule changes on a rule; every other key is fixed under its id. */
-const settable = ['max', 'to', 'floor', 'onConflict', 'unit', 'under', 'by', 'drop', 'mode']
+const settable = ['max', 'to', 'floor', 'onConflict', 'unit', 'under', 'by', 'drop', 'mode', 'types', 'per', 'atLeast', 'rows', 'cols']
 const rulesOf = (board: Pick<Workshop, 'behaviour'>): Behaviour => board.behaviour ?? { version: 1, rev: 0, rules: [] }
 
 /**

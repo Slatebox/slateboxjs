@@ -7,6 +7,8 @@ export { releaseLoad, releasePlan } from './release'
 import { applyWorkshopEdits, type WorkshopEdit } from './edits'
 import { rulebook } from './kinds'
 import type { Behaviour } from './behaviour'
+import type { GridCell, GridFields } from './gridGeometry'
+export type { GridCell, GridFields, GridPageSize, GridOrientation } from './gridGeometry'
 export type { Behaviour, BehaviourRule, BehaviourVerdict, RuleAudit, RuleBody, RuleInput, RuleKindId, WorkshopMoveCheck } from './behaviour'
 import { workshopNewCardName, workshopRules } from './kinds'
 export { registerRulebook, rulebook, rulebookLoaded, registerWorkshopRules, workshopRulesLoaded, workshopRules, workshopNewCardName, type RulebookHooks, type BusinessBoardRules, type BusinessEditStep, type BusinessEditTools,
@@ -20,6 +22,22 @@ export { DEFAULT_NOTE_STYLE }
 export interface StationImage {
   src: string
   alt: string
+}
+
+/** The kinds of tile a grid sheet composes a page from. */
+export type GridTileType = 'heading' | 'text' | 'image' | 'question' | 'answer-lines' | 'word-bank' | 'diagram' | 'qr' | 'panel' | 'speech' | 'term' | 'sticker'
+/**
+ * A grid sheet's tile: its kind, its words (up to 600 characters, line breaks kept), a word bank's words (3 to 24), a
+ * picture (an empty frame prints its alt), a QR code's web address, and whether it is a stamp (a tray tile that stays
+ * in the tray: dropping it on a page makes a copy).
+ */
+export interface GridTile {
+  type: GridTileType
+  body?: string
+  words?: string[]
+  image?: { src?: string; alt: string }
+  link?: string
+  stamp?: true
 }
 
 export interface WorkshopLane {
@@ -59,6 +77,10 @@ export interface WorkshopCard {
   fields?: Record<string, number>
   /** Nest board with owners (Goals & owners): the team that owns it, by id. */
   owner?: string
+  /** Grid sheet: what kind of tile it is and what it holds (read only by the grid's rules, grid.ts). */
+  tile?: GridTile
+  /** Grid sheet: the cell a tile on a page sits in (0-based; 1-based in every sentence) and its span. A tile in the tray has none. */
+  cell?: GridCell
   /** How the card is drawn when it differs from the board's: the look of the note it was made from. */
   look?: WorkshopCardLook
   /** What the note it was made from had that a card does not show, so it comes back as it was. */
@@ -186,6 +208,8 @@ export interface Workshop {
   hiring?: HiringFields
   /** Nest board: how it is drawn (piles or a tree), the number fields chat added, and merged cards' new homes. */
   nest?: NestFields
+  /** Grid sheet: its page (size, orientation, margin in inches) and its cells (rows, columns, gutter in inches). */
+  grid?: GridFields
   /** Pipeline: the forecast target, and the currency sign amounts are written with. */
   forecast?: { target: number; currency: string }
   /** Budget: the envelope, its currency sign and the step allocations snap to. */
@@ -210,8 +234,8 @@ export type WorkshopKind = 'release-plan' | BusinessBoardKind
 export interface HiringBand { id: string; label: string; monthly: number; lane: string }
 export interface HiringFields { cash: number; burn: number; currency: string; weeks: number; bands: HiringBand[]; funding?: { day: number; amount: number } }
 /** The business boards: drawn by a board kit (slateboxjs/boards) on a live slate. */
-export type BusinessBoardKind = 'launch-plan' | 'pipeline' | 'budget' | 'hiring-plan' | 'nest'
-export const businessBoardKinds: readonly BusinessBoardKind[] = ['launch-plan', 'pipeline', 'budget', 'hiring-plan', 'nest']
+export type BusinessBoardKind = 'launch-plan' | 'pipeline' | 'budget' | 'hiring-plan' | 'nest' | 'grid'
+export const businessBoardKinds: readonly BusinessBoardKind[] = ['launch-plan', 'pipeline', 'budget', 'hiring-plan', 'nest', 'grid']
 export interface NestFields {
   /** Piles, a tree, or a 2 by 2 (impact × effort: cards placed by two scores). */
   layout: 'clusters' | 'tree' | 'matrix'
@@ -254,6 +278,12 @@ function cardLabel(value: unknown): string {
 /** Words in one line: control characters taken out, line breaks, tabs and runs of spaces as one space. */
 function oneLine(words: string): string {
   return words.replace(/[\t\n\r\f\v]/g, ' ').replace(/[\u0000-\u001f\u007f]/g, '').replace(/\s+/g, ' ').trim()
+}
+
+/** The most cards a board holds: its kind's own cap (a grid sheet 120, a nest board 40), else 24 (kinds.ts `cards`). */
+function cardCap(board: Pick<Workshop, 'kind'>): number {
+  const kind = businessKind(board)
+  return kind ? workshopRules(kind).cards[0] : maxWorkshopCards
 }
 
 /** The ids a note of the drawing may have: a card's kind of id, or an older note's, any text without control characters. */
@@ -1120,6 +1150,8 @@ export interface WorkshopNoteOffer {
   under?: string
   /** Launch or hiring plan: the calendar day (from the plan's first day) it was let go on: its task starts there, snapped by the plan's rules. */
   day?: number
+  /** Grid sheet: the cell it was let go on (1-based, as said): it becomes a tile there. */
+  cell?: { row: number; col: number }
 }
 
 const idPattern = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/
@@ -1138,7 +1170,7 @@ export function workshopNoteRefusal(board: Workshop, laneId: string, note: Works
   if (experience) return experience
   if (board.kind === 'release-plan') {
     // A feature with the points written on the note, by the release's points budget.
-    if (board.cards.length >= maxWorkshopCards) return `This board is at its size limit of ${maxWorkshopCards} cards. Remove a card to make room.`
+    if (board.cards.length >= cardCap(board)) return `This board is at its size limit of ${cardCap(board)} cards. Remove a card to make room.`
     if (Array.isArray(note?.lines) ? note.lines.length : note?.lines !== undefined) return 'A note joined to other notes by lines stays a note on this board.'
     const made = releaseNote(board, laneId, note)
     return made ? null : workshopRefusal(releaseNoteBoard(board, laneId, note), cardIdFor(board, note.id), laneId)
@@ -1154,7 +1186,7 @@ export function workshopNoteRefusal(board: Workshop, laneId: string, note: Works
   // name for a new item, workshopNewCardName), long (the card shows the first 80 characters and keeps the
   // rest for the note), or styled in a way a card does not draw.
   // Only words a card could not show as plain text (markup) keep it a note.
-  if (board.cards.length >= maxWorkshopCards) return `This board is at its size limit of ${maxWorkshopCards} cards. Remove a card to make room.`
+  if (board.cards.length >= cardCap(board)) return `This board is at its size limit of ${cardCap(board)} cards. Remove a card to make room.`
   // A map's lines are its paths: its cards carry none, so a note joined to others by lines stays a note, and says so.
   const map = board.lanes.some(item => item.station)
   if (map && (Array.isArray(note?.lines) ? note.lines.length : note?.lines !== undefined)) return 'A note joined to other notes by lines stays a note on a map: a map’s lines are its paths.'
@@ -1299,9 +1331,10 @@ function releaseNote(board: Workshop, laneId: string, note: WorkshopNoteOffer, b
 function businessNote(board: Workshop, laneId: string, note: WorkshopNoteOffer): Workshop | string {
   const typed = noteWords(note)
   // A card made without words (an empty note, or one with only a number) takes the board's name for a new item.
-  const read = workshopRules(businessKind(board)!).fromNote(board, typed, workshopNewCardName(board, note.under))
+  const read = workshopRules(businessKind(board)!).fromNote(board, typed, workshopNewCardName(board, note.under), note)
   if (typeof read === 'string') return read
-  const made = applyWorkshopEdits(board, [{ kind: 'add_card', lane: { id: laneId }, ...read, ...(note.under && { under: { id: note.under } }) }])
+  const made = applyWorkshopEdits(board, [{ kind: 'add_card', lane: { id: laneId }, ...read, ...(note.under && { under: { id: note.under } }),
+    ...(note.cell && { row: note.cell.row, col: note.cell.col }) } as WorkshopEdit])
   if ('refused' in made) return made.refused.reason
   const cards = made.workshop.cards
   const cardId = cardIdFor(board, note.id)

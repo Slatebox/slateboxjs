@@ -5,7 +5,7 @@
 import type { Behaviour } from './behaviour'
 import type { Workshop, WorkshopCard } from './model'
 // Only through the rules' own exports, so this chunk shares the rules' chunk and carries none of it.
-import { orderKeys, planSamples } from './rules'
+import { gridSamples, orderKeys, planSamples } from './rules'
 
 type Board = Workshop
 
@@ -157,4 +157,4 @@ export function goalsSample(): Board {
 /** The boards the library's business entries add (catalogPreset's samples), each made fresh, dated from the next Monday. */
 export const catalogSamples = { ...planSamples,
   'sort-evidence': sortEvidenceSample, 'discovery-tree': discoveryTreeSample, 'break-down': breakDownSample, 'incident-review': incidentReviewSample,
-  'impact-effort': impactEffortSample, reorg: reorgSample, goals: goalsSample }
+  'impact-effort': impactEffortSample, reorg: reorgSample, goals: goalsSample, ...gridSamples }

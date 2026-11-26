@@ -326,6 +326,27 @@ describe("Export", () => {
       });
     });
 
+    describe("frame and size options (a page to print)", () => {
+      it("frames exactly the box given, with no padding, at the printed size", () => {
+        const result = exportSVG(mockSlate, { nodes: [{ id: "node-1" }], frame: { x: 264, y: 84, width: 816, height: 1056 }, size: { width: "8.5in", height: "11in" } });
+        expect(result).toContain('viewBox="264 84 816 1056"');
+        expect(result).toContain('width="8.5in"');
+        expect(result).toContain('height="11in"');
+        expect(result).not.toContain('data-node-id="node-2"');
+      });
+
+      it("without a size, the frame's own size in px", () => {
+        const result = exportSVG(mockSlate, { frame: { x: 0, y: 0, width: 793.7, height: 1122.52 } });
+        expect(result).toContain('viewBox="0 0 793.7 1122.52"');
+        expect(result).toContain('width="793.7"');
+      });
+
+      it("a size that is not a length is left out", () => {
+        const result = exportSVG(mockSlate, { frame: { x: 0, y: 0, width: 100, height: 50 }, size: { width: "8.5in;x", height: "11in" } });
+        expect(result).toContain('width="100"');
+      });
+    });
+
     describe("nodes option (filtered export)", () => {
       it("should include only the specified nodes", () => {
         const result = exportSVG(mockSlate, {

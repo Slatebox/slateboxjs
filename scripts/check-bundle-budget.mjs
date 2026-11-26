@@ -37,6 +37,12 @@ const ceilings = {
   // The nested boards' kit: its own chunk, loaded with the boards only for a slate that holds a nested board. Measured at
   // its first build (20645 / 6661), plus a little.
   'boards-nest.mjs': { raw: 21500, gzip: 7000 },
+  // The grid sheet (a page composer) and its rules: loaded with the rules. Measured at its first build (45554 / 14200),
+  // plus a little.
+  'workshop-grid.mjs': { raw: 47000, gzip: 14800 },
+  // The grid sheet's kit, with its QR encoder (uqr, vendored): its own chunk, loaded with the boards only for a slate that
+  // holds a grid sheet. Measured at its first build (36939 / 12020), plus a little.
+  'boards-grid.mjs': { raw: 38500, gzip: 12600 },
   // The boards the library adds (catalogSamples): loaded only where a board is added. Measured at its first build
   // (9163 / 2802), plus a little.
   'workshop-samples.mjs': { raw: 9500, gzip: 3000 },
@@ -129,6 +135,8 @@ if (/function dragSpecToBehavior|class DragSpecBuilder/.test(read('boards.mjs').
 // The nested boards' kit and the library's samples load only when they are used: nothing else imports them, and they carry no copy of what they plug into.
 if (boards.some(target => /boards-nest|samples/.test(target))) problems.push('boards.mjs imports the nested boards\' kit or the samples: they load on their own.')
 if (!importsOf('boards-nest.mjs').includes('./boards.mjs')) problems.push('boards-nest.mjs must plug into ./boards.mjs, not carry its own kits.')
+if (boards.some(target => /boards-grid/.test(target))) problems.push('boards.mjs imports the grid sheet\'s kit: it loads on its own.')
+if (!importsOf('boards-grid.mjs').includes('./boards.mjs')) problems.push('boards-grid.mjs must plug into ./boards.mjs, not carry its own kits.')
 if (importsOf('workshop-rules.mjs').some(target => /samples/.test(target))) problems.push('workshop-rules.mjs imports the samples: they load only where a board is added.')
 if (!importsOf('workshop-samples.mjs').includes('./workshop-rules.mjs')) problems.push('workshop-samples.mjs must take the plans\' samples from ./workshop-rules.mjs, not carry a copy.')
 // The agents' drawing stays out of the canvas entry, and the presence entry shares no chunk.

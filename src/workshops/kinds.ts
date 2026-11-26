@@ -7,7 +7,7 @@
 //   - a browser loads a board's rules with its kit (slateboxjs/boards), before the board is drawn.
 // A slate without one of these boards never downloads their rules. Until a kind's rules have
 // loaded, a board of that kind can't be read: the gate refuses it instead of guessing.
-import type { BusinessBoardKind, Workshop, WorkshopCard, WorkshopLane, WorkshopNoteStyle } from './model'
+import type { BusinessBoardKind, Workshop, WorkshopCard, WorkshopLane, WorkshopNoteOffer, WorkshopNoteStyle } from './model'
 import type { NodeJSON } from '../core/Serialization'
 import type { WorkshopEdit, WorkshopEditRefusalCode, WorkshopRef } from './edits'
 import type { Behaviour, BehaviourVerdict, RuleAudit, WorkshopMoveCheck } from './behaviour'
@@ -66,7 +66,7 @@ export interface BusinessBoardRules {
    * The add_card fields a note's words make (its name and the number written on it), or why it can't become a card.
    * `unnamed` is the name a card takes when the note has no words of its own (empty, or only a number): see newCard.
    */
-  fromNote(board: Workshop, text: string, unnamed: string): { label: string; duration?: number; amount?: number } | string
+  fromNote(board: Workshop, text: string, unnamed: string, note?: WorkshopNoteOffer): { label: string; duration?: number; amount?: number; type?: string; body?: string; image?: { src: string; alt: string } } | string
   /** A plan: the board with card `cardId` (just made from a note, at the plan's start) starting on calendar `day`, as near as the plan's rules let it. */
   landNote?(board: Workshop, cardId: string, day: number): Workshop
   /**
@@ -124,7 +124,7 @@ export interface RuleFamily {
 }
 
 const registry = new Map<string, BusinessBoardRules>()
-const names: Record<BusinessBoardKind, string> = { 'launch-plan': 'launch plan', pipeline: 'sales pipeline', budget: 'budget', 'hiring-plan': 'hiring plan', nest: 'nested board' }
+const names: Record<BusinessBoardKind, string> = { 'launch-plan': 'launch plan', pipeline: 'sales pipeline', budget: 'budget', 'hiring-plan': 'hiring plan', nest: 'nested board', grid: 'grid sheet' }
 
 /** Plug a kind's rules into the gate. Each rule module calls it once when it loads. */
 export function registerWorkshopRules(rules: BusinessBoardRules): void {

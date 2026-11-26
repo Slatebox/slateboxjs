@@ -4,6 +4,7 @@ import { catalog, catalogPreset } from '../../src/workshops/catalog'
 import { catalogSamples } from '../../src/workshops/samples'
 import { kitFor } from '../../src/boards'
 import '../../src/boards/nest'
+import '../../src/boards/grid'
 import '../../src/workshops/behaviour'
 
 /**

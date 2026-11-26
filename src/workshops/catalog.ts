@@ -11,10 +11,10 @@ import type { BehaviourRule, RuleKindId } from './behaviour'
 
 export const catalogVersion = '1.0'
 
-export type CatalogGroup = 'plan' | 'decide' | 'meetings' | 'track' | 'map'
+export type CatalogGroup = 'plan' | 'decide' | 'meetings' | 'track' | 'map' | 'make'
 export const catalogGroups: { id: CatalogGroup | 'all'; label: string }[] = [
   { id: 'all', label: 'All' }, { id: 'plan', label: 'Plan' }, { id: 'decide', label: 'Decide' },
-  { id: 'meetings', label: 'Meetings' }, { id: 'track', label: 'Track' }, { id: 'map', label: 'Map' },
+  { id: 'meetings', label: 'Meetings' }, { id: 'track', label: 'Track' }, { id: 'map', label: 'Map' }, { id: 'make', label: 'Make & print' },
 ]
 
 /** One thing a board does, the edit that does it, and how to say it. */
@@ -149,6 +149,14 @@ const goalMoves = [move('set_rule', 'Bring what is under a card along', 'When I 
 const nestMore = (id: string, group: CatalogGroup, name: string, line: string, synonyms: string[], sample: CatalogSample, caption: string, steps: string[], moves: CatalogMove[],
   addSay: string, limit: string): CatalogEntry => ({ id, group, name, line, synonyms, build: { kind: 'nest', sample }, addSay: [addSay, addSay + ' about {topic}'], ...withMoves(moves),
   limits: [limit, laneLimits[0]], loop: { src: '/library/' + id + '.svg', alt: name + ': ' + steps.join(' '), caption, steps }, multiPerSlate: true })
+// A grid sheet's moves (grid.ts), its rule phrases first: a page people compose by dragging tiles into cells, then print.
+const gridMoves = [move('add_rule', 'Limit a kind of tile', 'At most 4 questions per page', 'tileMax'), move('add_rule', 'Let pictures be big', 'Pictures can be 2 by 2', 'tileSpan'),
+  move('add_rule', 'Ask every page for a tile', 'Every page needs a word bank', 'tileNeeds'), move('add_rule', 'Say which tiles it uses', 'Only headings, questions, answer lines and word banks', 'tileTypes'),
+  move('place_tile', 'Put a tile in a cell', 'Put {card} on Page 1 at row 5 column 2'), move('set_grid', 'Change the grid', 'Make it 3 columns'),
+  move('set_page', 'Change the page', 'Make it A4 landscape'), move('add_tile', 'Add a word bank', 'Add a word bank: sun, rain, cloud'),
+  move('set_tile', 'Change what a tile says', 'Make {card} say Show each step'), move('add_page', 'Add a page like this one', 'Duplicate Page 1'),
+  move('rename_card', 'Rename a tile', 'Rename {card} to Review notes'), move('remove_card', 'Remove a tile', 'Remove {card}')]
+
 const article = (name: string) => /^pros/i.test(name) ? '' : /^[aeiou]/i.test(name) ? 'an ' : 'a '
 
 export const catalog: readonly CatalogEntry[] = [
@@ -196,6 +204,12 @@ export const catalog: readonly CatalogEntry[] = [
   nestMore('goals-owners', 'plan', 'Goals & owners', 'Objectives, key results and the teams that own them', ['okr', 'okrs', 'goals', 'objectives', 'key results', 'quarterly planning', 'ownership', 'owners'],
     'goals', 'A card is owned by the team that owns what it sits under (a warning only).', ['Drop a key result on another team.', 'It lands, flagged cross-team.'], goalMoves,
     'Add a goals & owners board', 'Up to 40 cards and 8 teams. On a phone it is an outline; change teams by chat.'),
+  { id: 'printable-page', group: 'make', name: 'Printable page', line: 'Snap tiles into a page’s cells, then print it or save a PDF',
+    synonyms: ['worksheet', 'printable', 'print', 'handout', 'flashcards', 'bingo', 'sticker sheet', 'comic page', 'layout', 'compose a page', 'pdf', 'page builder', 'snap'],
+    build: { kind: 'grid', sample: 'worksheet' }, addSay: ['Add a printable page', 'Add a printable page about {topic}'], ...withMoves(gridMoves),
+    limits: ['Letter or A4, 1 to 12 rows and 1 to 8 columns of cells, up to 4 pages and 120 tiles.', laneLimits[0]],
+    loop: { src: '/library/printable-page.svg', alt: 'Printable page: drag a tile from the tray onto a cell; it snaps there, and a taken cell refuses.', caption: 'Tiles snap to free cells; none overlap.',
+      steps: ['Drag a stamp from the tray: a copy snaps into the cell.', 'Print the page, or save it as a PDF.'] }, multiPerSlate: true },
   { id: 'sales-pipeline', group: 'track', name: 'Sales pipeline', line: 'Move deals through stages toward a target', synonyms: ['deals', 'sales', 'pipeline', 'crm', 'track deals', 'forecast', 'customers'],
     build: { kind: 'pipeline', sample: 'pipeline' }, addSay: ['Add a sales pipeline', 'Add a sales pipeline about {topic}'],
     ...withMoves([move('move_card', 'Carry a deal on', 'Move {card} to {other}'), move('set_amount', 'Price a deal', 'Make {card} $40k'),
@@ -220,7 +234,7 @@ export function catalogList(group: CatalogGroup | 'all' = 'all'): CatalogEntry[]
 
 /** The samples a business entry adds: from slateboxjs/workshops/samples (catalogSamples), so this chunk keeps no rules. */
 export type CatalogSample = 'launch-plan' | 'go-live' | 'hiring-plan' | 'pipeline' | 'budget' | 'sort-evidence' | 'discovery-tree' | 'break-down' | 'incident-review'
-  | 'impact-effort' | 'reorg' | 'goals'
+  | 'impact-effort' | 'reorg' | 'goals' | 'worksheet' | 'bingo' | 'flashcards'
 export type CatalogSamples = Partial<Record<CatalogSample, () => Workshop>>
 
 /** The board an entry adds, as data, named after the topic when one is given. A business board needs its sample. */
