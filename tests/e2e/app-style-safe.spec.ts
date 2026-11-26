@@ -65,6 +65,41 @@ function differences(a: any, b: any): string[] {
   return out
 }
 
+// What the canvas draws against what the slate holds (owner, 2026-11-25: Revert to original left blue dots behind).
+// Each line draws two end handles and their marks in the slate's shared markers layer, outside every note; a
+// whole-slate replace (a style worn, switched, removed or reverted, undo, redo) must take the old ones away.
+const drawn = (page: Page) => page.evaluate(() => {
+  const s = (window as any).slate
+  const engine = s.v2 ?? s
+  // Every note the engine holds (a board's lanes and columns are drawn by its host and not saved with the slate).
+  const notes = engine.nodes.allNodes
+  const ids = new Set(notes.map((n: any) => String(n.id)))
+  // What the lines on the slate draw: each one's two end handles and their marks.
+  const owned = new Set<Element>()
+  for (const n of notes) {
+    for (const c of n.connector?.connections?.values?.() ?? []) {
+      const con = c.connectable
+      for (const end of [con?.sourceHandle, con?.targetHandle]) for (const el of [end?.element, end?.glyph]) if (el?.node) owned.add(el.node)
+    }
+  }
+  const root = document.getElementById('slateCanvas')!
+  const ends = [...root.querySelectorAll('.connector-handle, .connector-handle-glyph')]
+  return {
+    ends: ends.length,
+    orphanEnds: ends.filter((el) => !owned.has(el)).length,
+    strayGroups: [...root.querySelectorAll('[data-node-id]')].map((g) => g.getAttribute('data-node-id')).filter((id) => !ids.has(id!)),
+    plugOwners: root.querySelectorAll('.connection-handle').length / 4,
+    notes: notes.length,
+  }
+})
+async function noOrphans(page: Page, label: string) {
+  await expect.poll(async () => (await drawn(page)).orphanEnds, { message: `${label}: no line end left over from a line that is gone` }).toBe(0)
+  const d = await drawn(page)
+  expect(d.ends, `${label}: the lines' ends are drawn`).toBeGreaterThan(0)
+  expect(d.strayGroups, `${label}: no note drawn that the slate does not hold`).toEqual([])
+  expect(d.plugOwners, `${label}: plugs only for notes on the slate`).toBeLessThanOrEqual(d.notes)
+}
+
 async function openSlateStyle(page: Page) {
   if (await page.locator('[data-slate-style-panel]').isVisible().catch(() => false)) return
   await cog(page).click()
@@ -86,10 +121,12 @@ async function proveNoLossAndRevert(page: Page, label: string) {
   expect(one.texts, `${label}: ${first} keeps every word`).toEqual(before.texts)
   for (const id of before.content) expect(one.ids, `${label}: ${id} kept`).toContain(id)
   expect(one.original).toBe(true)
+  await noOrphans(page, `${label}: ${first}`)
   await wear(page, second)
   const two = await exported(page)
   expect(two.texts, `${label}: ${second} keeps every word`).toEqual(before.texts)
   for (const id of before.content) expect(two.ids, `${label}: ${id} kept`).toContain(id)
+  await noOrphans(page, `${label}: ${second}`)
   // The original survives a reload (it is saved with the slate).
   await page.waitForTimeout(2500)
   await page.reload()
@@ -105,6 +142,7 @@ async function proveNoLossAndRevert(page: Page, label: string) {
   expect(differences(before.doc, back.doc), `${label}: reverted exactly`).toEqual([])
   expect(back.original).toBe(false)
   await expect(revert).toBeDisabled()
+  await noOrphans(page, `${label}: reverted`)
   return before
 }
 
@@ -154,6 +192,80 @@ test('a slate of one\'s own wears, switches twice and reverts with nothing lost;
     await expect.poll(async () => (await exported(page)).background).toBe('#224466')
     await page.locator('[data-slate-style-revert]').click()
     await expect.poll(async () => (await exported(page)).background).toBe(plain.background)
+  } finally { await context.close() }
+})
+
+// Owner, 2026-11-25: after Revert to original, blue dots stayed where the style's art had been, and a navy serif note
+// still drew a dashed line to a ticket-shaped note (a note and a line made after the first style kept the last style's
+// look). Each whole-slate replace (wear, switch, Remove style, Revert to original, undo, redo) leaves the canvas holding
+// exactly what the slate's lines draw, and Revert gives notes made since their own look back.
+test('Revert to original, undo, redo and Remove style leave no orphan dots, and notes made since get their own look back', async ({ browser }) => {
+  const { context, page } = await freshAccount(browser)
+  try {
+    await page.goto(origin + '/new/map#brief=Orphan%20dots')
+    await page.waitForURL(/\/canvas\/[A-Za-z0-9]{10}$/, { timeout: 60_000 })
+    await page.locator('#slateCanvas [data-node-id]').first().waitFor({ timeout: 60_000 })
+    const ownStep = (nodes: object[]) => page.evaluate(async (nodes) => {
+      const s = (window as any).slate
+      const engine = s.v2 ?? s
+      const json = JSON.parse(s.exportJSON())
+      json.nodes = nodes
+      const snapshot = JSON.stringify(json)
+      await engine.ownStep(() => engine.invoker.onSlateReplaced({ type: 'onSlateReplaced', data: { snapshot } }))
+      engine.broadcast?.('onSlateReplaced', { action: 'seed', snapshot })
+    }, nodes)
+    const note = (id: string, text: string, x: number, y: number, associations: object[] = []) => ({ options: { id, text, xPos: x, yPos: y, width: 220, height: 90, backgroundColor: '#ffffff', fontColor: '#222222' }, relationships: { associations } })
+    await ownStep([
+      note('idea', 'Our plan', 0, 0, [{ parentId: 'idea', childId: 'step1' }, { parentId: 'idea', childId: 'step2' }]),
+      note('step1', 'Talk to customers', 320, -120), note('step2', 'Ship the beta', 320, 120),
+    ])
+    await page.waitForTimeout(2500)
+    const plainStyle = (await exported(page)).style
+    await openSlateStyle(page)
+    await wear(page, 'journey')
+    await noOrphans(page, 'journey')
+    // A note and a line made after the first style, in the slate's own look (as a person adds them).
+    const now = (await exported(page)).doc
+    const single = note('single', 'single', 700, 0, [{ parentId: 'single', childId: 'kid' }])
+    const kid = note('kid', 'kid', 1000, 0)
+    await ownStep([...now.nodes, single, kid])
+    await page.waitForTimeout(1500)
+    const made = (await exported(page)).doc.nodes
+    const own = (id: string) => made.find((n: any) => n.options.id === id)
+    const look = (n: any) => ({ backgroundColor: n.options.backgroundColor, fontFamily: n.options.fontFamily ?? null, vectorPath: n.options.vectorPath ?? null, shape: n.options.shape ?? null })
+    const singleLook = look(own('single'))
+    const line = (doc: any) => doc.nodes.find((n: any) => n.options.id === 'single').relationships.associations.find((a: any) => a.childId === 'kid')
+    const lineLook = (a: any) => ({ lineColor: a.lineColor, lineDash: a.lineDash ?? 'solid', lineWidth: a.lineWidth })
+    const singleLine = lineLook(line((await exported(page)).doc))
+    // Hovered and selected, as someone working leaves them: plugs and line ends out.
+    for (const g of await page.locator('#slateCanvas [data-node-id]').all()) await g.hover({ force: true, timeout: 2000 }).catch(() => {})
+    await wear(page, 'calm')
+    await noOrphans(page, 'calm')
+    await wear(page, 'journey')
+    await noOrphans(page, 'journey again')
+    expect(look((await exported(page)).doc.nodes.find((n: any) => n.options.id === 'single')).vectorPath, 'journey restyled the note made since').not.toBeNull()
+    await page.locator('[data-slate-style-revert]').click()
+    await expect.poll(async () => (await exported(page)).style).toBe(plainStyle)
+    await noOrphans(page, 'reverted')
+    const back = (await exported(page)).doc
+    expect(look(back.nodes.find((n: any) => n.options.id === 'single')), 'the note made since has its own look back').toEqual(singleLook)
+    expect(look(back.nodes.find((n: any) => n.options.id === 'kid'))).toEqual(look(own('kid')))
+    expect(lineLook(line(back)), 'its line has its own look back (no dashed style line)').toEqual(singleLine)
+    // Undo and redo the revert: each a whole-slate replace, each leaving nothing behind.
+    const undo = page.getByRole('group', { name: 'Undo and redo' }).getByRole('button', { name: 'Undo', exact: true })
+    const redo = page.getByRole('group', { name: 'Undo and redo' }).getByRole('button', { name: 'Redo', exact: true })
+    await undo.click()
+    await expect.poll(async () => (await exported(page)).style).toBe('journey')
+    await noOrphans(page, 'undo')
+    await redo.click()
+    await expect.poll(async () => (await exported(page)).style).toBe(plainStyle)
+    await noOrphans(page, 'redo')
+    // Remove style too.
+    await wear(page, 'editorial')
+    await noOrphans(page, 'editorial')
+    await page.locator('[data-slate-style-off]').click()
+    await expect.poll(async () => (await exported(page)).style).toBe(null)
+    await noOrphans(page, 'style removed')
   } finally { await context.close() }
 })
 

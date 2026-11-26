@@ -378,6 +378,50 @@ describe("NodesManager", () => {
       expect(() => manager.clear()).not.toThrow();
       expect(manager.count()).toBe(0);
     });
+
+    // A whole-slate replace (a style worn, switched or reverted, undo/redo, a replace from the
+    // room) clears every note. Each line draws its end handles, marks and arrowheads in the
+    // slate's shared markers layer, outside the note's group: removing the group alone left
+    // them behind as orphan dots, one more set per replace (owner, 2026-11-25).
+    it("takes every note's lines down (their end handles live outside the note) before removing it", () => {
+      const order: string[] = [];
+      const a = manager.add({ id: "a" });
+      const b = manager.add({ id: "b" });
+      for (const node of [a, b]) {
+        node.connector = { disconnectAll: vi.fn(() => order.push(`lines ${node.id}`)) };
+        node.remove.mockImplementation(() => order.push(`remove ${node.id}`));
+      }
+      manager.clear();
+      expect(a.connector.disconnectAll).toHaveBeenCalledTimes(1);
+      expect(b.connector.disconnectAll).toHaveBeenCalledTimes(1);
+      expect(order).toEqual(["lines a", "remove a", "lines b", "remove b"]);
+      expect(manager.count()).toBe(0);
+    });
+
+    it("lets go of the selection and a selected line, so no outline, plug or line cog stays", () => {
+      const kept = manager.add({ id: "kept" });
+      const chosen = manager.add({ id: "chosen" });
+      const selection = [chosen];
+      const order: string[] = [];
+      (slate as any).clearLineCog = vi.fn(() => order.push("line cog"));
+      (slate as any).getSelectedNodes = vi.fn(() => selection);
+      (slate as any).deselectNode = vi.fn((n: any) => { order.push(`deselect ${n.id}`); selection.splice(selection.indexOf(n), 1); });
+      chosen.remove.mockImplementation(() => order.push("remove chosen"));
+      manager.clear();
+      expect((slate as any).clearLineCog).toHaveBeenCalledTimes(1);
+      expect((slate as any).deselectNode).toHaveBeenCalledTimes(1);
+      expect((slate as any).deselectNode).toHaveBeenCalledWith(chosen);
+      expect(order).toEqual(["line cog", "deselect chosen", "remove chosen"]);
+      expect(kept._removed).toBe(true);
+    });
+
+    it("still removes a note whose lines cannot be taken down (its drawing is already gone)", () => {
+      const a = manager.add({ id: "a" });
+      a.connector = { disconnectAll: vi.fn(() => { throw new Error("gone"); }) };
+      expect(() => manager.clear()).not.toThrow();
+      expect(a._removed).toBe(true);
+      expect(manager.count()).toBe(0);
+    });
   });
 
   // -----------------------------------------------------------------------

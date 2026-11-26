@@ -139,8 +139,35 @@ export class NodesManager {
     this.nodes.forEach((node) => (node as any).svgGroup?.front?.())
   }
 
+  /**
+   * Take every note off the slate (a whole-slate replace: load, undo/redo, a style worn,
+   * switched, removed or reverted, a replace from the room; or the slate going away). Each note
+   * leaves as remove() lets one go, less the per-line bookkeeping (every note is going): its lines
+   * are taken down with everything they drew outside the note, the end handles and arrowheads in
+   * the slate's shared markers layer too (removing the note's group alone left those behind, one
+   * more set of orphan end dots per replace), and it leaves the selection, so no outline, plug or
+   * cog stays round empty canvas. Nothing is broadcast or recorded: the replace is the change.
+   */
   public clear(): void {
-    this.allNodes.forEach(node => node.remove())
+    const slate: any = this.slate
+    const nodes = this.allNodes
+    // A selected line belongs to a note that is going: its cog and pinned ends go with it.
+    if (nodes.length) slate?.clearLineCog?.()
+    nodes.forEach((node) => {
+      try {
+        if (slate?.getSelectedNodes?.()?.includes?.(node)) slate.deselectNode?.(node)
+      } catch (e) {
+        /* its drawing is already gone */
+      }
+      try {
+        // The connector's own teardown removes each line's DOM (path, hit area, end handles,
+        // marks, arrowheads, a free end's phantom) without telling the room of each line.
+        ;(node as any).connector?.disconnectAll?.()
+      } catch (e) {
+        /* noop */
+      }
+      node.remove()
+    })
     this.nodes.clear()
   }
 
