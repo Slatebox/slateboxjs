@@ -37,6 +37,10 @@ test.describe("a whole-slate replace leaves no orphan line ends", () => {
           ends: root.querySelectorAll(".connector-handle").length,
           marks: root.querySelectorAll(".connector-handle-glyph").length,
           plugs: root.querySelectorAll(".connection-handle").length,
+          // Arrowheads: every <marker> in the canvas's defs, and those a drawn line points at.
+          markers: root.querySelectorAll("marker").length,
+          arrowheads: [...root.querySelectorAll("path[marker-start], path[marker-end]")].reduce(
+            (sum, p) => sum + (p.getAttribute("marker-start") ? 1 : 0) + (p.getAttribute("marker-end") ? 1 : 0), 0),
           strayGroups: [...root.querySelectorAll("[data-node-id]")].map((g) => g.getAttribute("data-node-id")).filter((id) => !ids.has(id!)),
           selected: v2.getSelectedNodes().length,
         };
@@ -93,7 +97,14 @@ test.describe("a whole-slate replace leaves no orphan line ends", () => {
       expect(c.ends, `${label}: two end handles per line`).toBe(c.lines * 2);
       expect(c.marks, `${label}: two end marks per line`).toBe(c.lines * 2);
       expect(c.strayGroups, `${label}: no group for a note that is gone`).toEqual([]);
+      // Each line's arrowhead (one, at its target, by default) and no other: a replace takes the
+      // lines it replaces' <marker>s out of the defs (review, 2026-11-25: +1 per line per replace).
+      expect(c.arrowheads, `${label}: one arrowhead per line`).toBe(c.lines);
+      expect(c.markers, `${label}: a <marker> for every arrowhead drawn, none left over`).toBe(c.arrowheads);
     }
+    // Constant across the replaces of the same three lines (worn, switched, undo, redo).
+    for (const label of ["worn", "switched", "afterUndo", "afterRedo"]) expect((res as any)[label].markers, `${label}: markers as at first`).toBe(res.original.markers);
+    expect(res.fromRoom.markers).toBe(1);
     expect(res.original.lines).toBe(3);
     expect(res.fromRoom.lines).toBe(1);
     // The selected note went with the slate it was on: nothing selected, no plugs round empty canvas.

@@ -394,8 +394,11 @@ function connectable(options, elmTarget) {
     rm(con.sourceHandle && con.sourceHandle.glyph);
     rm(con.targetHandle && con.targetHandle.element);
     rm(con.targetHandle && con.targetHandle.glyph);
-    rm(con.markerSource);
-    rm(con.markerTarget);
+    // An arrowhead is { element, id, size } (createMarker): its <marker> in <defs> is .element.
+    rm(con.markerSource && con.markerSource.element);
+    rm(con.markerTarget && con.markerTarget.element);
+    con.markerSource = null;
+    con.markerTarget = null;
     rm(con._sourcePhantomRect);
     rm(con._targetPhantomRect);
     rm(con.label);

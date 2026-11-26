@@ -74,12 +74,14 @@ const drawn = (page: Page) => page.evaluate(() => {
   // Every note the engine holds (a board's lanes and columns are drawn by its host and not saved with the slate).
   const notes = engine.nodes.allNodes
   const ids = new Set(notes.map((n: any) => String(n.id)))
-  // What the lines on the slate draw: each one's two end handles and their marks.
+  // What the lines on the slate draw: each one's two end handles and their marks, and its arrowheads.
   const owned = new Set<Element>()
+  const ownedMarkers = new Set<Element>()
   for (const n of notes) {
     for (const c of n.connector?.connections?.values?.() ?? []) {
       const con = c.connectable
       for (const end of [con?.sourceHandle, con?.targetHandle]) for (const el of [end?.element, end?.glyph]) if (el?.node) owned.add(el.node)
+      for (const head of [con?.markerSource, con?.markerTarget]) if (head?.element?.node) ownedMarkers.add(head.element.node)
     }
   }
   const root = document.getElementById('slateCanvas')!
@@ -87,6 +89,8 @@ const drawn = (page: Page) => page.evaluate(() => {
   return {
     ends: ends.length,
     orphanEnds: ends.filter((el) => !owned.has(el)).length,
+    // A <marker> in the defs that no line on the slate draws (review, 2026-11-25: +1 per line per replace).
+    orphanMarkers: [...root.querySelectorAll('marker')].filter((el) => !ownedMarkers.has(el)).length,
     strayGroups: [...root.querySelectorAll('[data-node-id]')].map((g) => g.getAttribute('data-node-id')).filter((id) => !ids.has(id!)),
     plugOwners: root.querySelectorAll('.connection-handle').length / 4,
     notes: notes.length,
@@ -94,6 +98,7 @@ const drawn = (page: Page) => page.evaluate(() => {
 })
 async function noOrphans(page: Page, label: string) {
   await expect.poll(async () => (await drawn(page)).orphanEnds, { message: `${label}: no line end left over from a line that is gone` }).toBe(0)
+  await expect.poll(async () => (await drawn(page)).orphanMarkers, { message: `${label}: no arrowhead left over from a line that is gone` }).toBe(0)
   const d = await drawn(page)
   expect(d.ends, `${label}: the lines' ends are drawn`).toBeGreaterThan(0)
   expect(d.strayGroups, `${label}: no note drawn that the slate does not hold`).toEqual([])
