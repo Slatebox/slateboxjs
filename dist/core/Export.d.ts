@@ -20,6 +20,21 @@ export interface ExportOptions {
     useDataImageUrls?: boolean;
     /** Scale factor for PNG export */
     scale?: number;
+    /**
+     * The exact box to export, in canvas units (a grid sheet's page): the picture's viewBox is this box, with no
+     * padding, instead of the box around the content.
+     */
+    frame?: {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+    };
+    /** The SVG's printed size, such as `{ width: '8.5in', height: '11in' }`: its width and height attributes. Left out, the frame's size in px. */
+    size?: {
+        width: string;
+        height: string;
+    };
 }
 /**
  * Export the slate canvas as SVG string.

@@ -4,6 +4,8 @@ export * from './appearance';
 import { type WorkshopAppearance } from './appearance';
 export { releaseLoad, releasePlan } from './release';
 import type { Behaviour } from './behaviour';
+import type { GridCell, GridFields } from './gridGeometry';
+export type { GridCell, GridFields, GridPageSize, GridOrientation } from './gridGeometry';
 export type { Behaviour, BehaviourRule, BehaviourVerdict, RuleAudit, RuleBody, RuleInput, RuleKindId, WorkshopMoveCheck } from './behaviour';
 export { registerRulebook, rulebook, rulebookLoaded, registerWorkshopRules, workshopRulesLoaded, workshopRules, workshopNewCardName, type RulebookHooks, type BusinessBoardRules, type BusinessEditStep, type BusinessEditTools, type WorkshopFieldReader, type WorkshopLimits } from './kinds';
 import type { NodeJSON, SlateJSON } from '../core/Serialization';
@@ -14,6 +16,24 @@ export { DEFAULT_NOTE_STYLE };
 export interface StationImage {
     src: string;
     alt: string;
+}
+/** The kinds of tile a grid sheet composes a page from. */
+export type GridTileType = 'heading' | 'text' | 'image' | 'question' | 'answer-lines' | 'word-bank' | 'diagram' | 'qr' | 'panel' | 'speech' | 'term' | 'sticker';
+/**
+ * A grid sheet's tile: its kind, its words (up to 600 characters, line breaks kept), a word bank's words (3 to 24), a
+ * picture (an empty frame prints its alt), a QR code's web address, and whether it is a stamp (a tray tile that stays
+ * in the tray: dropping it on a page makes a copy).
+ */
+export interface GridTile {
+    type: GridTileType;
+    body?: string;
+    words?: string[];
+    image?: {
+        src?: string;
+        alt: string;
+    };
+    link?: string;
+    stamp?: true;
 }
 export interface WorkshopLane {
     id: string;
@@ -57,6 +77,10 @@ export interface WorkshopCard {
     fields?: Record<string, number>;
     /** Nest board with owners (Goals & owners): the team that owns it, by id. */
     owner?: string;
+    /** Grid sheet: what kind of tile it is and what it holds (read only by the grid's rules, grid.ts). */
+    tile?: GridTile;
+    /** Grid sheet: the cell a tile on a page sits in (0-based; 1-based in every sentence) and its span. A tile in the tray has none. */
+    cell?: GridCell;
     /** How the card is drawn when it differs from the board's: the look of the note it was made from. */
     look?: WorkshopCardLook;
     /** What the note it was made from had that a card does not show, so it comes back as it was. */
@@ -198,6 +222,8 @@ export interface Workshop {
     hiring?: HiringFields;
     /** Nest board: how it is drawn (piles or a tree), the number fields chat added, and merged cards' new homes. */
     nest?: NestFields;
+    /** Grid sheet: its page (size, orientation, margin in inches) and its cells (rows, columns, gutter in inches). */
+    grid?: GridFields;
     /** Pipeline: the forecast target, and the currency sign amounts are written with. */
     forecast?: {
         target: number;
@@ -242,7 +268,7 @@ export interface HiringFields {
     };
 }
 /** The business boards: drawn by a board kit (slateboxjs/boards) on a live slate. */
-export type BusinessBoardKind = 'launch-plan' | 'pipeline' | 'budget' | 'hiring-plan' | 'nest';
+export type BusinessBoardKind = 'launch-plan' | 'pipeline' | 'budget' | 'hiring-plan' | 'nest' | 'grid';
 export declare const businessBoardKinds: readonly BusinessBoardKind[];
 export interface NestFields {
     /** Piles, a tree, or a 2 by 2 (impact × effort: cards placed by two scores). */
@@ -397,6 +423,11 @@ export interface WorkshopNoteOffer {
     under?: string;
     /** Launch or hiring plan: the calendar day (from the plan's first day) it was let go on: its task starts there, snapped by the plan's rules. */
     day?: number;
+    /** Grid sheet: the cell it was let go on (1-based, as said): it becomes a tile there. */
+    cell?: {
+        row: number;
+        col: number;
+    };
 }
 /** Why `note` may not become a card in `laneId`, as a sentence; null when it may. */
 export declare function workshopNoteRefusal(board: Workshop, laneId: string, note: WorkshopNoteOffer): string | null;

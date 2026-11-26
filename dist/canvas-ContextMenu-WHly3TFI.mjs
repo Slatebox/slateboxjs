@@ -1,4 +1,4 @@
-import { g as c } from "./canvas-canvas-CxBRl2gR.mjs";
+import { g as c } from "./canvas-canvas-UORT_2P5.mjs";
 class g {
   constructor(i) {
     this.el = null, this.targetNodes = [], this.boundContext = null, this.boundDismiss = null, this.boundEsc = null, this.slate = i;

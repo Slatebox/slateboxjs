@@ -1,7 +1,8 @@
 import { planSamples as p } from "./workshop-rules.mjs";
-import { orderKeys as u } from "./workshop-nest.mjs";
+import { gridSamples as u } from "./workshop-grid.mjs";
+import { orderKeys as m } from "./workshop-nest.mjs";
 function r(e, t, o) {
-  const i = u(t.length);
+  const i = m(t.length);
   return t.map(([l, s, d], c) => ({ id: l, label: s, laneId: e, order: i[c], ...o && { parentId: o }, ...d }));
 }
 const a = (e) => ({
@@ -31,7 +32,7 @@ function g() {
     behaviour: a([{ kind: "nests", role: "note", under: ["pile"] }, { kind: "depth", max: 1 }, { kind: "rank", by: "sources" }, { kind: "emptyDrop", drop: "new-pile" }])
   };
 }
-function m() {
+function b() {
   return {
     version: 1,
     kind: "nest",
@@ -58,7 +59,7 @@ function m() {
   };
 }
 const n = () => a([{ kind: "nests", role: "action", under: ["cause"], severity: "warn" }, { kind: "depth", max: 6, severity: "warn" }]);
-function b() {
+function f() {
   return {
     version: 1,
     kind: "nest",
@@ -79,7 +80,7 @@ function b() {
     behaviour: n()
   };
 }
-function f() {
+function v() {
   return {
     version: 1,
     kind: "nest",
@@ -97,7 +98,7 @@ function f() {
     behaviour: n()
   };
 }
-function v() {
+function k() {
   const e = (t, o) => ({ fields: { effort: t, impact: o } });
   return {
     version: 1,
@@ -120,7 +121,7 @@ function v() {
     behaviour: a([{ kind: "quadrant", quadrant: "do-now", max: 3 }])
   };
 }
-function k() {
+function h() {
   const e = (t, o = !1) => ({ role: t, ...o && { fields: { contractor: 1 } } });
   return {
     version: 1,
@@ -146,7 +147,7 @@ function k() {
     ])
   };
 }
-function h() {
+function y() {
   const e = (t, o) => ({ role: t, owner: o });
   return {
     version: 1,
@@ -171,23 +172,24 @@ function h() {
     ])
   };
 }
-const S = {
+const P = {
   ...p,
   "sort-evidence": g,
-  "discovery-tree": m,
-  "break-down": b,
-  "incident-review": f,
-  "impact-effort": v,
-  reorg: k,
-  goals: h
+  "discovery-tree": b,
+  "break-down": f,
+  "incident-review": v,
+  "impact-effort": k,
+  reorg: h,
+  goals: y,
+  ...u
 };
 export {
-  b as breakDownSample,
-  S as catalogSamples,
-  m as discoveryTreeSample,
-  h as goalsSample,
-  v as impactEffortSample,
-  f as incidentReviewSample,
-  k as reorgSample,
+  f as breakDownSample,
+  P as catalogSamples,
+  b as discoveryTreeSample,
+  y as goalsSample,
+  k as impactEffortSample,
+  v as incidentReviewSample,
+  h as reorgSample,
   g as sortEvidenceSample
 };

@@ -47,6 +47,8 @@ export interface StillModules {
     boards: () => Promise<KitsModule>;
     /** slateboxjs/boards/nest (the nested boards' kit; registers itself with the kits) */
     nest: () => Promise<unknown>;
+    /** slateboxjs/boards/grid (the grid sheet's kit; registers itself with the kits). Needed only to draw a grid sheet. */
+    grid?: () => Promise<unknown>;
     /** slateboxjs/workshops/behaviour (the rulebook; registers itself with the model) */
     behaviour: () => Promise<unknown>;
     /** slateboxjs (or slateboxjs/canvas): the canvas class renderStill draws on */

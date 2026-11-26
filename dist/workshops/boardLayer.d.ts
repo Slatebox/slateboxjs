@@ -100,4 +100,6 @@ export declare function renderLayerShapes(group: SVGGElement, shapes: LayerShape
  * The layer for one attached board. `paint` says what to draw for the board on show; the
  * committed board is passed too, for what a preview is compared against.
  */
-export declare function createBoardLayer(slate: any, paint: (shown: Workshop, state: BoardLayerState, committed: Workshop) => LayerShape[]): BoardLayer;
+export declare function createBoardLayer(slate: any, paint: (shown: Workshop, state: BoardLayerState, committed: Workshop) => LayerShape[], options?: {
+    exportNever?: boolean;
+}): BoardLayer;

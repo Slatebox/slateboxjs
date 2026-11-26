@@ -19,6 +19,9 @@ export declare function reorgSample(): Board;
 export declare function goalsSample(): Board;
 /** The boards the library's business entries add (catalogPreset's samples), each made fresh, dated from the next Monday. */
 export declare const catalogSamples: {
+    worksheet: typeof import("./grid").worksheetSample;
+    bingo: typeof import("./grid").bingoSample;
+    flashcards: typeof import("./grid").flashcardSample;
     'sort-evidence': typeof sortEvidenceSample;
     'discovery-tree': typeof discoveryTreeSample;
     'break-down': typeof breakDownSample;

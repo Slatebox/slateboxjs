@@ -1,11 +1,12 @@
-const q = "1.0", O = [
+const O = "1.0", U = [
   { id: "all", label: "All" },
   { id: "plan", label: "Plan" },
   { id: "decide", label: "Decide" },
   { id: "meetings", label: "Meetings" },
   { id: "track", label: "Track" },
-  { id: "map", label: "Map" }
-], D = (a = "Slatebox") => ({ by: a, at: "2026-11-21T00:00:00.000Z", via: "preset" }), L = {
+  { id: "map", label: "Map" },
+  { id: "make", label: "Make & print" }
+], D = (a = "Slatebox") => ({ by: a, at: "2026-11-21T00:00:00.000Z", via: "preset" }), P = {
   "now-next-later": {
     title: "Now, next, later",
     lanes: [{ id: "now", label: "Now" }, { id: "next", label: "Next" }, { id: "later", label: "Later" }],
@@ -39,7 +40,7 @@ const q = "1.0", O = [
     ],
     rules: [{ kind: "path", from: "any", noSkip: !0 }, { kind: "capacity", where: "doing", max: 3 }, { kind: "bin", lane: "wont" }]
   }
-}, P = () => ({ version: 1, title: "Decision path", lanes: [
+}, L = () => ({ version: 1, title: "Decision path", lanes: [
   { id: "question", label: "The question", station: { column: 0, row: 0, next: ["option-a", "option-b"], outcome: "Say what you are deciding." } },
   { id: "option-a", label: "Option A", station: { column: 1, row: 0, next: ["decide"], outcome: "Weigh the first option." } },
   { id: "option-b", label: "Option B", station: { column: 1, row: 1, next: ["decide"], outcome: "Weigh the second option." } },
@@ -56,7 +57,7 @@ const q = "1.0", O = [
   e("rename_workshop", "Rename the board", "Rename the board to Team review"),
   e("set_rule", "Warn instead of refusing", "Just warn me when {ruled} is full"),
   e("remove_rule", "Remove a rule", "Remove the {ruled} rule")
-], p = ["Up to 8 boards on one slate, side by side; past that, it opens on a new slate.", "Up to 5 columns and 24 cards."], M = (a) => [...new Set(a.map((t) => t.edit))], x = (a) => [...new Set(a.flatMap((t) => t.rule ? [t.rule] : []))], h = (a, t, n, s, d, i, o, r = {}) => ({
+], p = ["Up to 8 boards on one slate, side by side; past that, it opens on a new slate.", "Up to 5 columns and 24 cards."], M = (a) => [...new Set(a.map((t) => t.edit))], R = (a) => [...new Set(a.flatMap((t) => t.rule ? [t.rule] : []))], h = (a, t, n, s, d, i, o, r = {}) => ({
   id: a,
   group: t,
   name: n,
@@ -65,13 +66,13 @@ const q = "1.0", O = [
   build: { kind: "lanes" },
   addSay: ["Add " + m(n) + n.toLowerCase(), "Add " + m(n) + n.toLowerCase() + " about {topic}"],
   edits: M(r.moves ?? y()),
-  rules: x(r.moves ?? y()),
+  rules: R(r.moves ?? y()),
   moves: y(),
   limits: p,
   loop: { src: "/library/" + a + ".svg", alt: n + ": " + o.join(" "), caption: i, steps: o },
   multiPerSlate: !0,
   ...r
-}), u = (a) => ({ moves: a, edits: M(a), rules: x(a) }), T = (a) => a ? [
+}), u = (a) => ({ moves: a, edits: M(a), rules: R(a) }), C = (a) => a ? [
   e("add_rule", "Let a task slip, in red", "Let things slip past " + a + " but show them in red", "deadline"),
   e("set_rule", "Stop a slip at what waits on it", "Stop me instead of pushing dependent tasks", "cascade"),
   e("add_rule", "Add a freeze", "Nothing ships in code freeze, {dates}", "blackout"),
@@ -100,7 +101,7 @@ const q = "1.0", O = [
   synonyms: s,
   build: { kind: r, sample: o },
   addSay: ["Add " + m(t) + t.toLowerCase(), "Add " + m(t) + t.toLowerCase() + " about {topic}"],
-  ...u(T(r === "hiring-plan" ? "" : o === "go-live" ? "go-live" : "launch")),
+  ...u(C(r === "hiring-plan" ? "" : o === "go-live" ? "go-live" : "launch")),
   limits: [r === "hiring-plan" ? "Cost is per role band, never per person. On a phone it is read-only." : "Up to 12 tasks on 2 to 4 teams.", p[0]],
   loop: { src: "/library/" + a + ".svg", alt: t + ": " + i.join(" "), caption: d, steps: i },
   multiPerSlate: !0
@@ -132,7 +133,7 @@ const q = "1.0", O = [
     loop: { src: "/library/" + a + ".svg", alt: n + ": " + r.join(" "), caption: o, steps: r },
     multiPerSlate: !0
   }
-), C = [
+), T = [
   e("add_rule", "Limit a square", "Plan it holds 2", "quadrant"),
   e("set_rule", "Make room in Do now", "Do now holds 4", "quadrant"),
   e("score_card", "Move an idea to a square", "Move {scored} to Later"),
@@ -141,7 +142,7 @@ const q = "1.0", O = [
   e("add_card", "Add an idea", "Add a card called Webhooks"),
   e("rename_card", "Rename an idea", "Rename {scored} to Self-serve import"),
   e("remove_card", "Remove an idea", "Remove {scored}")
-], W = [
+], N = [
   e("set_rule", "Change the span of control", "No manager over 3 reports", "children"),
   e("add_rule", "Keep a role from managing", "Engineers don’t manage", "parent"),
   e("set_rule", "Make a warning a rule", "Stop me when a manager has no designer", "contains"),
@@ -152,7 +153,7 @@ const q = "1.0", O = [
   e("set_field", "Mark a contractor", "{person} is a contractor"),
   e("rename_card", "Rename someone", "Rename {person} to Ravi Shah, Staff"),
   e("remove_card", "Remove someone", "Remove {person}")
-], N = [
+], W = [
   e("set_rule", "Bring what is under a card along", "When I move a key result, bring its initiatives along", "sameOwnerAs"),
   e("set_rule", "Refuse a cross-team owner", "Stop me when a key result is owned outside its objective’s team", "sameOwnerAs"),
   e("set_rule", "Ask about what is under it", "Ask before moving what is under a card"),
@@ -174,7 +175,20 @@ const q = "1.0", O = [
   limits: [f, p[0]],
   loop: { src: "/library/" + a + ".svg", alt: n + ": " + r.join(" "), caption: o, steps: r },
   multiPerSlate: !0
-}), m = (a) => /^pros/i.test(a) ? "" : /^[aeiou]/i.test(a) ? "an " : "a ", g = [
+}), q = [
+  e("add_rule", "Limit a kind of tile", "At most 4 questions per page", "tileMax"),
+  e("add_rule", "Let pictures be big", "Pictures can be 2 by 2", "tileSpan"),
+  e("add_rule", "Ask every page for a tile", "Every page needs a word bank", "tileNeeds"),
+  e("add_rule", "Say which tiles it uses", "Only headings, questions, answer lines and word banks", "tileTypes"),
+  e("place_tile", "Put a tile in a cell", "Put {card} on Page 1 at row 5 column 2"),
+  e("set_grid", "Change the grid", "Make it 3 columns"),
+  e("set_page", "Change the page", "Make it A4 landscape"),
+  e("add_tile", "Add a word bank", "Add a word bank: sun, rain, cloud"),
+  e("set_tile", "Change what a tile says", "Make {card} say Show each step"),
+  e("add_page", "Add a page like this one", "Duplicate Page 1"),
+  e("rename_card", "Rename a tile", "Rename {card} to Review notes"),
+  e("remove_card", "Remove a tile", "Remove {card}")
+], m = (a) => /^pros/i.test(a) ? "" : /^[aeiou]/i.test(a) ? "an " : "a ", g = [
   h(
     "now-next-later",
     "plan",
@@ -340,7 +354,7 @@ const q = "1.0", O = [
     "impact-effort",
     "Do now holds 3.",
     ["Drag an idea across the square: its scores follow.", "A fourth into Do now is refused, naming the weakest there."],
-    C,
+    T,
     "Add an impact × effort board",
     "Up to 40 cards, scored 0 to 10. On a phone it is a 358 px square."
   ),
@@ -353,7 +367,7 @@ const q = "1.0", O = [
     "reorg",
     "Open roles don’t manage.",
     ["Drag a manager: the whole team comes along.", "Under an open role it is refused."],
-    W,
+    N,
     "Add a reorg & hiring sandbox",
     "Up to 40 people. Roles and yes/no fields only, never salaries. Paste a list of name, role, manager to fill it. On a phone it is an outline; move people by chat."
   ),
@@ -366,10 +380,28 @@ const q = "1.0", O = [
     "goals",
     "A card is owned by the team that owns what it sits under (a warning only).",
     ["Drop a key result on another team.", "It lands, flagged cross-team."],
-    N,
+    W,
     "Add a goals & owners board",
     "Up to 40 cards and 8 teams. On a phone it is an outline; change teams by chat."
   ),
+  {
+    id: "printable-page",
+    group: "make",
+    name: "Printable page",
+    line: "Snap tiles into a page’s cells, then print it or save a PDF",
+    synonyms: ["worksheet", "printable", "print", "handout", "flashcards", "bingo", "sticker sheet", "comic page", "layout", "compose a page", "pdf", "page builder", "snap"],
+    build: { kind: "grid", sample: "worksheet" },
+    addSay: ["Add a printable page", "Add a printable page about {topic}"],
+    ...u(q),
+    limits: ["Letter or A4, 1 to 12 rows and 1 to 8 columns of cells, up to 4 pages and 120 tiles.", p[0]],
+    loop: {
+      src: "/library/printable-page.svg",
+      alt: "Printable page: drag a tile from the tray onto a cell; it snaps there, and a taken cell refuses.",
+      caption: "Tiles snap to free cells; none overlap.",
+      steps: ["Drag a stamp from the tray: a copy snaps into the cell.", "Print the page, or save it as a PDF."]
+    },
+    multiPerSlate: !0
+  },
   {
     id: "sales-pipeline",
     group: "track",
@@ -408,14 +440,14 @@ const q = "1.0", O = [
     multiPerSlate: !0
   }
 ];
-function R(a) {
+function x(a) {
   return g.find((t) => t.id === a);
 }
-function U(a = "all") {
+function $(a = "all") {
   return g.filter((t) => a === "all" || t.group === a);
 }
-function $(a, t, n = {}) {
-  const s = R(a);
+function B(a, t, n = {}) {
+  const s = x(a);
   if (!s) throw new Error("There is nothing called " + a + " in the library.");
   const d = (o) => {
     const r = typeof t == "string" ? t.replace(/\s+/g, " ").trim().slice(0, 100) : "";
@@ -427,8 +459,8 @@ function $(a, t, n = {}) {
     const r = o();
     return { ...r, title: t ? d(s.name) : r.title };
   }
-  if (s.build.kind === "map") return { ...P(), title: d("Decision path") };
-  const i = L[a];
+  if (s.build.kind === "map") return { ...L(), title: d("Decision path") };
+  const i = P[a];
   return {
     version: 1,
     title: d(i.title),
@@ -438,7 +470,7 @@ function $(a, t, n = {}) {
   };
 }
 const _ = (a) => a.toLowerCase().replace(/[’']/g, "").replace(/[^a-z0-9/ ]+/g, " ").replace(/\s+/g, " ").trim();
-function B(a) {
+function E(a) {
   if (typeof a != "string" || a.length > 300) return null;
   const t = a.trim().replace(/[.!]+$/, ""), n = /^(?:please\s+)?(?:add|start|set up|make|create|open)\s+(?:(?:a|an|the|some|our|my)\s+)?(?:new\s+)?/i.exec(t);
   if (!n) return null;
@@ -453,7 +485,7 @@ function B(a) {
   }
   return null;
 }
-function E(a) {
+function j(a) {
   const t = _(a);
   if (!t || t.length > 200) return null;
   if (/^(?:what|which)\s+(?:can|could)\s+(?:i|we|you)\s+(?:add|make|build|put)\b|^(?:show|list|browse)\s+(?:me\s+)?(?:the\s+)?(?:library|components|boards|everything)|^what\s+(?:is|s)\s+in\s+the\s+library/.test(t))
@@ -469,18 +501,18 @@ function E(a) {
   return i.length ? { all: !1, entries: i.slice(0, 3).map((o) => o.id) } : null;
 }
 const S = 8;
-function j(a, t) {
-  return R(a) ? t.many ? (t.boards ?? (t.hasBoard ? 1 : 0)) >= S ? { ok: !1, reason: `This slate holds ${S} boards, the most for now. Add it on a new slate?` } : { ok: !0 } : t.hasBoard ? { ok: !1, reason: "This slate already has a board, so this opens on a new slate." } : { ok: !0 } : { ok: !1, reason: "That is not in the library." };
+function z(a, t) {
+  return x(a) ? t.many ? (t.boards ?? (t.hasBoard ? 1 : 0)) >= S ? { ok: !1, reason: `This slate holds ${S} boards, the most for now. Add it on a new slate?` } : { ok: !0 } : t.hasBoard ? { ok: !1, reason: "This slate already has a board, so this opens on a new slate." } : { ok: !0 } : { ok: !1, reason: "That is not in the library." };
 }
 export {
   g as catalog,
-  B as catalogAddRequest,
-  R as catalogEntry,
-  j as catalogFits,
-  O as catalogGroups,
-  U as catalogList,
-  E as catalogMatch,
-  $ as catalogPreset,
-  q as catalogVersion,
+  E as catalogAddRequest,
+  x as catalogEntry,
+  z as catalogFits,
+  U as catalogGroups,
+  $ as catalogList,
+  j as catalogMatch,
+  B as catalogPreset,
+  O as catalogVersion,
   S as maxBoardsPerSlate
 };

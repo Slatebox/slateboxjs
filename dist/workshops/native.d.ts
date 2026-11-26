@@ -97,6 +97,15 @@ export interface PartPlace {
     lineWidth?: number;
     fontSize?: number;
     weight?: 'bold';
+    /** A picture the note shows (an address a card keeps, workshopKeepsPicture), with the picture's own size. */
+    image?: string;
+    imageOrigWidth?: number;
+    imageOrigHeight?: number;
+    /** The note's outline when it is not a plain box (a rounded tile, a speech bubble, a box with rules across it). */
+    vectorPath?: string;
+    borderStyle?: 'solid' | 'dashed' | 'dotted';
+    textXAlign?: 'left' | 'center' | 'right';
+    textYAlign?: 'top' | 'middle' | 'bottom';
 }
 /** What a board layer is told on each redraw. */
 export interface BoardLayerState {
@@ -240,6 +249,14 @@ export interface WorkshopBoardKit {
         x: number;
         y: number;
     }, layout: WorkshopBoardLayout): number | null;
+    /** A grid sheet: the cell (1-based) under this point of a page, where a note dropped there becomes a tile; null off the cells. */
+    noteCell?(board: Workshop, point: {
+        x: number;
+        y: number;
+    }, layout: WorkshopBoardLayout): {
+        row: number;
+        col: number;
+    } | null;
 }
 /**
  * A change the workshop's rules did not allow, with the reason as a sentence (empty when a card
@@ -465,6 +482,17 @@ export interface AttachedWorkshop {
      * out by the frame while the board is in focus or a draft. What a host fits to, so the title is never cut off.
      */
     readonly frame: {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+    };
+    /**
+     * The frame as the chrome is drawn at a zoom: zoomed out, the title row and legend grow (chromeScaleAt), so they reach
+     * further above the board than `frame` (taken at 100%) says. A host fitting the view at a zoom under 75% fits to this,
+     * so the title is not cut off under whatever sits over the canvas's top edge.
+     */
+    frameAt(zoom: number): {
         x: number;
         y: number;
         width: number;

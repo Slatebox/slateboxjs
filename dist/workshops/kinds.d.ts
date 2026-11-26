@@ -1,4 +1,4 @@
-import type { BusinessBoardKind, Workshop, WorkshopCard, WorkshopLane, WorkshopNoteStyle } from './model';
+import type { BusinessBoardKind, Workshop, WorkshopCard, WorkshopLane, WorkshopNoteOffer, WorkshopNoteStyle } from './model';
 import type { NodeJSON } from '../core/Serialization';
 import type { WorkshopEdit, WorkshopEditRefusalCode, WorkshopRef } from './edits';
 import type { Behaviour, BehaviourVerdict, RuleAudit, WorkshopMoveCheck } from './behaviour';
@@ -77,10 +77,16 @@ export interface BusinessBoardRules {
      * The add_card fields a note's words make (its name and the number written on it), or why it can't become a card.
      * `unnamed` is the name a card takes when the note has no words of its own (empty, or only a number): see newCard.
      */
-    fromNote(board: Workshop, text: string, unnamed: string): {
+    fromNote(board: Workshop, text: string, unnamed: string, note?: WorkshopNoteOffer): {
         label: string;
         duration?: number;
         amount?: number;
+        type?: string;
+        body?: string;
+        image?: {
+            src: string;
+            alt: string;
+        };
     } | string;
     /** A plan: the board with card `cardId` (just made from a note, at the plan's start) starting on calendar `day`, as near as the plan's rules let it. */
     landNote?(board: Workshop, cardId: string, day: number): Workshop;

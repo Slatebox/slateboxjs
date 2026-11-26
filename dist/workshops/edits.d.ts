@@ -1,10 +1,10 @@
-import { type StationImage, type Workshop, type WorkshopCard, type WorkshopLane } from './model';
+import { type GridTileType, type StationImage, type Workshop, type WorkshopCard, type WorkshopLane } from './model';
 import { type WorkshopLimits } from './kinds';
 import { type WorkshopFinder } from './names';
 import type { RuleAudit, RuleInput } from './behaviour';
 import { type AppearanceEdit } from './appearance';
 /** The kinds of board, each with its own rules. */
-export type WorkshopBoardKind = 'lanes' | 'release-plan' | 'customer-interviews' | 'experiment-budget' | 'map' | 'launch-plan' | 'pipeline' | 'budget' | 'hiring-plan' | 'nest';
+export type WorkshopBoardKind = 'lanes' | 'release-plan' | 'customer-interviews' | 'experiment-budget' | 'map' | 'launch-plan' | 'pipeline' | 'budget' | 'hiring-plan' | 'nest' | 'grid';
 /** Every kind of board, for a schema that names them (the app's Workshop record, an MCP tool). */
 export declare const WORKSHOP_BOARD_KINDS: readonly WorkshopBoardKind[];
 export declare function workshopBoardKind(board: Workshop): WorkshopBoardKind;
@@ -44,6 +44,12 @@ export type WorkshopEdit = {
     under?: WorkshopRef;
     role?: string;
     source?: string;
+    /** Grid sheet: the tile a card made from a note is (grid.ts), its words, its picture and its cell (1-based). */
+    type?: GridTileType;
+    body?: string;
+    image?: StationImage;
+    row?: number;
+    col?: number;
 } | {
     kind: 'remove_card';
     card: WorkshopRef;
@@ -196,6 +202,11 @@ export type WorkshopEdit = {
     by?: string;
     drop?: 'new-pile' | 'unsorted';
     mode?: 'warn' | 'ask' | 'carry';
+    types?: string[];
+    per?: 'page' | 'sheet';
+    atLeast?: number;
+    rows?: number;
+    cols?: number;
 } | {
     kind: 'remove_rule';
     rule: string;
@@ -268,6 +279,54 @@ export type WorkshopEdit = {
     card: WorkshopRef;
     owner: string;
     carry?: WorkshopRef[];
+} | {
+    kind: 'set_page';
+    size?: 'letter' | 'a4';
+    orientation?: 'portrait' | 'landscape';
+    margin?: number;
+} | {
+    kind: 'set_grid';
+    rows?: number;
+    cols?: number;
+    gutter?: number;
+} | {
+    kind: 'add_tile';
+    type: GridTileType;
+    label?: string;
+    body?: string;
+    words?: string[];
+    image?: StationImage;
+    alt?: string;
+    link?: string;
+    stamp?: boolean;
+    page?: WorkshopRef;
+    row?: number;
+    col?: number;
+    rows?: number;
+    cols?: number;
+} | {
+    kind: 'place_tile';
+    card: WorkshopRef;
+    page: WorkshopRef;
+    row: number;
+    col: number;
+    rows?: number;
+    cols?: number;
+    override?: boolean;
+} | {
+    kind: 'set_tile';
+    card: WorkshopRef;
+    body?: string;
+    words?: string[];
+    image?: StationImage | null;
+    alt?: string;
+    link?: string | null;
+    type?: GridTileType;
+} | {
+    kind: 'add_page';
+    copyOf?: WorkshopRef;
+    shuffle?: boolean;
+    label?: string;
 };
 export type WorkshopEditKindName = WorkshopEdit['kind'];
 /** What one edit did: the sentence a person is told, and the ids it concerned or made. */
@@ -389,6 +448,7 @@ export type WorkshopEditField = {
     about: string;
 } | {
     type: 'image';
+    optional?: boolean;
     about: string;
 } | {
     type: 'choice';
@@ -401,6 +461,23 @@ export type WorkshopEditField = {
     about: string;
 } | {
     type: 'rule';
+    about: string;
+}
+/** A number that need not be whole (a grid sheet's margin and gutter, in inches). */
+ | {
+    type: 'number';
+    min: number;
+    max: number;
+    optional?: boolean;
+    about: string;
+}
+/** A list of words (a grid sheet's word bank). */
+ | {
+    type: 'words';
+    min: number;
+    max: number;
+    each: number;
+    optional?: boolean;
     about: string;
 };
 export interface WorkshopEditKind {

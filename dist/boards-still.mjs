@@ -1,4 +1,4 @@
-const I = ["launch-plan", "hiring-plan", "pipeline", "budget", "nest"], k = {
+const I = ["launch-plan", "hiring-plan", "pipeline", "budget", "nest", "grid"], k = {
   fontFamily: "Manrope",
   fontSize: 18,
   laneFontSize: 20,
@@ -15,7 +15,7 @@ function D(t, r) {
   const o = Math.floor(t / (z * 0.7));
   return o >= n ? void 0 : Math.max(2, o);
 }
-function W(t, r) {
+function E(t, r) {
   const n = t?.workshopOrigin;
   if (w(n?.x) && w(n?.y)) return { x: n.x, y: n.y };
   const o = (r ?? []).filter((i) => w(i?.options?.xPos) && w(i?.options?.yPos));
@@ -23,7 +23,7 @@ function W(t, r) {
   const a = Math.max(...o.map(({ options: i }) => i.xPos + (Number(i.width) || 0))), e = Math.min(...o.map(({ options: i }) => i.yPos));
   return { x: Math.round(a + 80), y: Math.round(e) };
 }
-function E(t) {
+function W(t) {
   if (typeof t == "number") return t;
   const r = /^([\d.]+)\s*(pt|px)?$/.exec(String(t ?? "").trim());
   if (r)
@@ -47,7 +47,7 @@ function T(t, r, n = k) {
     backgroundColor: o.backgroundColor,
     textColor: o.fontColor ?? o.foregroundColor,
     fontFamily: o.fontFamily,
-    fontSize: E(o.fontSize),
+    fontSize: W(o.fontSize),
     borderColor: o.borderColor,
     borderWidth: o.borderWidth
   });
@@ -60,7 +60,7 @@ function F(t, r, n = k) {
 const L = /^[a-z0-9]{1,12}$/, O = (t) => t?.model?.kind === "workshop" && !!t.model.workshop, B = (t) => Number(/^b(\d+)$/.exec(t)?.[1] ?? 1 / 0);
 function N(t) {
   const r = [];
-  O(t?.creative) && r.push({ id: "main", workshop: t.creative.model.workshop, origin: W(t.options, t.nodes) });
+  O(t?.creative) && r.push({ id: "main", workshop: t.creative.model.workshop, origin: E(t.options, t.nodes) });
   const n = t?.boards && typeof t.boards == "object" && !Array.isArray(t.boards) ? t.boards : {}, o = Object.entries(n).filter(([a, e]) => L.test(a) && a !== "main" && O(e)).sort(([a], [e]) => B(a) - B(e) || (a < e ? -1 : a > e ? 1 : 0));
   for (const [a, e] of o)
     r.push({ id: a, workshop: e.model.workshop, origin: w(e.origin?.x) && w(e.origin?.y) ? { x: e.origin.x, y: e.origin.y } : null });
@@ -70,7 +70,7 @@ const $ = (t) => N(t).length > 0;
 function q(t, r) {
   return { options: { name: r ?? t?.title ?? "Board", workshopOrigin: { x: 40, y: 40 } }, nodes: [], creative: { model: { kind: "workshop", workshop: t } } };
 }
-function _(t) {
+function j(t) {
   const r = (t ?? []).map((n) => n?.options ?? {}).filter((n) => w(n.xPos) && w(n.yPos)).map((n) => ({ x: n.xPos, y: n.yPos, width: Number(n.width) || 0, height: Number(n.height) || 0 }));
   return R(r);
 }
@@ -79,7 +79,7 @@ function R(t) {
   const r = Math.min(...t.map((e) => e.x)), n = Math.min(...t.map((e) => e.y)), o = Math.max(...t.map((e) => e.x + e.width)), a = Math.max(...t.map((e) => e.y + e.height));
   return { x: r, y: n, width: o - r, height: a - n };
 }
-function K(t) {
+function _(t) {
   const r = t.querySelector("svg"), n = r?.getScreenCTM?.()?.inverse?.();
   if (!n || typeof DOMPoint > "u") return null;
   let o = 1 / 0, a = 1 / 0, e = -1 / 0, i = -1 / 0;
@@ -99,7 +99,7 @@ function K(t) {
   }
   return Number.isFinite(o) && e > o && i > a ? { x: o, y: a, width: e - o, height: i - a } : null;
 }
-function j(t, r, n, o = 24) {
+function K(t, r, n, o = 24) {
   const a = t.width + o * 2, e = t.height + o * 2, i = Math.min(r / a, n / e), y = r / i, c = n / i;
   return { x: t.x - o + (a - y) / 2, y: t.y - o + (e - c) / 2, width: y, height: c };
 }
@@ -116,20 +116,21 @@ function H(t) {
     const d = I.includes(s?.kind), h = await n(), [u] = await Promise.all([
       d ? t.boards() : null,
       s?.kind === "nest" ? t.nest() : null,
+      s?.kind === "grid" ? t.grid ? t.grid() : Promise.reject(new Error("Pass a grid loader (slateboxjs/boards/grid) to draw a grid sheet.")) : null,
       // A kit board's legend is its rulebook's sentences (boardChrome kitLegend), so a kit board needs it too.
       (s?.behaviour || d) && !h.rulebookLoaded() ? t.behaviour() : null
     ]);
     return u ? { kit: u.kitFor(s.kind), layoutFor: (l) => u.boardLayoutFor(l) } : { kit: void 0, layoutFor: (l) => ({ lanesPerRow: D(l, s) }) };
   }
   async function i(s, d, { how: h = "still", origin: u, scope: l, width: f = 1440, style: m } = {}) {
-    const g = await n();
-    a(g);
+    const b = await n();
+    a(b);
     const { kit: p, layoutFor: x } = await e(d);
-    return g.attachWorkshop(s, d, {
+    return b.attachWorkshop(s, d, {
       readOnly: !0,
       origin: u,
       layout: x(f),
-      style: m ?? F(s.freeNodes?.() ?? [], g, o),
+      style: m ?? F(s.freeNodes?.() ?? [], b, o),
       // A draft wears its dashed frame; a still's chrome scales with the board, as an export's does.
       ...h === "draft" ? { draft: !0 } : { still: !0 },
       ...(l || h === "draft") && { scope: l ?? "pv" },
@@ -140,9 +141,9 @@ function H(t) {
     const u = Array.isArray(d?.nodes) ? d.nodes : [], l = F(u, await n(), o), f = [];
     for (const m of N(d)) {
       if (!m.origin) continue;
-      const g = m.id === "main";
+      const b = m.id === "main";
       try {
-        const p = await i(s, m.workshop, { how: "still", origin: m.origin, scope: g ? void 0 : m.id, width: h, style: l });
+        const p = await i(s, m.workshop, { how: "still", origin: m.origin, scope: b ? void 0 : m.id, width: h, style: l });
         await p.whenDrawn?.(), f.push(p);
       } catch (p) {
         console.warn("A board on this slate could not be drawn on its picture.", p);
@@ -162,12 +163,12 @@ function H(t) {
       viewPort: { showCoordinates: !1, allowDrag: !1 },
       panZoom: { enabled: !1 },
       events: { isReadOnly: () => !0 }
-    }), { creative: m, boards: g, ...p } = d ?? {};
+    }), { creative: m, boards: b, ...p } = d ?? {};
     await f.loadJSON({ ...p, nodes: Array.isArray(d?.nodes) ? d.nodes : [] }, !1, !0);
-    const x = await y(f, d, { width: u }), A = R([_(d?.nodes), ...x.map((b) => b.frame ?? b.bounds)].filter(Boolean)), C = h ?? K(s) ?? A ?? { x: 0, y: 0, width: 800, height: 450 }, S = () => {
-      const b = s.clientWidth, P = s.clientHeight;
-      if (!b || !P) return;
-      const v = j(C, b, P);
+    const x = await y(f, d, { width: u }), A = R([j(d?.nodes), ...x.map((g) => g.frame ?? g.bounds)].filter(Boolean)), C = h ?? _(s) ?? A ?? { x: 0, y: 0, width: 800, height: 450 }, S = () => {
+      const g = s.clientWidth, P = s.clientHeight;
+      if (!g || !P) return;
+      const v = K(C, g, P);
       f.canvas?.viewbox?.(v.x, v.y, v.width, v.height);
     };
     S();
@@ -179,9 +180,9 @@ function H(t) {
       fit: S,
       destroy() {
         M?.disconnect();
-        for (const b of x)
+        for (const g of x)
           try {
-            b.destroy();
+            g.destroy();
           } catch {
           }
         try {
@@ -198,14 +199,14 @@ export {
   I as KIT_KINDS,
   q as componentSlate,
   H as createStillRenderer,
-  K as drawnBox,
-  j as fitViewbox,
+  _ as drawnBox,
+  K as fitViewbox,
   $ as holdsBoards,
   D as lanesPerRow,
-  _ as notesBox,
+  j as notesBox,
   N as slateBoards,
   T as workshopCardLook,
   k as workshopNoteStyle,
-  W as workshopOrigin,
+  E as workshopOrigin,
   F as workshopStyle
 };

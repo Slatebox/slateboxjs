@@ -1,6 +1,6 @@
 import { workshopRules as N, validateWorkshop as z, workshopReferences as F, workshopCandidate as O, workshopRefusal as D, workshopHardLimit as B, workshopRulesLoaded as H, workshopLaneHeld as M, said as P, registerRulebook as U, roundedBox as W } from "./workshop-model.mjs";
 import { D as C } from "./NoteDefaults-BjVBa8YH.mjs";
-const de = ["capacity", "path", "gate", "bin"], K = 12, T = { pipeline: [{ id: "amount", noun: "an amount" }] }, A = (n) => Object.values(T).flat().find((e) => e.id === n)?.noun ?? n, Z = /* @__PURE__ */ new Set(["label", "text", "title", "name", "words"]), g = (n) => H(n.kind) ? N(n.kind).rulebook : void 0;
+const de = ["capacity", "path", "gate", "bin"], K = 12, L = { pipeline: [{ id: "amount", noun: "an amount" }] }, A = (n) => Object.values(L).flat().find((e) => e.id === n)?.noun ?? n, Z = /* @__PURE__ */ new Set(["label", "text", "title", "name", "words"]), g = (n) => H(n.kind) ? N(n.kind).rulebook : void 0;
 function I(n) {
   return n.kind === "pipeline" ? "pipeline" : g(n) ? "time" : n.kind || n.experience || n.lanes.some((e) => e.station) ? null : "lanes";
 }
@@ -13,7 +13,7 @@ function E(n, e) {
   return n;
 }
 const J = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
-function L(n, e) {
+function T(n, e) {
   const s = E(n, "Unsupported behaviour version.");
   if (s.version !== 1) throw new Error("Unsupported behaviour version.");
   const r = I(e);
@@ -66,7 +66,7 @@ function L(n, e) {
           throw new Error("Say which field the column asks for.");
         const d = t.needs;
         if (d.some((v) => Z.has(v))) throw new Error("A rule reads a card’s fields, never its words.");
-        const m = T[r] ?? [], k = d.find((v) => !m.some((j) => j.id === v));
+        const m = L[r] ?? [], k = d.find((v) => !m.some((j) => j.id === v));
         if (k) throw new Error("Cards on this board carry no " + A(k).replace(/^an? /, "") + ", so a column can’t ask for one.");
         return { ...p, kind: "gate", into: a(t.into), needs: [...d] };
       }
@@ -254,7 +254,7 @@ function te(n, e, s, r) {
   const a = y(n), l = (u, h) => {
     let d;
     try {
-      d = L(u, n);
+      d = T(u, n);
     } catch (m) {
       return r.refuse(m instanceof Error ? m.message : String(m));
     }
@@ -274,7 +274,7 @@ function te(n, e, s, r) {
       if (u.kind !== "path") return r.refuse("Only a path rule says where cards go.");
       u.to = e.to.map(o);
     }
-    for (const h of ["floor", "onConflict", "unit", "under", "by", "drop", "mode"]) if (e[h] !== void 0) {
+    for (const h of ["floor", "onConflict", "unit", "under", "by", "drop", "mode", "types", "per", "atLeast", "rows", "cols"]) if (e[h] !== void 0) {
       if (!(h in u)) return r.refuse("That rule does not take " + h + ".");
       u[h] = e[h];
     }
@@ -353,7 +353,7 @@ U({
   diff: X,
   note: se,
   setLimit: ae,
-  validate: L,
+  validate: T,
   check: S,
   laneLimit: _,
   lines: R,
@@ -377,5 +377,5 @@ export {
   de as ruleKindIds,
   x as ruleSentence,
   ae as setRuledLimit,
-  L as validateBehaviour
+  T as validateBehaviour
 };

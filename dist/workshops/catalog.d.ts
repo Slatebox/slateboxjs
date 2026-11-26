@@ -2,7 +2,7 @@ import type { Workshop } from './model';
 import type { WorkshopBoardKind, WorkshopEditKindName } from './edits';
 import type { RuleKindId } from './behaviour';
 export declare const catalogVersion = "1.0";
-export type CatalogGroup = 'plan' | 'decide' | 'meetings' | 'track' | 'map';
+export type CatalogGroup = 'plan' | 'decide' | 'meetings' | 'track' | 'map' | 'make';
 export declare const catalogGroups: {
     id: CatalogGroup | 'all';
     label: string;
@@ -59,7 +59,7 @@ export declare function catalogEntry(id: string): CatalogEntry | undefined;
 /** The entries of a group (or all), in catalogue order. */
 export declare function catalogList(group?: CatalogGroup | 'all'): CatalogEntry[];
 /** The samples a business entry adds: from slateboxjs/workshops/samples (catalogSamples), so this chunk keeps no rules. */
-export type CatalogSample = 'launch-plan' | 'go-live' | 'hiring-plan' | 'pipeline' | 'budget' | 'sort-evidence' | 'discovery-tree' | 'break-down' | 'incident-review' | 'impact-effort' | 'reorg' | 'goals';
+export type CatalogSample = 'launch-plan' | 'go-live' | 'hiring-plan' | 'pipeline' | 'budget' | 'sort-evidence' | 'discovery-tree' | 'break-down' | 'incident-review' | 'impact-effort' | 'reorg' | 'goals' | 'worksheet' | 'bingo' | 'flashcards';
 export type CatalogSamples = Partial<Record<CatalogSample, () => Workshop>>;
 /** The board an entry adds, as data, named after the topic when one is given. A business board needs its sample. */
 export declare function catalogPreset(id: string, topic?: string, samples?: CatalogSamples): Workshop;

@@ -1,12 +1,14 @@
 import type { Workshop } from './model';
 import type { WorkshopEdit, WorkshopRef } from './edits';
 import type { BusinessEditStep, BusinessEditTools } from './kinds';
-export type RuleKindId = 'capacity' | 'path' | 'gate' | 'bin' | TimeRuleKindId | NestRuleKindId;
+export type RuleKindId = 'capacity' | 'path' | 'gate' | 'bin' | TimeRuleKindId | NestRuleKindId | GridRuleKindId;
 export declare const ruleKindIds: readonly RuleKindId[];
 /** A plan's rule kinds (timeRules.ts, with the plans' rules): a launch plan's and a hiring plan's. */
 export type TimeRuleKindId = 'deadline' | 'overlap' | 'snap' | 'workdays' | 'blackout' | 'cascade' | 'locked';
 /** A nest board's rule kinds (nest.ts): what sits under what, how many, how deep, how piles rank, where a far drop goes. */
 export type NestRuleKindId = 'nests' | 'children' | 'depth' | 'rank' | 'emptyDrop' | 'quadrant' | 'parent' | 'contains' | 'sameOwnerAs';
+/** A grid sheet's rule kinds (grid.ts): the tiles it uses, how many of a kind, what every page needs, how big a kind spans. */
+export type GridRuleKindId = 'tileTypes' | 'tileMax' | 'tileNeeds' | 'tileSpan';
 /** Who set a rule, when, and from where (canvas: a rule control drawn on the board). Shown when a refusal is explained. */
 export interface RuleAudit {
     by: string;
@@ -85,6 +87,24 @@ export type RuleBody = {
     kind: 'sameOwnerAs';
     mode: 'warn' | 'ask' | 'carry';
     role?: string;
+} | {
+    kind: 'tileTypes';
+    types: string[];
+} | {
+    kind: 'tileMax';
+    type: string;
+    max: number;
+    per: 'page' | 'sheet';
+} | {
+    kind: 'tileNeeds';
+    type: string;
+    atLeast: number;
+    per: 'page';
+} | {
+    kind: 'tileSpan';
+    type: string;
+    rows: number;
+    cols: number;
 };
 export type BehaviourRule = RuleBody & {
     id: string;
