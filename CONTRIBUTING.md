@@ -12,7 +12,7 @@ npm install
 npm run dev        # Vite dev server at http://localhost:5173
 ```
 
-Requires Node >= 18.
+Requires Node >= 22.
 
 ## Development workflow
 
@@ -20,7 +20,9 @@ Requires Node >= 18.
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
 3. Make your changes, with tests
 4. Run the quality gates (see below) — all must pass
-5. Commit your changes (`git commit -m 'Add some amazing feature'`)
+5. Commit your changes with a [Conventional Commits](https://www.conventionalcommits.org/) message
+   (`git commit -m 'fix(connector): keep the label on a rotated line'`), the same rules as the
+   [Slatebox app](https://github.com/Slatebox/slatebox/blob/main/CONTRIBUTING.md)
 6. Push to the branch (`git push origin feature/amazing-feature`)
 7. Open a Pull Request
 
@@ -60,3 +62,8 @@ See `CLAUDE.md` for the full architecture notes.
 
 Open a GitHub issue with a minimal reproduction — a small HTML snippet using the built
 bundle (or a failing test) is ideal.
+
+## Code of conduct and security
+
+This project follows the [code of conduct](CODE_OF_CONDUCT.md). Report security problems
+privately: see [SECURITY.md](SECURITY.md). Releases: [docs/releasing.md](docs/releasing.md).

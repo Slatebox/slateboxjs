@@ -16,8 +16,8 @@
 - The theme system: `Theme` (and `window.Theme`), `applyTheme`, `slate.applyTheme()`, `buildNodeStyleFromTheme`, the
   `ThemeStyle`/`ThemeDefinition` types, the `themeId`/`basedOnThemeId`/`syncWithTheme`/`eligibleForThemeCompilation`
   slate options and the `onSlateThemeChanged` package. A slate's style (above) replaces it; the app styles a slate by
-  writing its notes, so no engine theme runs at draw time. 3.1.3 is unpublished, so no npm release had the old API
-  removed from under it.
+  writing its notes, so no engine theme runs at draw time. **Breaking:** 3.1.3 (on npm) still has the theme API, so
+  the release that carries this removal is a major version.
 
 - Moving a card anyway: a drop the rules refuse on a lane board or a map is offered as "Move anyway" / "Cancel" with
   the rule's sentence (`confirmOverride`, `overrideBy` on `attachWorkshop`; `WorkshopChangeEvent.override`). Confirmed,
@@ -280,6 +280,25 @@
   synced and undone like every other line style.
 - **Bold note text.** A note's `fontWeight: 'bold'` is set with `onNodeTextChanged`, drawn on the
   canvas and in the inline editor, and is saved, synced and undone like the other text styles.
+
+### Changed
+- **Cards look like notes.** A card is drawn with an ordinary note's fill (`#f0f0f0`, now
+  `DEFAULT_NOTE_STYLE.backgroundColor`) or the host's `style.backgroundColor`, instead of a card
+  fill of its own; a card made from a note keeps that note's look (`card.look`).
+
+### Fixed
+
+- **A note a lane refuses takes its outline back with it.** A selected note dropped on a lane that
+  refuses it glides back to where its drag began; its selection outline, handles and plugs used to
+  stay where it was let go, round empty lane (an empty dashed box). They are drawn again where the
+  note comes to rest.
+
+## [3.1.3] — 2026-11-20
+
+Published to npm from bcb99a86.
+
+### Added
+
 - **Workshops can run as native notes on a live slate.** `attachWorkshop(slate, workshop, options)`
   (from `slateboxjs/workshops/model`, plain JavaScript) draws a workshop model onto a Slate the host
   already has: lanes, captions and cards are real notes with the canvas's own pan, zoom, minimap,
@@ -315,9 +334,6 @@
   whether it takes the card in a `data-workshop-drop` attribute (`open`, `over`, `refused`).
 
 ### Changed
-- **Cards look like notes.** A card is drawn with an ordinary note's fill (`#f0f0f0`, now
-  `DEFAULT_NOTE_STYLE.backgroundColor`) or the host's `style.backgroundColor`, instead of a card
-  fill of its own; a card made from a note keeps that note's look (`card.look`).
 - **Keys pressed on a control outside the canvas stay with that control.** Delete, Backspace, the
   arrow keys and Escape act on the canvas only when focus is inside it or nowhere on the page; a
   Ctrl/Cmd shortcut still reaches it from a toolbar button beside the canvas, and nothing does from
@@ -371,10 +387,6 @@
 
 ### Fixed
 
-- **A note a lane refuses takes its outline back with it.** A selected note dropped on a lane that
-  refuses it glides back to where its drag began; its selection outline, handles and plugs used to
-  stay where it was let go, round empty lane (an empty dashed box). They are drawn again where the
-  note comes to rest.
 - **Work done after an undo is no longer blanked or lost when the slate is reloaded or someone
   joins.** A client rebuilt the slate from its room in the order Yjs delivered the packages (one
   writer at a time, not the order they were written) and all in one go, before the notes they
@@ -505,7 +517,7 @@
 ### Fixed
 - Source and target arrowheads remain independently configurable when connector width or color changes rebuild their markers.
 
-## [3.0.0] — Unreleased
+## [3.0.0] — 2026-07-14
 
 ### Added
 - Modern `SlateboxJS`, `Slate`, and `Node` APIs backed by SVG.js.

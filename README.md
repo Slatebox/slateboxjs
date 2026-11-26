@@ -1,24 +1,35 @@
 # SlateboxJS
 
+[![npm](https://img.shields.io/npm/v/slateboxjs)](https://www.npmjs.com/package/slateboxjs)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 SlateboxJS 3 is the modern, MIT-licensed Slatebox diagramming engine. It is a ground-up TypeScript and SVG.js rewrite with draggable nodes, an infinite pan/zoom canvas, connectors, groups, collaboration, presentation, serialization, export, and a compatibility facade for applications built against SlateboxJS 2.x.
 
 SlateboxJS has lived at this repo since 2012; the original Raphael-era engine is preserved on the `legacy` branch and the `legacy-v1` tag.
 
-## ✨ Features
+## Features
 
 - **Modern Architecture**: Built with TypeScript, svg.js, and Vite
 - **Self-Contained**: All plugins bundled (svg.connectable.js vendored in-tree — no external dependencies beyond npm) 
 - **Draggable Nodes**: Full drag-and-drop support using svg.draggable.js
 - **Pan & Zoom Canvas**: Mouse wheel zoom, drag to pan, with zoom controls
 - **Resize & Rotate Nodes**: Interactive resize handles and rotation controls
-- **Multiple Shapes**: Rectangle, circle, and ellipse node shapes
+- **Shapes**: 15 built-in shapes (rectangles, rounded rectangles, ellipses, circles, stars,
+  triangles, polygons, trapezium, parallelogram, arrows, diamond and sticky note) plus your own
+  shapes from SVG paths (`slateboxjs/shapes`)
+- **Boards and smart components**: native workshop boards (retro, kanban, launch plan,
+  pipeline, budget, nest, snap grid and more) whose drag rules are data (`slateboxjs/workshops`)
+- **Collaboration and presentation**: live editing over Yjs, presence, comments and
+  presentation decks
+- **Slate operations**: a validated plan format agents and apps use to edit a slate
+  (`slateboxjs/operations`)
 - **Responsive Design**: SVG-based with responsive viewbox support
 - **External Integration**: Complete invoker contract for external tool integration
 - **Node Management**: Comprehensive node creation, modification, and removal
 - **Customizable**: Extensive styling and behavior options
 - **Performance Optimized**: Uses modern web standards and efficient rendering
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Installation
 
@@ -108,7 +119,7 @@ const persisted = slate.exportJSON()
 
 The facade maps the 2.x runtime namespace, constructors, event packages, `xPos`/`yPos` serialization, node relationships, collaboration calls, and commonly used utilities onto version 3. New integrations should prefer the typed `SlateboxJS`, `Slate`, and `Node` APIs. See [`docs/drop-in-contract.md`](docs/drop-in-contract.md) for the audited compatibility surface and [`docs/meteor-swap.md`](docs/meteor-swap.md) for the host migration procedure.
 
-## 📖 API Reference
+## API Reference
 
 ### Slate Class
 
@@ -285,7 +296,7 @@ slate.invoker.onNodeRotated({ data: { id: 'node1', rotate: { rotationAngle: 45 }
 // ... and many more
 ```
 
-## 🎨 Examples
+## Examples
 
 ### Creating Nodes with Pan/Zoom
 
@@ -370,7 +381,7 @@ document.addEventListener('keydown', (e) => {
 })
 ```
 
-## 🧪 Testing
+## Testing
 
 ```bash
 # Run all unit tests
@@ -396,7 +407,7 @@ npm run verify:package
 npm run test:all
 ```
 
-## 🛠️ Development
+## Development
 
 ### Building from Source
 
@@ -483,7 +494,7 @@ slateboxjs/
 └── README.md
 ```
 
-## 🔧 Configuration
+## Configuration
 
 ### Slate Options
 
@@ -523,7 +534,7 @@ interface SlateOptions {
 }
 ```
 
-## 🎯 Interactive Features
+## Interactive Features
 
 ### Mouse/Touch Controls
 
@@ -546,7 +557,7 @@ interface SlateOptions {
 - **Zoom Controls**: Top-right corner zoom in/out buttons
 - **Grid Snapping**: Optional snap-to-grid during resize/move
 
-## 🚀 Performance
+## Performance
 
 - **Optimized Rendering**: Uses SVG hardware acceleration
 - **Efficient Updates**: Only re-renders changed elements
@@ -554,19 +565,26 @@ interface SlateOptions {
 - **Large Diagrams**: Pan/zoom enables handling of large content
 - **Smooth Animations**: CSS transitions and requestAnimationFrame
 
-## 🤝 Contributing
+## Contributing
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+See [CONTRIBUTING.md](CONTRIBUTING.md). Commit messages follow
+[Conventional Commits](https://www.conventionalcommits.org/), the same rules as the
+[Slatebox app](https://github.com/Slatebox/slatebox/blob/main/CONTRIBUTING.md). Report security
+problems privately: see [SECURITY.md](SECURITY.md).
 
-## 📄 License
+## Versions and releases
+
+SlateboxJS is versioned on its own, separately from the Slatebox app, with
+[Semantic Versioning](https://semver.org/). Releases are published to npm as
+[`slateboxjs`](https://www.npmjs.com/package/slateboxjs), each one tagged `vX.Y.Z` in this
+repository and described in [CHANGELOG.md](CHANGELOG.md). The Slatebox app and the self-host
+image build on a pinned engine commit. How a release is cut: [docs/releasing.md](docs/releasing.md).
+
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - Built on top of [svg.js](https://svgjs.dev/) and its ecosystem
 - Pan/zoom powered by [@svgdotjs/svg.panzoom.js](https://github.com/svgdotjs/svg.panzoom.js)
@@ -574,7 +592,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Inspired by the original SlateboxJS library
 - Uses [Vite](https://vitejs.dev/) for modern build tooling
 
-## 🔗 Collaboration Setup (Collab.ts)
+## Collaboration Setup (Collab.ts)
 
 SlateboxJS 3 supports real-time collaboration via [Yjs](https://yjs.dev/) and [y-websocket](https://github.com/yjs/y-websocket). The `Collab` module requires these peer dependencies:
 
@@ -626,7 +644,7 @@ COLLAB_DEV_MODE=1 PORT=1234 node ../collab.slatebox.com/bin/server.js
 npx playwright test tests/e2e/collab.spec.ts --project=chromium
 ```
 
-## 📞 Support
+## Support
 
 For questions, issues, or contributions, please visit the [SlateboxJS repository](https://github.com/Slatebox/slateboxjs).
 
@@ -719,7 +737,7 @@ for an unscheduled backlog.
 
 `moveWorkshopCard(plan, featureId, targetLaneId)` computes one atomic
 decision. Moving a feature earlier brings any late prerequisites. Deferring
-a prerequisite moves affected dependants to the later release. A point-budget
+a prerequisite moves affected dependents to the later release. A point-budget
 or allowed-window violation makes the whole move unavailable. Validation
 rejects cycles, unknown IDs, backward dependencies and overspent budgets.
 
