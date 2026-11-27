@@ -1543,3 +1543,60 @@ describe("Node text inset inside a custom shape's text area", () => {
     expect(b.h).toBeCloseTo(a.h);
   });
 });
+
+// ---------------------------------------------------------------------------
+// View-only slates never move notes
+// ---------------------------------------------------------------------------
+
+describe("View-only drag", () => {
+  const beforeDrag = (node: Node) => {
+    const call = (node.svgGroup.on as any).mock.calls.find((c: any[]) => c[0] === "beforedrag.node");
+    return call?.[1];
+  };
+
+  it("cancels a drag of any note before it starts when the slate is read-only", async () => {
+    const node = await createNode({}, { isReadOnly: vi.fn().mockReturnValue(true) });
+    const handler = beforeDrag(node);
+    expect(handler).toBeTypeOf("function");
+    const event = { preventDefault: vi.fn() };
+    handler(event);
+    expect(event.preventDefault).toHaveBeenCalled();
+  });
+
+  it("lets an ungoverned note's drag start when the slate is editable", async () => {
+    const node = await createNode({}, { isReadOnly: vi.fn().mockReturnValue(false) });
+    const event = { preventDefault: vi.fn() };
+    beforeDrag(node)(event);
+    expect(event.preventDefault).not.toHaveBeenCalled();
+  });
+
+  it("still holds a governed note that may not move on an editable slate", async () => {
+    // Governed once drawn (the mock's DOM is too thin for the governed note's drawing).
+    const governanceOf = vi.fn().mockReturnValue(null);
+    const node = await createNode({}, { isReadOnly: vi.fn().mockReturnValue(false), governanceOf });
+    governanceOf.mockReturnValue({ capabilities: { canMove: false } });
+    const event = { preventDefault: vi.fn() };
+    beforeDrag(node)(event);
+    expect(event.preventDefault).toHaveBeenCalled();
+  });
+
+  it("checks read-only per gesture, so a change of access applies at once", async () => {
+    const readOnly = vi.fn().mockReturnValue(false);
+    const node = await createNode({}, { isReadOnly: readOnly });
+    const handler = beforeDrag(node);
+    const first = { preventDefault: vi.fn() };
+    handler(first);
+    readOnly.mockReturnValue(true);
+    const second = { preventDefault: vi.fn() };
+    handler(second);
+    expect(first.preventDefault).not.toHaveBeenCalled();
+    expect(second.preventDefault).toHaveBeenCalled();
+  });
+
+  it("keeps the note's options untouched (no lock is saved or broadcast)", async () => {
+    const node = await createNode({}, { isReadOnly: vi.fn().mockReturnValue(true) });
+    beforeDrag(node)({ preventDefault: vi.fn() });
+    expect(node.options.isLocked).toBeFalsy();
+    expect(node.options.allowDrag).not.toBe(false);
+  });
+});

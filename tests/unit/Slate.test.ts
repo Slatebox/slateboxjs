@@ -844,6 +844,31 @@ describe("Slate", () => {
       expect(n1.enableConnectionHandles).toHaveBeenCalled();
     });
 
+    it("shows no resize/rotate, plugs or cog on a view-only slate, but keeps the selection", () => {
+      const slate = new Slate(container, { events: { isReadOnly: () => true } });
+      const n1 = slate.addNode({ id: "n1" });
+      (n1 as any).showNodeCog = vi.fn();
+
+      slate.selectNodes([n1]);
+
+      expect(slate.getSelectedNode()).toBe(n1);
+      expect(n1.resizeRotate.enable).not.toHaveBeenCalled();
+      expect(n1.enableConnectionHandles).not.toHaveBeenCalled();
+      expect((n1 as any).showNodeCog).not.toHaveBeenCalled();
+    });
+
+    it("builds no group resize/rotate for a view-only multi-selection", () => {
+      const slate = new Slate(container, { events: { isReadOnly: () => true } });
+      const n1 = slate.addNode({ id: "n1", x: 0, y: 0 });
+      const n2 = slate.addNode({ id: "n2", x: 200, y: 100 });
+      slate.canvas.group.mockClear();
+
+      slate.selectNodes([n1, n2]);
+
+      expect(slate.getSelectedNodes()).toHaveLength(2);
+      expect(slate.canvas.group).not.toHaveBeenCalled();
+    });
+
     it("creates group resize/rotate for multi-selection", () => {
       const slate = new Slate(container);
       const n1 = slate.addNode({ id: "n1", x: 0, y: 0 });

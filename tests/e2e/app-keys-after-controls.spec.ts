@@ -131,7 +131,7 @@ test('a note restyled from the style bar, from a size field, with the zoom slide
     await page.keyboard.press('Delete')
     await expect(noteNamed(page, 'Beta')).toHaveCount(0)
     expect(await texts(page)).toEqual(['Delta', 'Gamma'])
-    await page.locator('#slateCanvas .slatebox-zoom-slider').getByRole('button', { name: 'fitToContent' }).click()
+    await page.locator('#slateCanvas .slatebox-zoom-slider').getByRole('button', { name: 'Fit to screen' }).click()
 
     // An arrange button of the selection's own toolbar, then Delete: both selected notes go.
     await select(page, 'Gamma')

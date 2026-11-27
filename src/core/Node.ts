@@ -1417,16 +1417,20 @@ export class Node {
     // Use svg.draggable.js to make the group draggable
     (this.svgGroup as any).draggable();
 
-    // A governed note that may not move never starts a drag. (Its press still
-    // selects it, and still reaches an open text editor.)
+    // A governed note that may not move never starts a drag, and on a view-only
+    // slate no note does. (Its press still selects it, and still reaches an open
+    // text editor.) A cancelled drag leaves the gesture unclaimed, so on a
+    // view-only slate a finger or the mouse on a note pans the canvas instead
+    // (PanZoom). Checked per gesture: access can change while the slate is open.
     this.svgGroup.on("beforedrag.node", (event: any) => {
-      const governance = this.slate.governanceOf?.(this);
-      if (!governance) return;
       const slate: any = this.slate;
+      const viewOnly = Boolean(slate.isReadOnly?.());
+      const governance = viewOnly ? null : this.slate.governanceOf?.(this);
+      if (!viewOnly && !governance) return;
       if (
-        !governance.capabilities.canMove ||
+        viewOnly ||
+        !governance?.capabilities.canMove ||
         slate.options?.enabled === false ||
-        slate.isReadOnly?.() ||
         slate.isCommentOnly?.()
       ) {
         event.preventDefault?.();

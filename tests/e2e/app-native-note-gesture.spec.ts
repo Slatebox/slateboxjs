@@ -20,7 +20,7 @@ for (const gesture of ['mouse','touch'] as const) {
       await expect(note).toHaveAttribute('aria-label',/Delete the original CSV/)
       if(gesture==='mouse') await note.dblclick()
       else {
-        const fit=page.getByTitle('Fit to content',{exact:true}).first()
+        const fit=page.getByTitle('Fit to screen',{exact:true}).first()
         if(await fit.isVisible()) await fit.tap()
         await expect(note).toBeInViewport({ratio:0.95})
         await note.tap({trial:true})

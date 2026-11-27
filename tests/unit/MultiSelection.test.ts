@@ -276,6 +276,30 @@ describe("MultiSelection", () => {
       expect(mockSlate.canvas.rect).not.toHaveBeenCalled();
     });
 
+    it("should NOT start selection on a view-only slate (a background drag pans instead)", () => {
+      (mockSlate as any).isReadOnly = vi.fn().mockReturnValue(true);
+      new MultiSelection(mockSlate);
+
+      const pointerDown = getHandler(mockSlate.canvas.on, "pointerdown.multiselect");
+      pointerDown({ target: mockSlate.canvas.node, clientX: 100, clientY: 200, shiftKey: false });
+
+      expect(mockSlate.canvas.rect).not.toHaveBeenCalled();
+      expect(getWin("pointermove")).toBeUndefined();
+    });
+
+    it("checks read-only per gesture, so edit access returning restores the marquee", () => {
+      const readOnly = vi.fn().mockReturnValue(true);
+      (mockSlate as any).isReadOnly = readOnly;
+      new MultiSelection(mockSlate);
+      const pointerDown = getHandler(mockSlate.canvas.on, "pointerdown.multiselect");
+      pointerDown({ target: mockSlate.canvas.node, clientX: 1, clientY: 1, shiftKey: false });
+      expect(mockSlate.canvas.rect).not.toHaveBeenCalled();
+
+      readOnly.mockReturnValue(false);
+      pointerDown({ target: mockSlate.canvas.node, clientX: 100, clientY: 200, shiftKey: false });
+      expect(mockSlate.canvas.rect).toHaveBeenCalledWith(0, 0);
+    });
+
     it("should NOT start selection when disabled", () => {
       new MultiSelection(mockSlate, { enabled: false });
 

@@ -107,7 +107,7 @@ test.describe('beside an open conversation on a wide screen', () => {
       await page.locator('#slateCanvas .slatebox-zoom-slider').getByRole('button', { name: 'Zoom in', exact: true }).first().click()
       await expect.poll(async () => (await seen(page)).minimap, 'the minimap comes back when the workshop no longer fits').not.toBeNull()
       // Fitted again, it goes.
-      await page.locator('#slateCanvas .slatebox-zoom-slider').getByRole('button', { name: 'fitToContent' }).click()
+      await page.locator('#slateCanvas .slatebox-zoom-slider').getByRole('button', { name: 'Fit to screen' }).click()
       await expect.poll(async () => (await seen(page)).minimap).toBeNull()
     } finally { await removeTestGuest(page, id) }
   })

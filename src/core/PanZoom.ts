@@ -121,6 +121,8 @@ export class PanZoom {
   private _wheelHandler: ((e: WheelEvent) => void) | null = null
   private _touchPan: { start: (e: TouchEvent) => void; move: (e: TouchEvent) => void; end: (e: TouchEvent) => void } | null = null
 
+  private _viewOnlyMouse: ((e: MouseEvent) => void) | null = null
+
   /** Whether a finger on empty canvas pans it (so it does not start a selection rectangle). */
   public pansByTouch(): boolean {
     return this.isEnabled && this.options.panning !== false
@@ -131,7 +133,8 @@ export class PanZoom {
    * that is how a person reaches what is below the screen. Two fingers still pinch
    * and pan (the plugin), a finger on a note still moves the note, and a mouse on
    * empty canvas still draws the selection rectangle. Hosts hear the same
-   * panStart / panning / panEnd events a mouse pan sends.
+   * panStart / panning / panEnd events a mouse pan sends. On a view-only slate
+   * (slate.isReadOnly()) no note moves, so a finger pans wherever it starts.
    */
   private attachTouchPan(): void {
     const node = this.canvas.node as SVGSVGElement
@@ -149,7 +152,8 @@ export class PanZoom {
     const start = (e: TouchEvent) => {
       // A second finger makes it a pinch; a gesture another handler has claimed
       // (a connector pulled from a note) is not a pan either.
-      if (!this.pansByTouch() || e.touches.length !== 1 || e.target !== node || e.defaultPrevented) {
+      const onCanvas = e.target === node || Boolean(this.slate?.isReadOnly?.())
+      if (!this.pansByTouch() || e.touches.length !== 1 || !onCanvas || e.defaultPrevented) {
         stop(e)
         return
       }
@@ -188,9 +192,54 @@ export class PanZoom {
     document.addEventListener("touchend", stop)
     document.addEventListener("touchcancel", stop)
     this._touchPan = { start, move, end: stop }
+    this.attachViewOnlyMousePan(node)
+  }
+
+  /**
+   * On a view-only slate the main mouse button pans too: there is no selection
+   * rectangle to draw (MultiSelection) and no note to move. A click that barely
+   * moves stays a click (a note's link, its selection).
+   */
+  private attachViewOnlyMousePan(node: SVGSVGElement): void {
+    if (this._viewOnlyMouse) return
+    this._viewOnlyMouse = (down: MouseEvent) => {
+      if (down.button !== 0 || !this.pansByTouch() || !this.slate?.isReadOnly?.()) return
+      let last = { x: down.clientX, y: down.clientY }
+      let panning = false
+      const move = (e: MouseEvent) => {
+        const dx = e.clientX - last.x
+        const dy = e.clientY - last.y
+        if (!panning && Math.hypot(dx, dy) < 4) return
+        e.preventDefault()
+        if (!panning) {
+          panning = true
+          this.canvas.dispatch("panStart", { event: e })
+        }
+        const vb = this.canvas.viewbox()
+        const rect = node.getBoundingClientRect()
+        const unitsPerPx = vb.width / (rect.width || vb.width)
+        const box = { x: vb.x - dx * unitsPerPx, y: vb.y - dy * unitsPerPx, width: vb.width, height: vb.height }
+        last = { x: e.clientX, y: e.clientY }
+        if (!this.canvas.dispatch("panning", { box, event: e }).defaultPrevented) {
+          this.canvas.viewbox(box.x, box.y, box.width, box.height)
+        }
+      }
+      const up = (e: MouseEvent) => {
+        document.removeEventListener("mousemove", move)
+        document.removeEventListener("mouseup", up)
+        if (panning) this.canvas.dispatch("panEnd", { event: e })
+      }
+      document.addEventListener("mousemove", move)
+      document.addEventListener("mouseup", up)
+    }
+    node.addEventListener("mousedown", this._viewOnlyMouse)
   }
 
   private detachTouchPan(): void {
+    if (this._viewOnlyMouse) {
+      this.canvas.node?.removeEventListener?.("mousedown", this._viewOnlyMouse)
+      this._viewOnlyMouse = null
+    }
     if (!this._touchPan) return
     this.canvas.node?.removeEventListener?.("touchstart", this._touchPan.start)
     document.removeEventListener("touchmove", this._touchPan.move)

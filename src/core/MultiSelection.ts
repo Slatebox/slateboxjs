@@ -62,6 +62,8 @@ export class MultiSelection {
 
     canvas.on("pointerdown.multiselect", (event: any) => {
       if (!this.options.enabled) return;
+      // A view-only slate has nothing to select in bulk: a drag there pans (PanZoom).
+      if (this.slate.isReadOnly?.()) return;
 
       // Only start selection on direct canvas click (not on nodes)
       const target = event.target;

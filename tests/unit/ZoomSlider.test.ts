@@ -110,10 +110,17 @@ describe("ZoomSlider", () => {
       expect(el.style.flexDirection).toBe("column");
       expect(el.style.right).toContain("12px");
       const labels = [...el.querySelectorAll("button")].map((button) => button.getAttribute("aria-label"));
-      expect(labels).toEqual(["Zoom in", "Zoom out", "fitToContent"]);
+      expect(labels).toEqual(["Zoom in", "Zoom out", "Fit to screen"]);
       for (const button of el.querySelectorAll("button")) expect((button as HTMLElement).style.width).toBe("40px");
       expect(el.querySelector('input[type="range"]')).toBeNull();
       expect(el.querySelector("span")!.textContent).toBe("100%");
+    });
+
+    it("names the fit button in plain words, for the eye and for a screen reader", () => {
+      new ZoomSlider(mockSlate, { enabled: true });
+      const fit = container.querySelector('.slatebox-zoom-slider [aria-label="Fit to screen"]') as HTMLButtonElement;
+      expect(fit).not.toBeNull();
+      expect(fit.title).toBe("Fit to screen");
     });
 
     it("on a wider canvas is a short pill at the bottom left that keeps its range", () => {
@@ -123,7 +130,7 @@ describe("ZoomSlider", () => {
       expect(el.hasAttribute("data-compact")).toBe(false);
       expect(el.style.flexDirection).toBe("row");
       expect(el.style.left).toContain("16px");
-      expect([...el.querySelectorAll("button")].map((button) => button.getAttribute("aria-label"))).toEqual(["fitToContent", "Zoom out", "Zoom in"]);
+      expect([...el.querySelectorAll("button")].map((button) => button.getAttribute("aria-label"))).toEqual(["Fit to screen", "Zoom out", "Zoom in"]);
       expect(el.querySelector('input[type="range"]')).not.toBeNull();
     });
   });

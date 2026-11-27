@@ -141,7 +141,7 @@ test.describe('a phone, 390 by 844', () => {
     const zoomed = await level()
     await page.locator('.slatebox-zoom-slider button[aria-label="Zoom out"]').tap()
     await expect.poll(level).toBeLessThan(zoomed)
-    await page.locator('.slatebox-zoom-slider button[aria-label="fitToContent"]').tap()
+    await page.locator('.slatebox-zoom-slider button[aria-label="Fit to screen"]').tap()
     await expect(control.locator('span')).toHaveText(/%$/)
   })
 

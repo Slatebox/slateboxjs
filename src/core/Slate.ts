@@ -2121,6 +2121,10 @@ export class Slate {
       return;
     }
 
+    // A view-only slate keeps the selection highlight (and a note's link) but
+    // shows no resize/rotate handles, connection plugs or cog: nothing to edit.
+    if (this.isReadOnly()) return;
+
     if (this.selectedNodes.length === 1) {
       // Single node selection - enable its individual resize/rotate and connection handles
       const selectedNode = this.selectedNodes[0];

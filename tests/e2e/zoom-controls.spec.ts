@@ -46,7 +46,7 @@ test.describe("Zoom Controls", () => {
 
     // The fit-to-content button is present.
     await expect(
-      zoomSlider.locator('[aria-label="fitToContent"]')
+      zoomSlider.locator('[aria-label="Fit to screen"]')
     ).toBeVisible();
   });
 
@@ -108,7 +108,7 @@ test.describe("Zoom Controls", () => {
     // Click the fit button → zoom should change (fit recomputes zoom to frame
     // all content).
     await page
-      .locator('.slatebox-zoom-slider [aria-label="fitToContent"]')
+      .locator('.slatebox-zoom-slider [aria-label="Fit to screen"]')
       .click();
     await page.waitForTimeout(400);
 

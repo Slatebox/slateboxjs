@@ -152,8 +152,7 @@ export class ZoomSlider {
       el.onclick = onClick;
       return el;
     };
-    this.fitButton = button("⤢", "Fit to content", () => this.slate.fitToContent?.());
-    this.fitButton.setAttribute("aria-label", "fitToContent");
+    this.fitButton = button("⤢", "Fit to screen", () => this.slate.fitToContent?.());
     this.zoomOutButton = button("−", "Zoom out", () => this.slate.zoomOut?.());
     this.zoomInButton = button("+", "Zoom in", () => this.slate.zoomIn?.());
 
