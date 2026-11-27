@@ -189,8 +189,12 @@ export interface SlateOptions {
         backgroundGradientType?: "linear" | "radial";
         backgroundGradientColors?: string[];
         backgroundGradientStrategy?: "horizontal" | "vertical" | "diagonal";
+        /** A linear gradient's angle in degrees, as CSS (0 runs bottom to top, 90 left to right). */
+        backgroundGradientAngle?: number;
         backgroundImage?: string;
         backgroundSize?: "contain" | "cover" | "repeat";
+        /** 0 to 0.8: how much of backgroundColor is laid over the picture, so notes on it stay readable. */
+        backgroundDim?: number;
         backgroundEffect?: string;
         prevBackgroundColor?: string;
     };

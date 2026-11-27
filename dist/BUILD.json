@@ -1,8 +1,8 @@
 {
   "name": "slateboxjs",
   "version": "3.1.3",
-  "commit": "bbe4bb24cc77231552ed226bde2b5e365d356467",
-  "branch": "feat/phone-view-only",
+  "commit": "dfba8e8d387a76e5d88745ef787cc7f8662fe7fd",
+  "branch": "feat/style-bg-gradient-picture",
   "dirty": false,
-  "builtAt": "2026-11-27T19:16:13.423Z"
+  "builtAt": "2026-11-27T22:27:46.229Z"
 }
