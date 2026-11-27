@@ -1,10 +1,10 @@
-import { expect, test, type Browser, type Page } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import { dismissWelcome, removeTestGuest, userId } from './workshop-guests.shared'
-import { announced, note, openConversation, resting, slateKey, storedWorkshop, workshopReady, workshopStatus, canvasUndo } from './app-native-workshop.shared'
+import { announced, note, openConversation, resting, slateKey, storedWorkshop, workshopReady, canvasUndo } from './app-native-workshop.shared'
 
 /**
  * A customer go-live in the real Meteor app, made by a guest from the library's phrase: a task's bar is
- * resized by its grips with a real pointer, on a laptop and with a finger on a phone. The owner's case:
+ * resized by its grips with a real pointer on a laptop (phones only view slates). The owner's case:
  * Configure takes 5 days and should take 3. Its end grip, dragged back two days (a weekend is drawn but
  * not counted), makes it 3; the tasks that wait on it move up; one undo puts back 5; the same drag again
  * is what a reload shows. On a phone a finger drags the grip; a finger across empty canvas only pans.
@@ -52,16 +52,6 @@ async function mouseDrag(page: Page, from: { x: number; y: number }, to: { x: nu
   await page.mouse.move(to.x, to.y, { steps: 16 })
   await page.waitForTimeout(80)
   await page.mouse.up()
-}
-
-async function fingerDrag(page: Page, from: { x: number; y: number }, to: { x: number; y: number }) {
-  const cdp = await page.context().newCDPSession(page)
-  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ ...from, id: 1 }] })
-  for (let i = 1; i <= 12; i++) {
-    await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: from.x + (to.x - from.x) * i / 12, y: from.y + (to.y - from.y) * i / 12, id: 1 }] })
-    await page.waitForTimeout(20)
-  }
-  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
 }
 
 test.describe('a task’s bar resized by its grips', () => {
@@ -269,45 +259,5 @@ test.describe('the owner’s phrases in the chat', () => {
       await expect(panel).not.toContainText('There is no lane')
       await shot(page, '6-chat-duration')
     } finally { await removeTestGuest(page, guest) }
-  })
-})
-
-test.describe('on a phone', () => {
-  test('a finger drags Configure’s end grip from 5 days to 3; a finger on empty canvas only pans', async ({ browser, browserName }) => {
-    test.skip(browserName !== 'chromium', 'Uses a trusted Chromium touch sequence.')
-    test.setTimeout(240_000)
-    const page = await (browser as Browser).newPage({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true })
-    let guest: string | null = null
-    try {
-      guest = await goLive(page)
-      // The conversation covers a phone's canvas: close it to reach the board.
-      const close = page.getByRole('complementary', { name: 'Ask Slatebox' }).getByRole('button', { name: /^Close/ })
-      if (await close.isVisible()) await close.click()
-      await workshopReady(page)
-      expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBe(0)
-      // Every bar shows its grips on a phone, and each grip is a finger's size.
-      await expect(page.locator('#slateCanvas [data-board-layer="grip-end-configure"]')).toBeAttached()
-      const handle = await resting(page, 'handle-configure')
-      expect(Math.min(handle.width, handle.height)).toBeGreaterThanOrEqual(24)
-      await shot(page, '4-phone-grips')
-
-      // A pan across empty canvas changes nothing.
-      const canvas = (await page.locator('#slateCanvas').boundingBox())!
-      const board = await storedWorkshop(page, slateKey(page))
-      const below = { x: canvas.x + canvas.width / 2, y: canvas.y + canvas.height - 40 }
-      await fingerDrag(page, below, { x: below.x - 120, y: below.y - 60 })
-      await page.waitForTimeout(600)
-      expect((await storedWorkshop(page, slateKey(page))).cards).toEqual(board.cards)
-
-      const width = (await resting(page, 'card-configure')).width / 7
-      const grip = centre(await resting(page, 'handle-configure'))
-      await fingerDrag(page, grip, { x: grip.x - 2 * width, y: grip.y })
-      await expect.poll(async () => (await task(page, 'configure')).duration).toBe(3)
-      expect((await task(page, 'configure')).label).toBe('Configure')
-      await shot(page, '5-phone-three-days')
-    } finally {
-      await removeTestGuest(page, guest)
-      await page.close()
-    }
   })
 })

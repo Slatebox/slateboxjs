@@ -1,7 +1,7 @@
-import { expect, test, type Browser, type Page } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import { encodeWorkshopFragment, releasePlan, type Workshop } from '../../src/workshops/model'
 import { dismissWelcome, removeTestGuest, userId } from './workshop-guests.shared'
-import { announced, conversation, messageBox, note, openConversation, resting, slateKey, starter, storedWorkshop, workshopReady, workshopStatus, canvasUndo } from './app-native-workshop.shared'
+import { announced, conversation, messageBox, note, openConversation, resting, slateKey, starter, storedWorkshop, workshopReady, canvasUndo } from './app-native-workshop.shared'
 
 /**
  * Boards S2b (owner addenda, 2026-11-22) in the real Meteor app with the local engine:
@@ -11,7 +11,7 @@ import { announced, conversation, messageBox, note, openConversation, resting, s
  *    editable in focus (a click removes one, a step's grip draws one, a path's end grip moves it) and in the chat
  *    ("connect Option B to Decide", "remove the path from Option A"): one undo per change, live on another page.
  * 3. A customer go-live in focus: its span's ends say what they are; "make this a 3-week plan", "start on 1 Dec"
- *    and "move go-live to 23 Dec" in the chat; one undo; finger-sized on a phone, and a pan never moves them.
+ *    and "move go-live to 23 Dec" in the chat; one undo. (Phones only view slates, so there is no phone case.)
  * SLATEBOX_SHOTS: keep a picture of each step there.
  */
 
@@ -315,76 +315,5 @@ test.describe('a customer go-live in focus, 1440 by 900', () => {
       await undo(page)
       await expect.poll(async () => (await stored()).launch.day).toBe(25)
     } finally { await removeTestGuest(page, guest) }
-  })
-})
-
-test.describe('on a phone', () => {
-  test('a tap on a map’s path offers “Change this board”; a go-live in focus has finger-sized span grips a pan never moves', async ({ browser, browserName }) => {
-    test.skip(browserName !== 'chromium', 'Uses a trusted Chromium touch sequence.')
-    test.setTimeout(300_000)
-    const page = await (browser as Browser).newPage({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true })
-    let guest: string | null = null
-    try {
-      guest = await open(page, '/new/workshop' + encodeWorkshopFragment(decision))
-      const close = page.getByRole('complementary', { name: 'Ask Slatebox' }).getByRole('button', { name: /^Close/ })
-      if (await close.isVisible()) await close.click()
-      await page.waitForTimeout(800)
-      const spot = await onPath(page, 'question>option-a')
-      await page.touchscreen.tap(spot.x, spot.y)
-      const bar = page.locator('[data-board-path]')
-      await expect(bar).toBeVisible()
-      await expect(bar.getByRole('button', { name: 'Change this board' })).toBeVisible()
-      expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBe(0)
-      await shot(page, 's2b-9-phone-path-picked')
-      // In focus, fitted to the phone (about half size), the map's grips and its paths' hit areas are a finger's size on screen.
-      await bar.getByRole('button', { name: 'Change this board' }).click()
-      await expect(focusChip(page)).toContainText('Editing: Decision path')
-      await page.waitForTimeout(1500)
-      await expect.poll(() => grips(page).count()).toBeGreaterThan(0)
-      for (const name of ['handle-_link-question', 'handle-_link-decide', 'handle-_route-question~option-a']) {
-        await expect.poll(async () => { const grip = await resting(page, name); return Math.min(grip.width, grip.height) }, { message: name }).toBeGreaterThanOrEqual(40)
-      }
-      const thickness = await page.locator('#slateCanvas [data-board-link="question>option-a"]').evaluate(el => {
-        const path = el as SVGPathElement
-        return Number(path.getAttribute('stroke-width')) * Math.hypot(path.getScreenCTM()!.a, path.getScreenCTM()!.b)
-      })
-      expect(thickness).toBeGreaterThanOrEqual(40)
-      expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBe(0)
-      await shot(page, 's2b-9b-phone-map-focus-grips')
-      await removeTestGuest(page, guest)
-      guest = null
-
-      // In focus the chat stays open (closing it leaves focus); the board is fitted above it.
-      guest = await goLiveInFocus(page)
-      await page.waitForTimeout(1500)
-      for (const name of ['handle-_first', 'handle-launch']) {
-        const grip = await resting(page, name)
-        expect(Math.min(grip.width, grip.height), name).toBeGreaterThanOrEqual(40)
-      }
-      await expect(page.locator('#slateCanvas [data-board-layer="span-end"]')).toBeAttached()
-      await shot(page, 's2b-10-phone-go-live-focus')
-      // A finger across empty canvas pans; the span stays as it was.
-      const before = await storedWorkshop(page, slateKey(page))
-      const canvas = (await page.locator('#slateCanvas').boundingBox())!
-      const device = await page.context().newCDPSession(page)
-      // A spot of empty canvas the panel does not cover: no note, grip or panel under the finger.
-      const from = await page.evaluate(({ x, y, w, h }) => {
-        for (let py = y + h - 20; py > y + 20; py -= 12) for (let px = x + 20; px < x + w - 20; px += 24) {
-          const hit = document.elementFromPoint(px, py)
-          if (hit?.closest('#slateCanvas') && !hit.closest('[data-node-id], [data-board-link]')) return { x: px, y: py }
-        }
-        return null
-      }, { x: canvas.x, y: canvas.y, w: canvas.width, h: canvas.height })
-      expect(from, 'empty canvas to pan').toBeTruthy()
-      await device.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [from!] })
-      for (let i = 1; i <= 10; i++) await device.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: from!.x - 12 * i, y: from!.y - 6 * i }] })
-      await device.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
-      await page.waitForTimeout(800)
-      const after = await storedWorkshop(page, slateKey(page))
-      expect([after.clock.origin, after.launch.day]).toEqual([before.clock.origin, before.launch.day])
-    } finally {
-      await removeTestGuest(page, guest)
-      await page.close()
-    }
   })
 })
