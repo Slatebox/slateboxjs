@@ -12,6 +12,11 @@ export interface ContainerBackground {
 }
 
 const HEX = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
+/**
+ * A gradient stop the canvas draws: a color (hex, a name, rgb()/hsl()), optionally at a percent.
+ * Anything else is left out, so a stored or sent stop can never add a url() or another layer.
+ */
+const SAFE_STOP = /^(#[0-9a-f]{3,8}|[a-z]{3,20}|(rgb|hsl)a?\([\d\s.,%]+\))(\s+\d{1,3}(\.\d+)?%)?$/i;
 const DIM_MAX = 0.8;
 
 /** A CSS url() for any stored address: quoted, with the characters that could end it escaped. */
@@ -30,7 +35,7 @@ function veil(color: unknown, alpha: number): string {
 export function containerBackground(cs: Record<string, any> | undefined | null): ContainerBackground {
   const none = { image: "", size: "", repeat: "", position: "" };
   if (!cs) return none;
-  const stops = Array.isArray(cs.backgroundGradientColors) ? cs.backgroundGradientColors.filter((c: unknown) => typeof c === "string" && c) : [];
+  const stops = Array.isArray(cs.backgroundGradientColors) ? cs.backgroundGradientColors.filter((c: unknown) => typeof c === "string" && SAFE_STOP.test(c.trim())).map((c: string) => c.trim()) : [];
   if (cs.backgroundColorAsGradient && stops.length > 1) {
     const colors = stops.join(", ");
     if (cs.backgroundGradientType === "radial") return { ...none, image: `radial-gradient(circle, ${colors})` };

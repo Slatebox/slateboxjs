@@ -181,6 +181,9 @@ export function packagesForOperation(operation: SlateOperation, before: StoredSl
             image: style.backgroundImage,
             size: style.backgroundSize,
             dim: style.backgroundDim,
+            // The style record the background is kept in (overrides.bg, overrides.background),
+            // so every open copy holds the same record and Revert or the style worn again agree.
+            ...(after.options?.style && typeof after.options.style === "object" ? { style: after.options.style } : {}),
           },
         });
       }

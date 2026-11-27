@@ -399,6 +399,10 @@ export class Invoker {
     cs.backgroundSize = cs.backgroundImage ? pkg.data.size : cs.backgroundSize
     cs.backgroundDim = cs.backgroundImage && typeof pkg.data.dim === 'number' ? pkg.data.dim : undefined
     cs.backgroundEffect = undefined
+    // The worn style's record, which keeps the background (a package from update_slate on a slate
+    // that wears a style carries it).
+    const style = pkg.data.style
+    if (style && typeof style === 'object' && typeof style.id === 'string') this.slate.options.style = JSON.parse(JSON.stringify(style))
     // Actually paint the container (previously only options were updated).
     this.slate.applyContainerStyle()
   }

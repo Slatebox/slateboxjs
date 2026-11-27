@@ -849,6 +849,16 @@ describe("Invoker", () => {
       // The change must actually be painted onto the container element.
       expect(mockSlate.applyContainerStyle).toHaveBeenCalled();
     });
+
+    it("takes the worn style's record the package carries, and keeps the record when it carries none", () => {
+      const style = { id: "neon", v: 4, overrides: { bg: "#102030", background: { picture: { url: "https://e.com/a.jpg", fit: "cover", dim: 0.35 } } } };
+      mockSlate.options.style = { id: "neon", v: 4 };
+      invoker.onSlateBackgroundColorChanged({ data: { color: "#102030", asGradient: false, image: "https://e.com/a.jpg", size: "cover", dim: 0.35, style } });
+      expect(mockSlate.options.style).toEqual(style);
+      expect(mockSlate.options.style).not.toBe(style);
+      invoker.onSlateBackgroundColorChanged({ data: { color: "#ffffff", asGradient: false } });
+      expect(mockSlate.options.style).toEqual(style);
+    });
   });
 
   describe("onSlateBackgroundImageChanged", () => {

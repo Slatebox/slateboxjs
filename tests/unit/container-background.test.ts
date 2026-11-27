@@ -20,6 +20,13 @@ describe("containerBackground", () => {
     expect(containerBackground({ ...old, backgroundGradientColors: ["#111111"] }).image).toBe("");
   });
 
+  it("a gradient stop that is not a color is left out, so no stop can add a url() or another layer", () => {
+    const cs = { backgroundColorAsGradient: true, backgroundGradientColors: ["#111111", "red), url(http://evil.example/x.png", "rgba(0, 0, 0, 0.5) 50%", "expression(alert(1))", " #333333 "] };
+    expect(containerBackground(cs).image).toBe("linear-gradient(#111111, rgba(0, 0, 0, 0.5) 50%, #333333)");
+    // Fewer than two colors left: no gradient at all.
+    expect(containerBackground({ ...cs, backgroundGradientColors: ["#111111", "url(x)"] }).image).toBe("");
+  });
+
   it("a gradient wins over a picture stored beside it, as it always did", () => {
     const both = { backgroundColorAsGradient: true, backgroundGradientColors: ["#111111", "#333333"], backgroundImage: "https://example.com/a.jpg" };
     expect(containerBackground(both).image).toContain("gradient");

@@ -73,6 +73,15 @@ describe("background picture and gradient angle", () => {
     const after = applyPlanToJSON(before, plan(picture), { userMessage: "make the background a picture" }).slate;
     const [pkg] = packagesForOperation(operation, before as any, after as any);
     expect(pkg).toMatchObject({ type: "onSlateBackgroundColorChanged", data: { color: "#102030", image: "https://images.example.com/a.jpg", size: "contain", dim: 0.35 } });
+    expect(pkg.data.style).toBeUndefined();
+  });
+
+  it("on a slate that wears a style, the live package carries the style record too, so other copies keep the same one", () => {
+    const worn = slate({ style: { id: "neon", v: 4 } });
+    const operation = plan(picture).operations[0];
+    const after = applyPlanToJSON(worn, plan(picture), { userMessage: "make the background a picture" }).slate;
+    const [pkg] = packagesForOperation(operation, worn as any, after as any);
+    expect(pkg.data.style).toEqual({ id: "neon", v: 4, overrides: { bg: "#102030", background: { picture: picture.picture } } });
   });
 
   it("is described for agents", () => {
