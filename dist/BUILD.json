@@ -1,8 +1,8 @@
 {
   "name": "slateboxjs",
   "version": "3.1.3",
-  "commit": "f1d941a2991dfea40a8bd0625f9a64378c682f9d",
-  "branch": "feat/photo-note",
+  "commit": "bbe4bb24cc77231552ed226bde2b5e365d356467",
+  "branch": "feat/phone-view-only",
   "dirty": false,
-  "builtAt": "2026-11-27T16:54:06.490Z"
+  "builtAt": "2026-11-27T19:16:13.423Z"
 }

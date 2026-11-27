@@ -41,6 +41,7 @@ export declare class PanZoom {
     private init;
     private _wheelHandler;
     private _touchPan;
+    private _viewOnlyMouse;
     /** Whether a finger on empty canvas pans it (so it does not start a selection rectangle). */
     pansByTouch(): boolean;
     /**
@@ -48,9 +49,16 @@ export declare class PanZoom {
      * that is how a person reaches what is below the screen. Two fingers still pinch
      * and pan (the plugin), a finger on a note still moves the note, and a mouse on
      * empty canvas still draws the selection rectangle. Hosts hear the same
-     * panStart / panning / panEnd events a mouse pan sends.
+     * panStart / panning / panEnd events a mouse pan sends. On a view-only slate
+     * (slate.isReadOnly()) no note moves, so a finger pans wherever it starts.
      */
     private attachTouchPan;
+    /**
+     * On a view-only slate the main mouse button pans too: there is no selection
+     * rectangle to draw (MultiSelection) and no note to move. A click that barely
+     * moves stays a click (a note's link, its selection).
+     */
+    private attachViewOnlyMousePan;
     private detachTouchPan;
     /**
      * Miro-style wheel behavior on the canvas:
