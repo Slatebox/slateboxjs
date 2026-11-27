@@ -123,6 +123,9 @@ export { DEFAULT_NOTE_STYLE } from './core/NoteDefaults'
 // Media notes: which video addresses play, and the player address (no DOM, also in slateboxjs/operations).
 export { parseMediaUrl, isMediaUrl, mediaEmbedUrl, mediaLabel, MEDIA_PROVIDERS, MEDIA_FRAME_ORIGINS, MEDIA_NOTE_SIZE } from './operations/media'
 export type { MediaValue, MediaProvider } from './operations/media'
+// Photo notes: a picture the host stored, drawn as the whole note (no DOM, also in slateboxjs/operations).
+export { PHOTO_LIMITS, readPhotoValue, photoNoteSize, readPhoto } from './operations/photo'
+export type { PhotoValue } from './operations/photo'
 export type { MediaRequest } from './core/MediaInput'
 // Agents on the canvas: what they say and when they show. The drawing (createAgentPresence) is
 // the slateboxjs/presence entry, loaded when the first agent arrives.

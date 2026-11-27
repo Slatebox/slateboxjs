@@ -21,6 +21,7 @@ import { backgroundSchema, SLATE_KEYS, styleSchema } from "./keys/slate";
 import { selectorSchema } from "./keys/selector";
 import { namesOnlyShape, schemaFor } from "./keys/values";
 import { MEDIA_LIMITS } from "./media";
+import { PHOTO_LIMITS } from "./photo";
 import { groupPlanErrors, planErrorHints } from "./errors";
 
 export function describeOperations(options: ContractOptions = {}) {
@@ -153,6 +154,20 @@ export function slateOperationPlanSchema(options: ContractOptions = {}, form: { 
                 poster: { type: "string", maxLength: MEDIA_LIMITS.urlLength, pattern: "^(https://\\S+|/[^/\\\\\\s]\\S*)$", description: "The poster picture: an https address, or a path on this app (/...)." },
                 posterWidth: { type: "number", minimum: 1, maximum: 10000 },
                 posterHeight: { type: "number", minimum: 1, maximum: 10000 },
+              },
+            } }),
+            // Not in a model's tool: a photo comes from a person's phone through the host's add-photo action, which cleans and stores it.
+            ...(form.modelTool ? {} : { photo: {
+              type: "object",
+              additionalProperties: false,
+              required: ["url", "width", "height"],
+              description:
+                "add_nodes, count 1, no shape, preset, text or media: a photo note, a picture the host stored, drawn as the whole note at 320 on its longer side. Hosts add photos through their own add-photo action, which turns the picture upright, shrinks it and removes its location data.",
+              properties: {
+                url: { type: "string", maxLength: PHOTO_LIMITS.urlLength, pattern: "^(https://\\S+|/(files|sbimages)/\\S+)$", description: "The stored picture: an https address, or a path in this app's file store (/files/... or /sbimages/...)." },
+                width: { type: "number", minimum: 1, maximum: PHOTO_LIMITS.dimension, description: "The picture's width in pixels." },
+                height: { type: "number", minimum: 1, maximum: PHOTO_LIMITS.dimension, description: "The picture's height in pixels." },
+                alt: { type: "string", maxLength: PHOTO_LIMITS.altLength, description: "What the photo shows, for a screen reader." },
               },
             } }),
             style: {

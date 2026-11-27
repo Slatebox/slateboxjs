@@ -66,6 +66,8 @@ export {
   mediaLabel,
 } from "./media";
 export type { MediaValue, MediaProvider } from "./media";
+export { PHOTO_LIMITS, PHOTO_NOTE_LONG_SIDE, readPhotoValue, photoNoteSize, storePhoto, readPhoto } from "./photo";
+export type { PhotoValue } from "./photo";
 export { normalizePlan } from "./normalize";
 export type { NormalizedPlan } from "./normalize";
 export { groupPlanErrors, planErrorHints, planErrorsOf, operationRanges } from "./errors";

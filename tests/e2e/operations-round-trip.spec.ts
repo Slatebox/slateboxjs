@@ -50,6 +50,7 @@ test("every key the JSON applier writes is read back by the loader, and the live
           },
         },
         { kind: "connect_nodes", from: { ids: ["c"] }, to: { point: { x: 950, y: 300 } }, ids: ["c-loose"] },
+        { kind: "add_nodes", count: 1, ids: ["p1"], x: 700, y: 400, photo: { url: "/files/2026/11/27/u_test_photo.jpg", width: 1600, height: 1200, alt: "A whiteboard" } },
         { kind: "update_connections", connectionIds: ["a->b"], changes: { label: "leads to", lineColor: "#ff0055", lineWidth: 5, lineType: "orthogonal", showParentArrow: true } },
         { kind: "connect_nodes", from: { ids: ["b"] }, to: { ids: ["c"] } },
         { kind: "connect_nodes", from: { ids: ["b"] }, to: { ids: ["c"] } },
@@ -86,10 +87,14 @@ test("every key the JSON applier writes is read back by the loader, and the live
       const style = slate.options.containerStyle || {};
       return [style.backgroundColor, style.backgroundColorAsGradient, style.backgroundGradientType, style.backgroundGradientColors, style.backgroundGradientStrategy, slate.options.name, slate.options.description];
     };
+    const photo = (slate: any) => {
+      const options = slate.nodes.find((node: any) => node.options.id === "p1")?.options || {};
+      return { image: options.image, imageFit: options.imageFit, imageOrigWidth: options.imageOrigWidth, imageOrigHeight: options.imageOrigHeight, photo: ops.readPhoto(options) };
+    };
     return {
-      expected: { notes: notes(applied.slate), connectors: connectors(applied.slate), background: background(applied.slate) },
-      readBack: { notes: notes(readBack), connectors: connectors(readBack), background: background(readBack) },
-      live: { notes: notes(liveAfter), connectors: connectors(liveAfter), background: background(liveAfter) },
+      expected: { notes: notes(applied.slate), connectors: connectors(applied.slate), background: background(applied.slate), photo: photo(applied.slate) },
+      readBack: { notes: notes(readBack), connectors: connectors(readBack), background: background(readBack), photo: photo(readBack) },
+      live: { notes: notes(liveAfter), connectors: connectors(liveAfter), background: background(liveAfter), photo: photo(liveAfter) },
       report: applied.report,
       liveReport: liveResult.report,
       domRotation: (reloaded.v2.nodes.one("a") as any).getRotation(),
@@ -100,12 +105,18 @@ test("every key the JSON applier writes is read back by the loader, and the live
   expect(result.expected.notes.a).toMatchObject({ rotationAngle: 45, locked: true, fontFamily: "Roboto", shape: "star", animation: "breathe", x: 150, y: 160 });
   expect(result.expected.notes.x1).toMatchObject({ rotationAngle: 30, fontFamily: "Georgia", borderStyle: "dashed", x: 120, y: 400 });
   expect(result.report.connected).toEqual(["a->x1", "c-loose", "b->c"]);
-  expect(result.report.operations[6]).toMatchObject({ matched: ["b->c"], changed: [] });
+  // A photo note: the picture fills a note 320 on its longer side, and reads back as the photo.
+  expect(result.expected.notes.p1).toMatchObject({ x: 700, y: 400, width: 320, height: 240, text: "" });
+  expect(result.expected.photo).toEqual({
+    image: "/files/2026/11/27/u_test_photo.jpg", imageFit: "cover", imageOrigWidth: 1600, imageOrigHeight: 1200,
+    photo: { url: "/files/2026/11/27/u_test_photo.jpg", width: 1600, height: 1200, alt: "A whiteboard" },
+  });
+  expect(result.report.operations[7]).toMatchObject({ matched: ["b->c"], changed: [] });
   expect(result.report.disconnected).toEqual(["b->c"]);
   // A reload reads back every key the applier wrote.
   expect(result.readBack).toEqual(result.expected);
   expect(result.domRotation).toBe(45);
   // The live canvas ends where the stored JSON ends.
   expect(result.live).toEqual(result.expected);
-  expect(result.liveReport.created).toEqual(["x1"]);
+  expect(result.liveReport.created).toEqual(["x1", "p1"]);
 });

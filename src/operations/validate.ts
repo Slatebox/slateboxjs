@@ -23,6 +23,7 @@ import { checkBackground, checkStyle, SLATE_KEYS } from "./keys/slate";
 import { checkSelector } from "./keys/selector";
 import { checkValue, isObject, type Lists } from "./keys/values";
 import { readMediaValue } from "./media";
+import { readPhotoValue } from "./photo";
 
 // Two guards on words in the person's request. They stay until the action
 // registry offers a preview mode (P02), which replaces them.
@@ -135,7 +136,18 @@ export function validatePlan(plan: any, options: ValidateOptions = {}): SlateOpe
           }
           if (connects) errors.push(`${prefix} is a media note, so it cannot copy and connect from another note.`);
         }
-        if (!media && (operation.shape !== undefined || (operation.preset === undefined && !connects))) {
+        // A photo note: one note, a picture the host stored, drawn as the whole note (always a rectangle).
+        const photo = operation.photo !== undefined;
+        if (photo) {
+          const read = readPhotoValue(operation.photo);
+          if (!read.ok) errors.push(`${prefix} photo ${read.message}`);
+          if (operation.count !== 1) errors.push(`${prefix} adds one photo note at a time (count 1).`);
+          for (const key of ["shape", "preset", "text", "media"]) {
+            if (operation[key] !== undefined) errors.push(`${prefix} is a photo note, so it takes no ${key}.`);
+          }
+          if (connects) errors.push(`${prefix} is a photo note, so it cannot copy and connect from another note.`);
+        }
+        if (!media && !photo && (operation.shape !== undefined || (operation.preset === undefined && !connects))) {
           const shape = checkValue(NODE_KEYS.shape.spec(lists), operation.shape, `${prefix} shape`);
           if (shape) errors.push(shape);
         }

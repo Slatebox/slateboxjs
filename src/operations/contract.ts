@@ -26,7 +26,7 @@ export type SlateOperationKind = (typeof SLATE_OPERATION_KINDS)[number];
 
 /** Fields each kind accepts. Anything else in an operation is refused. */
 export const OPERATION_FIELDS: Record<SlateOperationKind, readonly string[]> = {
-  add_nodes: ["kind", "count", "shape", "preset", "text", "ids", "x", "y", "width", "height", "placement", "style", "media"],
+  add_nodes: ["kind", "count", "shape", "preset", "text", "ids", "x", "y", "width", "height", "placement", "style", "media", "photo"],
   update_nodes: ["kind", "target", "changes"],
   delete_nodes: ["kind", "target"],
   duplicate_nodes: ["kind", "target", "offset", "ids"],
@@ -137,6 +137,8 @@ export interface SlateOperation {
   style?: Record<string, any>;
   /** add_nodes: a media note, a video from an approved host (operations/media.ts readMediaValue). */
   media?: { url: string; title?: string; author?: string; start?: number; poster?: string; posterWidth?: number; posterHeight?: number };
+  /** add_nodes: a photo note, a picture the host stored (operations/photo.ts readPhotoValue). */
+  photo?: { url: string; width: number; height: number; alt?: string };
   target?: NodeSelector;
   from?: NodeSelector;
   to?: NodeSelector & { point?: { x: number; y: number } };

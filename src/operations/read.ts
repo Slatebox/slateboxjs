@@ -17,12 +17,13 @@ import { CONNECTOR_END_KEYS, CONNECTOR_KEYS } from "./keys/connector";
 import { readEnds } from "./line-ends";
 import { NODE_KEYS } from "./keys/node";
 import { readMedia } from "./media";
+import { readPhoto } from "./photo";
 import { checkSelector, type NodeSelector } from "./keys/selector";
 import { backgroundOf } from "./keys/slate";
 import { allConnectors, box, isFreeEnd, noteId, selectNotes, toStoredSlate, type StoredNode, type StoredSlate } from "./stored";
 
 /** Keys every note read carries besides the writable ones: what a person sees but cannot yet set by plan. */
-export const NOTE_READ_KEYS = ["id", ...Object.keys(NODE_KEYS), "image", "media", "styleRole"] as const;
+export const NOTE_READ_KEYS = ["id", ...Object.keys(NODE_KEYS), "image", "media", "photo", "styleRole"] as const;
 export const READ_LIMITS = Object.freeze({ notes: 100, maxNotes: 500, maxChars: 60000 });
 
 export interface ReadSelection {
@@ -74,6 +75,8 @@ export function readNote(node: StoredNode, fields?: readonly string[]): Record<s
   if (want("image")) out.image = options.image || null;
   // A media note reads as its video (provider, url, title, poster), never the player's internals.
   if (want("media")) out.media = readMedia(options);
+  // A photo note reads as its picture, its size and its words.
+  if (want("photo")) out.photo = readPhoto(options);
   // A note the slate's style added (a title card, a quote, decoration) says which part it plays.
   if (want("styleRole")) out.styleRole = typeof options.styleRole === "string" ? options.styleRole : null;
   return out;

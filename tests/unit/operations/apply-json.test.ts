@@ -466,3 +466,32 @@ describe("arrange_nodes: each layout lines the notes up as it names", () => {
     expect(arrange("grid")).toEqual([[100, 60], [320, 60], [100, 180], [320, 180]]);
   });
 });
+
+describe("add_nodes photo: one picture note at an exact point, or beside the slate's notes", () => {
+  const photo = { url: "https://files.example/2026/11/27/u_1_abc.jpg", width: 3000, height: 4000, alt: "Sticky notes" };
+
+  it("puts the note where x and y say, 320 on its longer side, with no text", () => {
+    const result = applyPlanToJSON(slate(), plan({ kind: "add_nodes", count: 1, photo, ids: ["p1"], x: 300, y: 400 }));
+    const added = result.slate.nodes.find((n: any) => n.options.id === "p1")!.options;
+    expect(added).toMatchObject({ xPos: 300, yPos: 400, width: 240, height: 320, text: "", image: photo.url, imageFit: "cover", imageOrigWidth: 3000, imageOrigHeight: 4000 });
+    expect(result.report.created).toEqual(["p1"]);
+    // The three notes already there are untouched.
+    expect(result.slate.nodes.slice(0, 3).map((n: any) => [n.options.id, n.options.xPos])).toEqual([["a", 100], ["b", 400], ["c", 700]]);
+  });
+
+  it("with no x and y, lands clear of the notes already on the slate", () => {
+    const result = applyPlanToJSON(slate(), plan({ kind: "add_nodes", count: 1, photo, ids: ["p1"] }));
+    const added = result.slate.nodes.find((n: any) => n.options.id === "p1")!.options;
+    const overlaps = slate().nodes.some(({ options: o }) =>
+      added.xPos < o.xPos + o.width && added.xPos + added.width > o.xPos && added.yPos < o.yPos + o.height && added.yPos + added.height > o.yPos);
+    expect(overlaps).toBe(false);
+  });
+
+  it("refuses a photo the plan cannot store, as validation and as the applier", () => {
+    const bad = plan({ kind: "add_nodes", count: 1, photo: { url: "/canvas/abc", width: 10, height: 10 } });
+    expect(validatePlan(bad).valid).toBe(false);
+    expect(() => applyPlanToJSON(slate(), bad)).toThrow(OperationPlanError);
+    const both = validatePlan(plan({ kind: "add_nodes", count: 1, photo, media: { url: "https://youtu.be/dQw4w9WgXcQ" } }));
+    expect(both.errors.join(" ")).toMatch(/photo note, so it takes no media/);
+  });
+});
