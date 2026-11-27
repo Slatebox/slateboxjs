@@ -1,17 +1,36 @@
 /**
  * Slate keys: name, description and background. The background is one shape
- * for every applier: {color, gradient?}. It is stored in the containerStyle
- * fields Slate.applyContainerStyle paints, and the live applier sends it as
- * the onSlateBackgroundColorChanged package that sets those same fields.
+ * for every applier: {color, gradient? | picture?}. It is stored in the
+ * containerStyle fields Slate.applyContainerStyle paints, and the live applier
+ * sends it as the onSlateBackgroundColorChanged package that sets those same
+ * fields. A slate that wears a style keeps its background in the style's record
+ * too (overrides.bg and overrides.background), so the host's "Revert to
+ * original" and a style worn again keep or restore it.
  */
 import { checkValue, isObject, schemaFor, type ValueSpec } from "./values";
 
 export const GRADIENT_TYPES = ["linear", "radial"] as const;
 export const GRADIENT_DIRECTIONS = ["horizontal", "vertical", "diagonal"] as const;
+/** How a background picture fills the canvas: cover (fills, cropped), contain (whole, centred), repeat (tiled). */
+export const PICTURE_FITS = ["cover", "contain", "repeat"] as const;
+/** The most a picture is dimmed (laid under the background colour), so it never disappears. */
+export const PICTURE_DIM_MAX = 0.8;
 
 export interface Background {
   color: string;
-  gradient?: { type: (typeof GRADIENT_TYPES)[number]; colors: string[]; direction?: (typeof GRADIENT_DIRECTIONS)[number] };
+  gradient?: { type: (typeof GRADIENT_TYPES)[number]; colors: string[]; direction?: (typeof GRADIENT_DIRECTIONS)[number]; angle?: number };
+  picture?: { url: string; fit?: (typeof PICTURE_FITS)[number]; dim?: number };
+}
+
+/**
+ * A picture a background may show: an https address, or a path on this app (a file it stored,
+ * /files/... or /sbimages/...). Never http, data:, javascript: or another scheme, never a path
+ * that climbs (..) or starts another host (//), and nothing that could end a CSS url().
+ */
+export const PICTURE_URL = /^(https:\/\/[A-Za-z0-9.-]+(:\d{1,5})?(\/[A-Za-z0-9._~!$&*+,;=:@%\/?#-]*)?|\/(?!\/)[A-Za-z0-9._~%\/-]+)$/;
+export const PICTURE_URL_MAX_LENGTH = 2000;
+export function isPictureUrl(value: unknown): value is string {
+  return typeof value === "string" && value.length <= PICTURE_URL_MAX_LENGTH && PICTURE_URL.test(value) && !/(^|\/)\.\.(\/|$)/.test(value);
 }
 
 export interface SlateKey {
@@ -43,12 +62,23 @@ export const SLATE_KEYS: Record<string, SlateKey> = {
   description: { spec: { type: "string", maxLength: 5000 }, description: "The slate's description.", ...option("description") },
   background: {
     spec: { type: "object" },
-    description: "Canvas background: {color, gradient?: {type, colors, direction?}}.",
+    description:
+      "Canvas background: {color, gradient?: {type, colors, direction?, angle?}} or {color, picture: {url, fit?, dim?}}. A picture is an https address or a file this app stored; dim (0 to 0.8) lays the color over it so notes stay readable.",
     store: (slate, value: Background) => {
       const style = { ...(slate.options.containerStyle || {}), ...backgroundToContainerStyle(value) };
-      delete style.backgroundImage;
       delete style.backgroundEffect;
+      for (const key of Object.keys(style)) if (style[key] === undefined) delete style[key];
       slate.options.containerStyle = style;
+      // A slate that wears a style keeps its background in the style's record, as the host's own
+      // Background control does: a style worn again keeps it, and its original restores the one before.
+      const worn = slate.options.style;
+      if (isObject(worn) && typeof worn.id === "string") {
+        const overrides: Record<string, any> = { ...(isObject(worn.overrides) ? worn.overrides : {}), bg: value.color };
+        const kept = backgroundOverride(value);
+        if (kept) overrides.background = kept;
+        else delete overrides.background;
+        slate.options.style = { ...worn, overrides };
+      }
     },
   },
   style: {
@@ -89,15 +119,20 @@ export function checkBackground(value: any, label: string): string[] {
   if (!isObject(value)) return [`${label} must be an object {color, gradient?}.`];
   const errors: string[] = [];
   for (const key of Object.keys(value)) {
-    if (key !== "color" && key !== "gradient") errors.push(`${label} has an unknown field: ${key}.`);
+    if (key !== "color" && key !== "gradient" && key !== "picture") errors.push(`${label} has an unknown field: ${key}.`);
   }
   const color = checkValue({ type: "color" }, value.color, `${label}.color`);
   if (color) errors.push(color);
+  if (value.gradient !== undefined && value.picture !== undefined) errors.push(`${label} is a gradient or a picture, not both.`);
+  if (value.picture !== undefined) errors.push(...checkPicture(value.picture, `${label}.picture`));
   if (value.gradient !== undefined) {
     const gradient = value.gradient;
-    if (!isObject(gradient)) return [...errors, `${label}.gradient must be an object {type, colors, direction?}.`];
+    if (!isObject(gradient)) return [...errors, `${label}.gradient must be an object {type, colors, direction?, angle?}.`];
     for (const key of Object.keys(gradient)) {
-      if (!["type", "colors", "direction"].includes(key)) errors.push(`${label}.gradient has an unknown field: ${key}.`);
+      if (!["type", "colors", "direction", "angle"].includes(key)) errors.push(`${label}.gradient has an unknown field: ${key}.`);
+    }
+    if (gradient.angle !== undefined && (typeof gradient.angle !== "number" || !Number.isInteger(gradient.angle) || gradient.angle < 0 || gradient.angle > 359)) {
+      errors.push(`${label}.gradient.angle must be a whole number of degrees from 0 to 359.`);
     }
     const type = checkValue({ type: "enum", values: GRADIENT_TYPES }, gradient.type, `${label}.gradient.type`);
     if (type) errors.push(type);
@@ -117,9 +152,27 @@ export function checkBackground(value: any, label: string): string[] {
   return errors;
 }
 
+/** A background picture: {url, fit?, dim?}. */
+export function checkPicture(picture: any, label: string): string[] {
+  if (!isObject(picture)) return [`${label} must be an object {url, fit?, dim?}.`];
+  const errors: string[] = [];
+  for (const key of Object.keys(picture)) {
+    if (!["url", "fit", "dim"].includes(key)) errors.push(`${label} has an unknown field: ${key}.`);
+  }
+  if (!isPictureUrl(picture.url)) errors.push(`${label}.url must be an https address or a file this app stored (a path such as /files/...).`);
+  if (picture.fit !== undefined) {
+    const fit = checkValue({ type: "enum", values: PICTURE_FITS }, picture.fit, `${label}.fit`);
+    if (fit) errors.push(fit);
+  }
+  if (picture.dim !== undefined && (typeof picture.dim !== "number" || !Number.isFinite(picture.dim) || picture.dim < 0 || picture.dim > PICTURE_DIM_MAX)) {
+    errors.push(`${label}.dim must be a number from 0 to ${PICTURE_DIM_MAX}.`);
+  }
+  return errors;
+}
+
 /** Style ids: lowercase words joined by hyphens, as the app's styles are named. */
 const STYLE_ID = /^[a-z][a-z-]{0,39}$/;
-const STYLE_OVERRIDES = ["bg", "palette", "fonts"];
+const STYLE_OVERRIDES = ["bg", "palette", "fonts", "background"];
 
 /**
  * A style record ({id, overrides?, v?}, or null to take the style off). The engine does not know
@@ -147,6 +200,17 @@ export function checkStyle(value: any, label: string, fonts: readonly string[]):
   if (overrides.bg !== undefined) {
     const problem = checkValue({ type: "color" }, overrides.bg, `${label}.overrides.bg`);
     if (problem) errors.push(problem);
+  }
+  if (overrides.background !== undefined) {
+    const background = overrides.background;
+    const where = `${label}.overrides.background`;
+    if (!isObject(background) || Object.keys(background).length !== 1 || !["gradient", "picture"].includes(Object.keys(background)[0])) {
+      errors.push(`${where} must be {gradient} or {picture}.`);
+    } else {
+      // Checked as a background of its own, over the record's color.
+      const color = typeof overrides.bg === "string" ? overrides.bg : "#ffffff";
+      errors.push(...checkBackground({ color, ...background }, where).filter((problem) => !problem.startsWith(`${where}.color`)));
+    }
   }
   if (overrides.palette !== undefined) {
     if (!Array.isArray(overrides.palette) || overrides.palette.length < 1 || overrides.palette.length > 12) {
@@ -179,15 +243,46 @@ export function checkStyle(value: any, label: string, fonts: readonly string[]):
   return errors;
 }
 
-/** The containerStyle fields a background sets. */
+/** A gradient's angle as the nearest of the three older directions (what an older reader draws). */
+const directionOfAngle = (angle: number): (typeof GRADIENT_DIRECTIONS)[number] => {
+  const a = ((angle % 180) + 180) % 180;
+  if (a < 22.5 || a >= 157.5) return "vertical";
+  if (a >= 67.5 && a < 112.5) return "horizontal";
+  return "diagonal";
+};
+
+/**
+ * The containerStyle fields a background sets. Every field is written (undefined where the
+ * background has none), so a picture replaces a gradient and a color replaces both.
+ */
 export function backgroundToContainerStyle(background: Background): Record<string, any> {
+  const gradient = background.gradient;
+  const picture = background.picture;
+  const angle = typeof gradient?.angle === "number" ? gradient.angle : undefined;
   return {
     backgroundColor: background.color,
-    backgroundColorAsGradient: Boolean(background.gradient),
-    backgroundGradientType: background.gradient?.type ?? "linear",
-    backgroundGradientColors: background.gradient?.colors ?? [],
-    backgroundGradientStrategy: background.gradient?.direction ?? "horizontal",
+    backgroundColorAsGradient: Boolean(gradient),
+    backgroundGradientType: gradient?.type ?? "linear",
+    backgroundGradientColors: gradient?.colors ?? [],
+    backgroundGradientStrategy: gradient?.direction ?? (angle !== undefined ? directionOfAngle(angle) : "horizontal"),
+    backgroundGradientAngle: gradient?.type === "linear" ? angle : undefined,
+    backgroundImage: picture?.url,
+    backgroundSize: picture ? picture.fit ?? "cover" : undefined,
+    backgroundDim: picture && picture.dim ? picture.dim : undefined,
   };
+}
+
+/** The part of a background a style's record keeps beside its color (overrides.background); null for a plain color. */
+export function backgroundOverride(background: Background): Record<string, any> | null {
+  if (background.picture) {
+    const { url, fit = "cover", dim = 0 } = background.picture;
+    return { picture: { url, fit, dim } };
+  }
+  if (background.gradient) {
+    const { type, colors, angle } = background.gradient;
+    return { gradient: { type, colors: [...colors], ...(type === "linear" && typeof angle === "number" ? { angle } : {}) } };
+  }
+  return null;
 }
 
 /** The style record's schema (null takes the style off). */
@@ -206,8 +301,43 @@ export function styleSchema(): Record<string, any> {
           bg: schemaFor({ type: "color" }),
           palette: { type: "array", minItems: 1, maxItems: 12, items: { type: "string", maxLength: 64 } },
           fonts: { type: "object", additionalProperties: false, properties: { display: { type: "string" }, body: { type: "string" } } },
+          background: {
+            type: "object",
+            description: "The background beside bg: {gradient} or {picture}, as background takes them.",
+            additionalProperties: false,
+            minProperties: 1,
+            maxProperties: 1,
+            properties: { gradient: gradientSchema(), picture: pictureSchema() },
+          },
         },
       },
+    },
+  };
+}
+
+function gradientSchema(): Record<string, any> {
+  return {
+    type: "object",
+    additionalProperties: false,
+    required: ["type", "colors"],
+    properties: {
+      type: { type: "string", enum: [...GRADIENT_TYPES] },
+      colors: { type: "array", minItems: 2, maxItems: 8, items: schemaFor({ type: "color" }) },
+      direction: { type: "string", enum: [...GRADIENT_DIRECTIONS] },
+      angle: { type: "integer", minimum: 0, maximum: 359, description: "Degrees, as CSS: 0 runs bottom to top, 90 left to right. Linear only." },
+    },
+  };
+}
+
+function pictureSchema(): Record<string, any> {
+  return {
+    type: "object",
+    additionalProperties: false,
+    required: ["url"],
+    properties: {
+      url: { type: "string", maxLength: PICTURE_URL_MAX_LENGTH, pattern: PICTURE_URL.source, description: "An https address, or a file this app stored (/files/...)." },
+      fit: { type: "string", enum: [...PICTURE_FITS], description: "cover fills the canvas, contain shows the whole picture, repeat tiles it." },
+      dim: { type: "number", minimum: 0, maximum: PICTURE_DIM_MAX, description: "How much of the color is laid over the picture, so notes stay readable." },
     },
   };
 }
@@ -219,16 +349,8 @@ export function backgroundSchema(): Record<string, any> {
     required: ["color"],
     properties: {
       color: schemaFor({ type: "color" }),
-      gradient: {
-        type: "object",
-        additionalProperties: false,
-        required: ["type", "colors"],
-        properties: {
-          type: { type: "string", enum: [...GRADIENT_TYPES] },
-          colors: { type: "array", minItems: 2, maxItems: 8, items: schemaFor({ type: "color" }) },
-          direction: { type: "string", enum: [...GRADIENT_DIRECTIONS] },
-        },
-      },
+      gradient: gradientSchema(),
+      picture: pictureSchema(),
     },
   };
 }
@@ -237,13 +359,24 @@ export function backgroundSchema(): Record<string, any> {
 export function backgroundOf(style: Record<string, any> | undefined): Background | null {
   if (!style?.backgroundColor) return null;
   const colors = style.backgroundGradientColors;
-  if (!style.backgroundColorAsGradient || !Array.isArray(colors) || colors.length < 2) return { color: style.backgroundColor };
+  if (!style.backgroundColorAsGradient || !Array.isArray(colors) || colors.length < 2) {
+    // A gradient wins over a picture when both are stored (as the canvas draws them).
+    if (typeof style.backgroundImage === "string" && style.backgroundImage) {
+      const fit = (PICTURE_FITS as readonly string[]).includes(style.backgroundSize) ? style.backgroundSize : "cover";
+      const dim = typeof style.backgroundDim === "number" && style.backgroundDim > 0 ? Math.min(style.backgroundDim, PICTURE_DIM_MAX) : 0;
+      return { color: style.backgroundColor, picture: { url: style.backgroundImage, fit, dim } };
+    }
+    return { color: style.backgroundColor };
+  }
+  const type = style.backgroundGradientType ?? "linear";
+  const angle = type === "linear" && typeof style.backgroundGradientAngle === "number" ? style.backgroundGradientAngle : undefined;
   return {
     color: style.backgroundColor,
     gradient: {
-      type: style.backgroundGradientType ?? "linear",
+      type,
       colors: [...colors],
       direction: style.backgroundGradientStrategy ?? "horizontal",
+      ...(angle !== undefined ? { angle } : {}),
     },
   };
 }

@@ -392,7 +392,12 @@ export class Invoker {
     cs.backgroundGradientType = pkg.data.gradientType
     cs.backgroundGradientColors = pkg.data.gradientColors
     cs.backgroundGradientStrategy = pkg.data.gradientStrategy
-    cs.backgroundImage = undefined
+    cs.backgroundGradientAngle = typeof pkg.data.gradientAngle === 'number' ? pkg.data.gradientAngle : undefined
+    // A background picture comes with its color (the one laid over it and shown around it); a
+    // package without one clears any picture, as it always did.
+    cs.backgroundImage = typeof pkg.data.image === 'string' && pkg.data.image ? pkg.data.image : undefined
+    cs.backgroundSize = cs.backgroundImage ? pkg.data.size : cs.backgroundSize
+    cs.backgroundDim = cs.backgroundImage && typeof pkg.data.dim === 'number' ? pkg.data.dim : undefined
     cs.backgroundEffect = undefined
     // Actually paint the container (previously only options were updated).
     this.slate.applyContainerStyle()

@@ -34,7 +34,7 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 const SAFE_COLOR = /^(#[0-9a-f]{3,8}|[a-z]{3,20}|(rgb|hsl)a?\([\d\s.,%]+\))$/i;
 
 /**
- * Draw the containerStyle background (a color, or a two-or-more-stop gradient) as
+ * Draw the containerStyle background (a color, or a two-or-more-stop gradient at its angle) as
  * rect[data-background] behind everything in the exported SVG. No color, white, or an
  * image background (which the export does not carry) adds nothing.
  */
@@ -58,7 +58,17 @@ function paintBackground(svgNode: Element, cs: Record<string, any> | undefined):
     const radial = cs.backgroundGradientType === "radial";
     const grad = doc.createElementNS(SVG_NS, radial ? "radialGradient" : "linearGradient");
     grad.setAttribute("id", "sb-export-background");
-    if (!radial) {
+    const angle = Number(cs.backgroundGradientAngle);
+    if (!radial && cs.backgroundGradientAngle != null && Number.isFinite(angle)) {
+      // A CSS angle (0 runs bottom to top, 90 left to right) as the gradient's line across the box.
+      const rad = (angle * Math.PI) / 180;
+      const [dx, dy] = [Math.sin(rad) / 2, -Math.cos(rad) / 2];
+      const at = (n: number) => String(Math.round(n * 1000) / 1000);
+      grad.setAttribute("x1", at(0.5 - dx));
+      grad.setAttribute("y1", at(0.5 - dy));
+      grad.setAttribute("x2", at(0.5 + dx));
+      grad.setAttribute("y2", at(0.5 + dy));
+    } else if (!radial) {
       const way = cs.backgroundGradientStrategy;
       grad.setAttribute("x2", way === "vertical" ? "0" : "1");
       grad.setAttribute("y2", way === "horizontal" ? "0" : "1");

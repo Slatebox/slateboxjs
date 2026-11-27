@@ -4,6 +4,15 @@
 
 ### Added
 
+- A slate background can be a gradient at an angle or a picture. `update_slate { background }` takes
+  `{color, gradient: {type, colors, direction?, angle?}}` (angle 0 to 359, linear) or
+  `{color, picture: {url, fit?: cover|contain|repeat, dim?: 0..0.8}}`; a picture is an https address or a path this
+  app stored (never http, data: or `//`). Stored as `backgroundGradientAngle`, `backgroundImage`, `backgroundSize` and
+  `backgroundDim`; `readSlate().background` reads them back. The canvas centers a picture, covers, fits or tiles it,
+  and lays the background color over it by `dim` so notes stay readable; the address is always quoted in `url()`.
+  SVG export draws a gradient at its angle. A slate that wears a style keeps the background in its record
+  (`overrides.bg` and `overrides.background: {gradient} | {picture}`), which `checkStyle` accepts.
+
 - A slate wears a style: `update_slate { style: {id, overrides?: {bg, palette, fonts}, v} }` (or `null` to take it off)
   records which style the slate wears, checked by `checkStyle`, stored as `options.style`, serialized and read back
   (`readSlate().style`, `toSlateDocument`). The look itself is real slate content: the background, the notes' fields

@@ -177,6 +177,10 @@ export function packagesForOperation(operation: SlateOperation, before: StoredSl
             gradientType: style.backgroundGradientType,
             gradientColors: style.backgroundGradientColors,
             gradientStrategy: style.backgroundGradientStrategy,
+            gradientAngle: style.backgroundGradientAngle,
+            image: style.backgroundImage,
+            size: style.backgroundSize,
+            dim: style.backgroundDim,
           },
         });
       }

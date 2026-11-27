@@ -727,3 +727,15 @@ describe("exportSVG draws the slate's own background", () => {
     expect(image).not.toContain('fill="#0b0016"');
   });
 });
+
+describe("exportSVG draws a gradient at its angle", () => {
+  it("a linear gradient's angle is its line across the box (90 runs left to right)", () => {
+    const slate = createMockSlate({
+      options: { containerStyle: { backgroundColor: "#111111", backgroundColorAsGradient: true, backgroundGradientType: "linear", backgroundGradientColors: ["#111111", "#333333", "#555555"], backgroundGradientAngle: 90 } },
+    });
+    const doc = new DOMParser().parseFromString(exportSVG(slate).replace(/^<\?xml[^>]*>\n/, ""), "image/svg+xml");
+    const grad = doc.querySelector("linearGradient")!;
+    expect([grad.getAttribute("x1"), grad.getAttribute("y1"), grad.getAttribute("x2"), grad.getAttribute("y2")]).toEqual(["0", "0.5", "1", "0.5"]);
+    expect(doc.querySelectorAll("linearGradient stop").length).toBe(3);
+  });
+});
