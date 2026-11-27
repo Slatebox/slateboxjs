@@ -40,6 +40,8 @@ export { FREE_NODE, GOVERNED_NODE, hitTestNodeBoxes } from './core/DragPolicy';
 export { DEFAULT_NOTE_STYLE } from './core/NoteDefaults';
 export { parseMediaUrl, isMediaUrl, mediaEmbedUrl, mediaLabel, MEDIA_PROVIDERS, MEDIA_FRAME_ORIGINS, MEDIA_NOTE_SIZE } from './operations/media';
 export type { MediaValue, MediaProvider } from './operations/media';
+export { PHOTO_LIMITS, readPhotoValue, photoNoteSize, readPhoto } from './operations/photo';
+export type { PhotoValue } from './operations/photo';
 export type { MediaRequest } from './core/MediaInput';
 export { AGENT_PALETTE, AGENT_SAY_MS, agentStepText, agentChecklist, agentName, agentOrigin, agentSaying, safeIconUrl, visibleAgents, type AgentPresenceRecord, type AgentStepStatus } from './core/agentPresenceText';
 export type { DragPolicy, DragVerdict, DragGesture, DragCancelReason, NodeCapabilities, NodeGovernance, WorldPoint, } from './core/DragPolicy';

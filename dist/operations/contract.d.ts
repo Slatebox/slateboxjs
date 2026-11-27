@@ -90,6 +90,13 @@ export interface SlateOperation {
         posterWidth?: number;
         posterHeight?: number;
     };
+    /** add_nodes: a photo note, a picture the host stored (operations/photo.ts readPhotoValue). */
+    photo?: {
+        url: string;
+        width: number;
+        height: number;
+        alt?: string;
+    };
     target?: NodeSelector;
     from?: NodeSelector;
     to?: NodeSelector & {

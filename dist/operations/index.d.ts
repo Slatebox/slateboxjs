@@ -25,6 +25,8 @@ export type { Background } from "./keys/slate";
 export type { NodeSelector } from "./keys/selector";
 export { MEDIA_PROVIDERS, MEDIA_HOST_NAMES, MEDIA_FRAME_ORIGINS, MEDIA_NOTE_SIZE, MEDIA_LIMITS, parseMediaUrl, isMediaUrl, parseStart, mediaEmbedUrl, readMediaValue, readMedia, mediaLabel, } from "./media";
 export type { MediaValue, MediaProvider } from "./media";
+export { PHOTO_LIMITS, PHOTO_NOTE_LONG_SIDE, readPhotoValue, photoNoteSize, storePhoto, readPhoto } from "./photo";
+export type { PhotoValue } from "./photo";
 export { normalizePlan } from "./normalize";
 export type { NormalizedPlan } from "./normalize";
 export { groupPlanErrors, planErrorHints, planErrorsOf, operationRanges } from "./errors";
