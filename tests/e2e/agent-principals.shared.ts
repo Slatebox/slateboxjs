@@ -1,14 +1,14 @@
 import {randomBytes} from 'node:crypto'
 import {expect, type Page} from '@playwright/test'
 import {userId} from './workshop-guests.shared'
+import {newGuest} from './guest-budget.shared'
 
 const origin = new URL(process.env.SLATEBOX_APP_URL || 'http://localhost:3000')
 
 export type Actor = {page:Page; email:string; id:string|null}
 export async function register(actor: Actor, path: string) {
   const {page,email} = actor
-  await page.goto(new URL(path,origin).href)
-  await page.waitForURL(/\/canvas\/[a-zA-Z0-9]{10}$/)
+  await newGuest(page, () => page.goto(new URL(path,origin).href))
   const boardKey = new URL(page.url()).pathname.split('/').pop()!
   await expect.poll(() => userId(page)).toBeTruthy()
   actor.id = await userId(page)

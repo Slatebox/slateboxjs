@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { newGuest, watchGuests } from './guest-budget.shared'
 
 const appUrl = process.env.SLATEBOX_APP_URL || 'http://localhost:3000'
 
@@ -8,6 +9,7 @@ test('a guest talks it through, builds the plan onto a slate, and the tile makes
   test.skip(!['localhost', '127.0.0.1', 'test.slatebox.com'].includes(new URL(appUrl).hostname), 'writes: disposable guest on test only')
   test.setTimeout(420_000)
   let owner: string | null = null
+  watchGuests(page) // the guest is made later, by the first answer on this page
   try {
     await page.goto(new URL('/new?talk=1', appUrl).href)
     const talk = page.getByRole('heading', { name: 'Talk it through with Slatebox' })
@@ -19,9 +21,11 @@ test('a guest talks it through, builds the plan onto a slate, and the tile makes
       'Weekly lineups lock Thursday night; waivers clear Wednesday morning; we trade any time before week 10.',
       'Twelve teams, each with QB, two RB, two WR, TE, FLEX and six bench spots.',
     ]
-    for (const said of answers) {
-      await box.fill(said)
-      await box.press('Enter')
+    for (const [index, said] of answers.entries()) {
+      const send = async () => { await box.fill(said); await box.press('Enter') }
+      // The first answer makes the guest.
+      if (index === 0) await newGuest(page, send, () => page.waitForFunction(() => Boolean((window as any).Meteor?.userId()), null, { timeout: 30_000 }))
+      else await send()
       await expect(list).toContainText(said.slice(0, 30))
       await expect(page.getByText(/thinking|reading your answer/i)).toHaveCount(0, { timeout: 90_000 })
     }

@@ -1,4 +1,5 @@
 import type { Page } from "@playwright/test";
+import { newGuest } from "./guest-budget.shared";
 
 /** Return the newly created guest-owned slate URL to multi-session proofs. */
 export async function bootstrapGuestSlate(page: Page, appUrl: string) {
@@ -13,8 +14,7 @@ export async function bootstrapGuestSlate(page: Page, appUrl: string) {
  * saved and shared. `firstNote: null` leaves the slate empty.
  */
 export async function openGuestCanvas(page: Page, appUrl: string, { firstNote = "Welcome!" as string | null } = {}) {
-  await page.goto(appUrl + "/start?empty=1");
-  await page.waitForURL(/\/canvas\//);
+  await newGuest(page, () => page.goto(appUrl + "/start?empty=1"), () => page.waitForURL(/\/canvas\//));
   await canvasReady(page);
   const welcome = page.getByRole("dialog", { name: /welcome/i });
   if (await welcome.waitFor({state:"visible",timeout:2500}).then(()=>true,()=>false)) {

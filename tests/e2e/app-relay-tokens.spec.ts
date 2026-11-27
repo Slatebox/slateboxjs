@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { newGuest } from './guest-budget.shared'
 import WebSocket from 'ws'
 
 const appUrl = process.env.SLATEBOX_APP_URL || 'http://localhost:3000'
@@ -12,8 +13,7 @@ test('relay tokens: no access gets nothing, the owner gets a write token for its
   const page = await context.newPage()
   let owner: string | null = null
   try {
-    await page.goto(new URL('/start?empty=1', appUrl).href)
-    await page.waitForURL(/\/canvas\/[a-zA-Z0-9]{10}$/)
+    await newGuest(page, () => page.goto(new URL('/start?empty=1', appUrl).href))
     const shareId = new URL(page.url()).pathname.split('/').pop()!
     owner = await page.evaluate(() => (window as any).Meteor.userId())
 

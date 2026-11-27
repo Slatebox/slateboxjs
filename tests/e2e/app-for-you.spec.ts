@@ -14,6 +14,8 @@ test('For you proposes ideas tied to the person and builds one onto a new privat
   try {
     await register(actor, '/start?empty=1')
     await page.goto(new URL('/profile?tab=about', appUrl).href)
+    // The page's Meteor is up and signed in as the new account before the test calls it.
+    await page.waitForFunction(id => (window as any).Meteor?.userId?.() === id, actor.id)
     for (const fact of [
       { kind: 'role', text: 'Runs a fantasy football league of twelve friends' },
       { kind: 'routine', text: 'Sets weekly lineups every Thursday and tracks trades on waiver day' },

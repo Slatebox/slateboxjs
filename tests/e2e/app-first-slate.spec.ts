@@ -1,6 +1,7 @@
 import { expect, test, type Browser, type Page } from '@playwright/test'
 import { getSlate, removeTestGuest, userId } from './workshop-guests.shared'
 import { conversation, dragCardNamed, slateKey, storedWorkshop, workshopReady } from './app-native-workshop.shared'
+import { newGuest, watchGuests } from './guest-budget.shared'
 
 // The signed-out "Create slate" first run: /new asks "What should your first slate do?" (8 jobs, a second
 // one-click question for some, their own words, Skip) and opens a real working board for the answer, with
@@ -16,13 +17,14 @@ async function virgin(browser: Browser, viewport = { width: 1440, height: 900 })
   const context = await browser.newContext({ viewport, hasTouch: phone, isMobile: phone })
   const page = await context.newPage()
   const sent: string[] = []
+  watchGuests(page) // the guest is made later, by a click on this page (newGuest)
   page.on('websocket', socket => socket.on('framesent', frame => { if (typeof frame.payload === 'string') sent.push(frame.payload) }))
   await page.goto(at('/new'))
   expect(await page.evaluate(() => localStorage.getItem('Meteor.loginToken') ?? localStorage.getItem('meteor_token'))).toBeNull()
   return { context, page, sent }
 }
 const heading = (page: Page) => page.getByRole('heading', { name: 'What should your first slate do?', level: 1 })
-const jobs = (page: Page) => page.getByRole('group', { name: 'Pick a job' }).getByRole('button')
+const jobs = (page: Page) => page.getByRole('group', { name: 'Start from a job', exact: true }).getByRole('button')
 const starters = (page: Page) => conversation(page).getByRole('group', { name: 'Starter messages' })
 async function onCanvas(page: Page) {
   await page.waitForURL(/\/canvas\/[a-zA-Z0-9]{10}$/, { timeout: 30000 })
@@ -40,7 +42,7 @@ test('(a)(b)(c) a virgin visitor picks ship → My team and gets a working launc
     await page.getByRole('button', { name: /^Ship something by a date/ }).click()
     await expect(page).toHaveURL(/\?job=ship$/)
     await expect(page.getByRole('heading', { name: 'Who’s it with?', level: 2 })).toBeFocused()
-    await page.getByRole('button', { name: 'My team', exact: true }).click()
+    await newGuest(page, () => page.getByRole('button', { name: 'My team', exact: true }).click())
     id = await onCanvas(page)
     await workshopReady(page)
     const stored = await getSlate(page, slateKey(page))
@@ -71,7 +73,7 @@ test('(d) Skip opens This week with four cards, and Doing refuses a fourth card'
   const { context, page } = await virgin(browser)
   let id: string | null = null
   try {
-    await page.getByRole('button', { name: 'Skip', exact: true }).click()
+    await newGuest(page, () => page.getByRole('button', { name: 'Skip', exact: true }).click())
     id = await onCanvas(page)
     await workshopReady(page)
     const board = await storedWorkshop(page, slateKey(page))
@@ -91,7 +93,7 @@ test('(e) their own words with arrows draw a native diagram of three notes', asy
   let id: string | null = null
   try {
     await page.getByLabel('Or say it in your own words').fill('Request comes in → Triage → Close')
-    await page.getByRole('button', { name: 'Make it', exact: true }).click()
+    await newGuest(page, () => page.getByRole('button', { name: 'Make it', exact: true }).click())
     id = await onCanvas(page)
     // The steps, to the right of the "How this board works" note every first slate has.
     await expect.poll(async () => ((await getSlate(page, slateKey(page)))?.nodes ?? []).map((node: any) => node.options.text.split('\n')[0]))
@@ -126,7 +128,7 @@ test('(h) once answered, a reload and Create slate open a blank slate', async ({
   const { context, page } = await virgin(browser)
   let id: string | null = null
   try {
-    await page.getByRole('button', { name: /^Track deals to a target/ }).click()
+    await newGuest(page, () => page.getByRole('button', { name: /^Track deals to a target/ }).click())
     id = await onCanvas(page)
     await workshopReady(page)
     expect((await storedWorkshop(page, slateKey(page))).kind).toBe('pipeline')
@@ -144,7 +146,7 @@ test('Make it yours: starter 1 on an untouched launch plan rebuilds it in place 
   const { context, page, sent } = await virgin(browser)
   let id: string | null = null
   try {
-    await page.goto(at('/new?job=ship&with=team'))
+    await newGuest(page, () => page.goto(at('/new?job=ship&with=team')))
     id = await onCanvas(page)
     await workshopReady(page)
     await starters(page).getByRole('button', { name: /^Plan a launch for day 18/ }).click()
@@ -178,7 +180,7 @@ test('Back from a board made through a second answer leaves /new: no second, emp
     await page.goto('about:blank')
     await page.goto(at('/new'))
     await page.getByRole('button', { name: /^Run our week/ }).click()
-    await page.getByRole('button', { name: 'My team', exact: true }).click()
+    await newGuest(page, () => page.getByRole('button', { name: 'My team', exact: true }).click())
     id = await onCanvas(page)
     const board = page.url()
     const made = await page.evaluate(() => (window as any).Meteor.user()?._id)
@@ -197,7 +199,7 @@ test('a typed list is their own cards, even with job words in it', async ({ brow
   let id: string | null = null
   try {
     await page.getByLabel('Or say it in your own words').fill('Hire a designer, Fix billing, Write docs')
-    await page.getByRole('button', { name: 'Make it', exact: true }).click()
+    await newGuest(page, () => page.getByRole('button', { name: 'Make it', exact: true }).click())
     id = await onCanvas(page)
     await workshopReady(page)
     expect((await storedWorkshop(page, slateKey(page))).cards.map((card: any) => card.label)).toEqual(['Hire a designer', 'Fix billing', 'Write docs'])
@@ -209,7 +211,7 @@ test('on a phone the one-time Share label stays short, and the title keeps its r
   const { context, page } = await virgin(browser, { width: 390, height: 844 })
   let id: string | null = null
   try {
-    await page.goto(at('/new?job=lookback&with=broke'))
+    await newGuest(page, () => page.goto(at('/new?job=lookback&with=broke')))
     id = await onCanvas(page)
     await expect(page.getByRole('button', { name: 'Invite', exact: true })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Invite your team' })).toHaveCount(0)
@@ -220,7 +222,7 @@ test('Browse all boards opens the library once: a reload of the slate does not o
   const { context, page } = await virgin(browser)
   let id: string | null = null
   try {
-    await page.getByRole('button', { name: 'Browse all boards' }).click()
+    await newGuest(page, () => page.getByRole('button', { name: 'Browse all boards' }).click())
     id = await onCanvas(page)
     await expect.poll(() => page.evaluate(() => window.history.state?.usr?.openLibrary ?? null)).toBeNull()
     await page.reload()
@@ -233,7 +235,7 @@ test('firstSlate.create: every job builds for a guest, a retry with the same req
   const { context, page } = await virgin(browser)
   let id: string | null = null
   try {
-    await page.getByRole('button', { name: /^Get a customer live/ }).click()
+    await newGuest(page, () => page.getByRole('button', { name: /^Get a customer live/ }).click())
     id = await onCanvas(page)
     const call = (answer: Record<string, unknown>) => page.evaluate(async answer => {
       try { return { shareId: await (window as any).Meteor.callAsync('firstSlate.create', answer) } } catch (error: any) { return { error: error.error } }

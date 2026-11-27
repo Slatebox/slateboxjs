@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto'
 import { expect, test } from '@playwright/test'
+import { newGuest } from './guest-budget.shared'
 
 const appUrl = process.env.SLATEBOX_APP_URL || 'http://localhost:3000'
 
@@ -17,8 +18,7 @@ test('a guest saves the account with a passkey and signs back in with it', async
   } })
   let userId: string | null = null
   try {
-    await page.goto(new URL('/start?empty=1', appUrl).href)
-    await page.waitForURL(/\/canvas\/[a-zA-Z0-9]{10}$/)
+    await newGuest(page, () => page.goto(new URL('/start?empty=1', appUrl).href))
     userId = await page.evaluate(() => (window as any).Meteor.userId())
     await page.goto(new URL('/signup', appUrl).href)
     await page.getByRole('button', { name: 'Use a passkey instead of a password' }).click()
