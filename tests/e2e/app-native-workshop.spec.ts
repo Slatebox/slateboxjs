@@ -482,9 +482,10 @@ test('a visitor who has not joined cannot move a card by pointer, touch or keybo
   }
 })
 
-test('on a phone the lanes wrap one to a row at full size and a finger moves a card', async ({ browser, browserName }) => {
-  test.skip(browserName !== 'chromium', 'Uses Chromium device input for real touch events')
-  const context = await browser.newContext({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } })
+// A touch phone views slates and edits none (the app's phone view). The phone-width layout is checked in a narrow
+// window with a mouse (it still edits); the finger that moves a card is on a touch tablet (iPad mini).
+test('in a phone-width window the lanes wrap one to a row at full size, and turned they sit side by side', async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } })
   const page = await context.newPage()
   let id: string | null = null
   try {
@@ -511,6 +512,28 @@ test('on a phone the lanes wrap one to a row at full size and a finger moves a c
     await expect(conversation(page)).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'Ask Slatebox', exact: true })).toBeVisible()
 
+    // Turned: the lanes sit side by side again, fitted to the wider screen.
+    await page.setViewportSize({ width: 844, height: 390 })
+    await expect.poll(async () => {
+      const first = await note(page, 'column-reserve').boundingBox(), second = await note(page, 'column-calls').boundingBox()
+      return Boolean(first && second && Math.abs(first.y - second.y) < 1 && second.x > first.x)
+    }).toBe(true)
+    const pilot = await resting(page, 'column-pilot')
+    expect(pilot.x + pilot.width).toBeLessThanOrEqual(844)
+  } finally {
+    await removeTestGuest(page, id).catch(() => {})
+    await context.close()
+  }
+})
+
+test('on a touch tablet a finger moves a card', async ({ browser, browserName }) => {
+  test.skip(browserName !== 'chromium', 'Uses Chromium device input for real touch events')
+  const context = await browser.newContext({ hasTouch: true, viewport: { width: 744, height: 1133 } })
+  const page = await context.newPage()
+  let id: string | null = null
+  try {
+    const owner = await openOwned(page, '/new/pilot-budget')
+    id = owner.id
     const hand = await finger(page)
     await hand.dragCard('fund-1', 'calls')
     await expect.poll(async () => (await lanesOf(page, owner.key))['fund-1']).toBe('calls')
@@ -519,15 +542,6 @@ test('on a phone the lanes wrap one to a row at full size and a finger moves a c
     const settled = await resting(page, 'card-fund-1'), calls = await resting(page, 'column-calls')
     expect(settled.y).toBeGreaterThan(calls.y)
     expect(settled.y + settled.height).toBeLessThanOrEqual(calls.y + calls.height + 1)
-
-    // The phone turns: the lanes sit side by side again, fitted to the wider screen.
-    await page.setViewportSize({ width: 844, height: 390 })
-    await expect.poll(async () => {
-      const first = await note(page, 'column-reserve').boundingBox(), second = await note(page, 'column-calls').boundingBox()
-      return Boolean(first && second && Math.abs(first.y - second.y) < 1 && second.x > first.x)
-    }).toBe(true)
-    const pilot = await resting(page, 'column-pilot')
-    expect(pilot.x + pilot.width).toBeLessThanOrEqual(844)
   } finally {
     await removeTestGuest(page, id).catch(() => {})
     await context.close()

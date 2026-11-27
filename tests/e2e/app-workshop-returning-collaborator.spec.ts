@@ -32,7 +32,8 @@ test('a joined editor returns from My Slates across devices as the live title an
   test.skip(!['localhost', '127.0.0.1', 'test.slatebox.com'].includes(origin.hostname), 'Creates disposable accounts on local or staging only')
   const contexts = await Promise.all([
     browser.newContext(), browser.newContext(), browser.newContext(),
-    browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true }),
+    // A touch tablet (iPad mini): the returning editor moves a card, and a touch phone views slates only.
+    browser.newContext({ viewport: { width: 744, height: 1133 }, hasTouch: true }),
   ])
   const [owner, editor, observer, returning] = await Promise.all(contexts.map(context => context.newPage()))
   const email = 'joined-workshop-' + randomUUID() + '@slatebox.invalid'
@@ -112,9 +113,9 @@ test('a joined editor returns from My Slates across devices as the live title an
     const bounds = await reentry.boundingBox()
     expect(bounds).not.toBeNull()
     expect(bounds!.x).toBeGreaterThanOrEqual(0)
-    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(390)
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(744)
     expect(bounds!.y).toBeGreaterThanOrEqual(0)
-    expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(844)
+    expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(1133)
     await reentry.tap()
     await expect(returning).toHaveURL(invite.href)
     await dismissWelcome(returning)

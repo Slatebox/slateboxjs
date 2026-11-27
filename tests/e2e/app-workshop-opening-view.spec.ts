@@ -146,7 +146,8 @@ test.describe('beside an open conversation on a wide screen', () => {
 })
 
 test.describe('on a phone', () => {
-  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true })
+  // A touch phone views slates and edits none (the app's phone view): the phone's width is a narrow window with a mouse.
+  test.use({ viewport: { width: 390, height: 844 } })
 
   test('lanes open full size below the toolbar buttons, and an unanswered cookie notice covers no lane and no part of the conversation', async ({ page }) => {
     let id: string | null = null
@@ -167,13 +168,13 @@ test.describe('on a phone', () => {
       await expect(notice).toBeVisible()
       expect(view.notice!.top).toBeGreaterThanOrEqual(view.canvas.bottom)
       // With the conversation open under the canvas, the notice is below it too.
-      await page.getByRole('button', { name: 'Ask Slatebox', exact: true }).tap()
+      await page.getByRole('button', { name: 'Ask Slatebox', exact: true }).click()
       await expect(conversation(page)).toBeVisible()
       const talking = await seen(page)
       expect(talking.notice!.top).toBeGreaterThanOrEqual(talking.conversation!.bottom)
       expect(talking.canvas.bottom).toBeLessThanOrEqual(talking.conversation!.top + 1)
       // Answered, the room it took goes back to the slate.
-      await page.locator('[data-cookie-notice] button').tap()
+      await page.locator('[data-cookie-notice] button').click()
       await expect(notice).toHaveCount(0)
       await expect.poll(async () => (await seen(page)).conversation!.bottom).toBeGreaterThan(talking.conversation!.bottom + 40)
     } finally { await removeTestGuest(page, id) }

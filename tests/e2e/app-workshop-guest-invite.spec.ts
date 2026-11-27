@@ -18,8 +18,9 @@ test('a first-time workshop visitor chooses whether to join an edit link and los
   test.skip(!['localhost', '127.0.0.1', 'test.slatebox.com'].includes(origin.hostname), 'Creates disposable guest-owned slates on local or staging only')
   const ownerContext = await browser.newContext()
   const readerContext = await browser.newContext()
+  // The joining editor is on a touch tablet (iPad mini): a touch phone views slates only, with no Join to edit.
   const editorContext = await browser.newContext({
-    viewport: { width: 390, height: 844 }, hasTouch: true, deviceScaleFactor: 2,
+    viewport: { width: 744, height: 1133 }, hasTouch: true, deviceScaleFactor: 2,
   })
   const owner = await ownerContext.newPage()
   const reader = await readerContext.newPage()
@@ -96,7 +97,7 @@ test('a first-time workshop visitor chooses whether to join an edit link and los
     const bounds = await present.boundingBox()
     expect(bounds).not.toBeNull()
     expect(bounds!.x).toBeGreaterThanOrEqual(0)
-    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(390)
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(744)
     // On a phone, Present opens a sheet of the ways to present; this screen is the first.
     await present.tap()
     await editor.getByRole('menu', { name: 'Present' }).getByRole('menuitem', { name: 'Present on this screen', exact: true }).tap()

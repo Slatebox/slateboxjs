@@ -37,8 +37,8 @@ async function openSlate(page: Page) {
 async function select(page: Page, text: string) {
   const box = (await noteNamed(page, text).boundingBox())!
   const at = { x: box.x + box.width / 2, y: box.y + box.height / 2 }
-  // A phone is touched; a desktop is clicked.
-  if ((page.viewportSize()?.width ?? 1440) < 600) await page.touchscreen.tap(at.x, at.y)
+  // A touch screen is touched; a mouse clicks.
+  if (await page.evaluate(() => matchMedia('(pointer: coarse)').matches)) await page.touchscreen.tap(at.x, at.y)
   else await page.mouse.click(at.x, at.y)
   await expect.poll(() => page.evaluate(() => (window as any).slate.v2.getSelectedNodes().map((n: any) => n.options.text))).toEqual([text])
   await expect(bar(page)).toBeVisible()
@@ -46,7 +46,8 @@ async function select(page: Page, text: string) {
 
 for (const width of [1440, 390]) {
   test(`${width}: More has no Note behaviour… row, even for the slate's author; Locked keeps a note in place`, async ({ browser }) => {
-    const context = await browser.newContext({ viewport: { width, height: width === 390 ? 844 : 900 }, hasTouch: width === 390 })
+    // At 390 a narrow window with a mouse: a touch phone views slates and edits none (the app's phone view).
+    const context = await browser.newContext({ viewport: { width, height: width === 390 ? 844 : 900 } })
     const page = await context.newPage()
     let id: string | null = null
     try {
@@ -80,7 +81,8 @@ for (const width of [1440, 390]) {
 
 test('chat and exec set what the dialog kept: a category and hidden controls reach both browsers, the bar and a reload', async ({ browser, request }) => {
   const owner = await browser.newPage({ viewport: { width: 1440, height: 900 } })
-  const peerContext = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true })
+  // The phone-width peer edits, so it is a narrow window with a mouse (a touch phone views slates only).
+  const peerContext = await browser.newContext({ viewport: { width: 390, height: 844 } })
   const peer = await peerContext.newPage()
   owner.setDefaultTimeout(15_000)
   peer.setDefaultTimeout(15_000)

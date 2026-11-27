@@ -288,7 +288,8 @@ test.describe('many boards, 1440 by 900', () => {
 })
 
 test.describe('many boards on a phone, 390 by 844', () => {
-  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true })
+  // A touch phone views slates and edits none (the app's phone view): the phone's width is a narrow window with a mouse.
+  test.use({ viewport: { width: 390, height: 844 } })
 
   test('a second board is added beside the first in its narrow layout; selecting its lane offers "Change this board" for it', async ({ page }) => {
     test.setTimeout(300_000)
@@ -326,7 +327,7 @@ test.describe('many boards on a phone, 390 by 844', () => {
       await shot(page, 's4a-9-phone-second-board')
       // Tap the Sprint board's lane header: its bar offers "Change this board", for Sprint.
       const header = centre(await resting(page, 'b2:lane-todo'))
-      await page.touchscreen.tap(header.x, header.y)
+      await page.mouse.click(header.x, header.y)
       const change = page.locator('.sb-style-layer').getByRole('button', { name: 'Change this board' })
       await expect(change).toBeVisible()
       await shot(page, 's4a-10-phone-board-bar')

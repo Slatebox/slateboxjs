@@ -107,12 +107,21 @@ test('past the start, Slatebox\'s plan is offered and never moves the viewer; "U
 for (const size of [{ width: 2000, height: 1100 }, { width: 390, height: 844 }]) {
   test(`planning that never answers stops at its time limit; the label is whole at ${size.width}px`, async ({ browser }) => {
     test.setTimeout(120_000)
-    const context = await browser.newContext({ viewport: size, ...(size.width < 600 ? { isMobile: true, hasTouch: true } : {}) })
+    // On a phone the slate is made on a computer first (a phone views slates and makes none: the app's phone
+    // view); the same guest presents it on the phone.
+    const phone = size.width < 600
+    const desk = phone ? await browser.newContext({ viewport: { width: 1280, height: 800 } }) : null
+    const maker = desk ? await desk.newPage() : null
+    let uid: string | null = maker ? await mapSlate(maker) : null
+    const context = await browser.newContext({ viewport: size, ...(desk ? { isMobile: true, hasTouch: true, storageState: await desk.storageState() } : {}) })
     const page = await context.newPage()
-    let uid: string | null = null
     try {
       await stubMode(page, { mode: 'hang' })
-      uid = await mapSlate(page)
+      if (maker) {
+        await page.goto(maker.url())
+        await maker.goto('about:blank')
+        await workshopReady(page)
+      } else uid = await mapSlate(page)
       const started = Date.now()
       await startPresenting(page)
       await expect(planning(page)).toBeVisible()
@@ -135,6 +144,7 @@ for (const size of [{ width: 2000, height: 1100 }, { width: 390, height: 844 }])
       await stubMode(page, { mode: 'fast' })
       await cleanUp(page, uid)
       await context.close()
+      await desk?.close()
     }
   })
 }

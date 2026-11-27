@@ -241,12 +241,19 @@ test('Present on a slate with a workshop plays each lane with its cards, then th
 
 test('on a phone the presenter fills the screen and a swipe moves between viewpoints', async ({ browser }) => {
   test.skip(!writable, 'Creates a disposable guest slate on local or staging only.')
-  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, reducedMotion: 'reduce' })
+  // The slate is made on a computer (a phone views slates and makes none: the app's phone view); the same guest
+  // presents it on the phone.
+  const desk = await browser.newContext({ viewport: { width: 1360, height: 860 }, reducedMotion: 'reduce' })
+  const made = await desk.newPage()
+  const key = await workshopSlate(made)
+  const uid: string | null = await userId(made)
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, reducedMotion: 'reduce',
+    storageState: await desk.storageState() })
   const page = await context.newPage()
-  let uid: string | null = null
   try {
-    const key = await workshopSlate(page)
-    uid = await userId(page)
+    await made.goto('about:blank')
+    await page.goto(app + '/canvas/' + key)
+    await workshopReady(page)
     const before = await board(page, key)
     await shot(page, 'phone-board')
     const dialog = await openPresenter(page)
@@ -281,7 +288,7 @@ test('on a phone the presenter fills the screen and a swipe moves between viewpo
     await expect(dialog).toHaveCount(0)
     expect(await board(page, key)).toEqual(before)
   } finally {
-    try { await cleanUp(context, uid) } finally { await context.close() }
+    try { await cleanUp(context, uid) } finally { await context.close(); await desk.close() }
   }
 })
 

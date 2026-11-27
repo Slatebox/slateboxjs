@@ -387,7 +387,8 @@ test('a workshop card: Edit, Move to (only lanes it may go to), Ask; no colour o
 })
 
 test.describe('phone', () => {
-  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true })
+  // A touch phone views slates and edits none (the app's phone view): the phone's width is a narrow window with a mouse.
+  test.use({ viewport: { width: 390, height: 844 } })
   test('five buttons over the note, Style and More as sheets, "+ Add" instead of the tool dock', async ({ page }) => {
     let id: string | null = null
     try {

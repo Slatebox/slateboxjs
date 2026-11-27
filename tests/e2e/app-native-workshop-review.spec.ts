@@ -291,7 +291,9 @@ test('on a phone the status strip has a row of its own and one finger pans the c
     await dismissWelcome(guest)
     await workshopReady(guest)
     const strip = workshopStatus(guest)
-    await expect(strip.getByRole('button', { name: 'Join to edit', exact: true })).toBeVisible()
+    // A phone views slates (the app's phone view): the strip says View only and offers no Join to edit.
+    await expect(strip.getByText('View only', { exact: true })).toBeVisible()
+    await expect(strip.getByRole('button', { name: 'Join to edit', exact: true })).toHaveCount(0)
     // The strip sits under the canvas: it covers no card, and the canvas's own controls are not drawn through it.
     const stripBox = (await strip.boundingBox())!
     const canvasBox = (await canvas(guest).boundingBox())!

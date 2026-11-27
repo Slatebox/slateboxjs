@@ -409,7 +409,8 @@ test('a signed-out whiteboard contributor can choose to keep the original invita
 test('a research handoff carries the team’s edited prototype into a shared presentation', async ({browser}) => {
   test.skip(!allowed || !homepage, 'Requires a marketing site and a staging or local app')
   const owner = await browser.newPage()
-  const teammate = await browser.newPage({viewport:{width:390,height:844},hasTouch:true})
+  // A touch phone views slates and edits none (the app's phone view): the finger is on a touch tablet (iPad mini).
+  const teammate = await browser.newPage({viewport:{width:744,height:1133},hasTouch:true})
   let ownerId: string | null = null
   let ownedBoardId: string | null = null
   let inviteKey: string | null = null

@@ -165,8 +165,9 @@ test.describe('desktop, 1440 by 900', () => {
   })
 })
 
-test.describe('a phone, 390 by 844, touch', () => {
-  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true })
+test.describe('a touch tablet, 744 by 1133', () => {
+  // A touch phone views slates and edits none (the app's phone view): the finger is on a touch tablet (iPad mini).
+  test.use({ viewport: { width: 744, height: 1133 }, hasTouch: true })
 
   test('a tap on a lane header shows the board\'s bar; "Change this board" opens the chat about the board; no hover gear', async ({ page }) => {
     test.setTimeout(180_000)
